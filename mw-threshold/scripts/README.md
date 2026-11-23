@@ -23,3 +23,9 @@ Expected results:
 - `thm53`: with the printed parameters x₁ = d/c³, x_i = (c(1 − ε))^{1−i} x₁, ε = 1/k, the condition c·x_i ≤ x_{i−1} fails for every k tried and d − Σx_i < 0 for k ≥ 5 (c = 1.40, 1.44, 1.46); with x_i = c^{k−i}T and d = σ_k T the best final/initial ratio over k ≤ 60 is 0.98054 at c = 1.46, 0.99799 at c = 1.465, 1.00151 at c = 1.466 and 1.01562 at c = 1.47.
 
 These checks are evidence about the calculus as transcribed from the paper. They are not part of the kernel-checked results.
+
+`tex2md.py` regenerates `../paper/paper.md` from `../paper/paper.tex` (the reference version): it resolves references, citations, theorem numbering and the bibliography, runs `pandoc -f latex -t gfm`, and adds the title block. It needs pandoc (tested with 3.12).
+
+```sh
+python3 tex2md.py ../paper/paper.tex ../paper/paper.md
+```
