@@ -32,8 +32,8 @@ Commands:
   python3 mw_check.py construct 8/5
   python3 mw_check.py cert PATH             regenerate the c = 8/5 certificate (M(8), a0 = 10000,
                                             T rounded up to 6 decimals, macro repeated while
-                                            T >= 1) and compare it with the tag list in the Lean
-                                            file PATH
+                                            e >= sigma_8, i.e. unrounded T >= 1) and compare it
+                                            with the tag list in the Lean file PATH
   python3 mw_check.py thm53                 the printed parameters of Theorem 5.3, and corrected ones
   python3 mw_check.py all [PATH]            everything above (cert only if PATH is given)
 """

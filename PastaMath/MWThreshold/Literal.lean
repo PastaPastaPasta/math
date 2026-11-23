@@ -9,28 +9,32 @@ The calculus of A. S. Mudigonda and R. Williams (ITCS 2021; arXiv 2012.00330, De
 rules 2–5, with Theorem 2.10, Corollaries 2.8 and 2.11 and Lemma 5.1) for ∃·BPTIME[n] versus BPTS,
 with its exact rule outputs.
 
-A line is `(Q₁ n^{g₁})^{o₁} ⋯ K[n^a]`, blocks innermost first, `q = true` for ∃, kernel BPTS
-(`true`) or TS (`false`); the superscript in front of the first block is 1 (input length n).
+A line is `(Q₁ n^{g₁})^{o₁} ⋯ K[n^a]`, its blocks stored innermost first, `q = true` for ∃, kernel
+BPTS (`true`) or TS (`false`); the superscript in front of the first block is 1 (input length n).
 * `rspeed0` (rule 3, Thm 2.10): BPTS[n^a] ⊆ (∃ n^0)^1 (∀ n^x)^{max(x,1)} (∃ x log n)^1 TS[n^{a−x}],
   0 < x < a;
 * `rspeed` (rule 4, Cor. 2.11, the new n^0 block absorbed into the innermost block):
   ⋯(Q n^g)^o BPTS[n^a] ⊆ ⋯(Q n^g)^o (¬Q n^x)^{max(o,x)} (Q x log n)^o TS[n^{a−x}], 0 < x < a;
 * `dspeed` (rule 2, Cor. 2.8): ⋯(Q n^g)^o TS[n^a] ⊆ ⋯(Q n^{max(g,x)})^{max(o,x)} (¬Q x log n)^o
   TS[n^{a−x}], 0 < x < a;
-* `slow` (rule 5, Lemma 5.1, α = 1): ⋯^{o'} (Q n^g)^o K[n^a] ⊆ ⋯^{o'} BPTS[n^{c·max(a, o, g, o')}].
+* `slow` (rule 5, Lemma 5.1, α = 1), on either kernel:
+  ⋯^{o'} (Q n^g)^o K[n^a] ⊆ ⋯^{o'} BPTS[n^{c·max(a, o, g, o')}], with o' = 1 if no block is left.
 A refutation (`Refutes`; Definition 2.14 and Lemma 5.2) is strict: BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}],
-a' < a₀, with at least one step.
+a₀ > 0, a' < a₀, with at least one step.
 
-For c ≥ 0, `lit_m` maps every literal step from a line satisfying `Inv` to a step of the relaxed
-calculus `MW.MStep`, so
-`MW.no_mrefutation` applies (`no_lit_refutation`). `StepU` adds the unmerged orientation of rule 4
-and `StepW` adds weakening of an existing line; both are covered as well (`no_litU_refutation`,
-`no_litW_refutation`). `StepX` lets lines stop alternating: it adds Lemma 2.7 with Q = Q_k before
-merging, the unmerged rule 4 with a leading block of either type, and combining or splitting
-adjacent same-type blocks anywhere in the prefix at any time. Its run encoding `encR` (one entry
-per maximal run of same-type blocks) maps every `StepX` step to an `MW.XStep` step (`lit_x`), so
-it is covered as well (`no_litX_refutation`). `checkQ_sound` turns a rational tag list accepted by
-the executable checker `checkQ` into a refutation.
+For c ≥ 0, `lit_m` maps every literal step from a line satisfying `Inv` to an `MW.MStep` step
+between the encodings `enc`, and preserves `Inv`; the start line satisfies `Inv`, so for c > 0
+with c² ≥ c + 1 `MW.no_mrefutation` applies (`no_lit_refutation`). `StepU` adds the unmerged
+orientation of rule 4 and `StepW` adds weakening of an existing line; both are covered as well
+(`lit_u`, `lit_w`, `no_litU_refutation`, `no_litW_refutation`; their refutations are non-strict,
+from a₀ > 0, and for `StepW` contain at least one rule step). `StepX` lets lines stop alternating:
+it adds Lemma 2.7 with Q = Q_k before merging, the unmerged rule 4 with a leading block of either
+type, and combining or splitting adjacent same-type blocks anywhere in the prefix at any time. For
+c ≥ 0, every `StepX` step from a line satisfying `InvX` (nonnegative output and kernel exponents)
+is an `MW.XStep` step of the run encodings `encR` (one entry per maximal run of same-type blocks),
+and `InvX` is preserved (`lit_x`); so `StepX` is covered as well (`no_litX_refutation`: non-strict
+refutations from a₀ > 0 that pass through a line with a block). `checkQ_sound` turns a rational tag
+list accepted by the executable checker `checkQ` into a refutation.
 -/
 
 namespace PastaMath.MWThreshold
@@ -59,6 +63,7 @@ inductive Step (c : ℝ) : Line → Line → Prop
 
 def Path (c : ℝ) (M : ℕ → Line) (n : ℕ) : Prop := ∀ i < n, Step c (M i) (M (i + 1))
 
+/-- A strict refutation: n ≥ 1 `Step` steps from BPTS[n^{a₀}], a₀ > 0, to BPTS[n^{a'}], a' < a₀. -/
 def Refutes (c : ℝ) (n : ℕ) (M : ℕ → Line) : Prop :=
   1 ≤ n ∧ Path c M n ∧ ∃ a₀ a', 0 < a₀ ∧ M 0 = ([], true, a₀) ∧ M n = ([], true, a') ∧ a' < a₀
 
@@ -66,6 +71,7 @@ def Refutes (c : ℝ) (n : ℕ) (M : ℕ → Line) : Prop :=
 output superscript is ≥ 0, and the kernel is ≥ 0. -/
 def Inv (L : Line) : Prop := (∀ u ∈ L.1, 0 ≤ u.g ∧ u.g ≤ u.o ∧ 0 ≤ u.o) ∧ 0 ≤ L.2.2
 
+/-- The encoding into the relaxed calculus: output superscripts, kernel type and exponent. -/
 def enc (L : Line) : MW.MLine := (L.1.map Blk.o, L.2.1, L.2.2)
 
 theorem pin_enc (bl : List Blk) (h : ∀ u ∈ bl, 0 ≤ u.o) : MW.pin (bl.map Blk.o) ≤ pin bl := by
@@ -73,6 +79,8 @@ theorem pin_enc (bl : List Blk) (h : ∀ u ∈ bl, 0 ≤ u.o) : MW.pin (bl.map B
   | nil => simp [MW.pin, pin]
   | cons u _ => simp [MW.pin, pin]
 
+/-- For c ≥ 0, every `Step` step from a line satisfying `Inv` is an `MW.MStep` step between the
+encodings, and `Inv` is preserved. -/
 theorem lit_m {c : ℝ} (hc : 0 ≤ c) {L L' : Line} (h : Step c L L') (hI : Inv L) :
     MW.MStep c (enc L) (enc L') ∧ Inv L' := by
   obtain ⟨hb, ha⟩ := hI
@@ -128,7 +136,8 @@ theorem lit_m {c : ℝ} (hc : 0 ≤ c) {L L' : Line} (h : Step c L L') (hI : Inv
     · show 0 ≤ c * max (max a u.o) (max u.g (pin rest))
       exact mul_nonneg hc (le_trans ha (le_trans (le_max_left _ _) (le_max_left _ _)))
 
-/-- No literal refutation for c ≥ φ (via the relaxed calculus). -/
+/-- For c > 0 with c² ≥ c + 1 (c ≥ φ) there is no `Refutes` refutation (via the relaxed
+calculus). -/
 theorem no_lit_refutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ) (M : ℕ → Line) :
     ¬ Refutes c n M := by
   rintro ⟨hn, hp, a₀, a', ha₀, h0, hN, hlt⟩
@@ -156,13 +165,16 @@ def pinQ : List BlkQ → ℚ
   | [] => 1
   | u :: _ => u.o
 
-/-- Tags: `r x` = randomized speedup (rule 3 on the empty line, rule 4 otherwise), `d x` = rule 2,
-`s` = slowdown. -/
+/-- Tags: `r x` = randomized speedup on a BPTS kernel (rule 3 on the empty line, rule 4 otherwise),
+`d x` = rule 2 on a TS kernel, `s` = slowdown. -/
 inductive Tag
   | r (x : ℚ)
   | d (x : ℚ)
   | s
 
+/-- One rule application on a rational line: `some` of the resulting `Step` line if the tag applies
+(`r x`: BPTS kernel and 0 < x < a; `d x`: at least one block, TS kernel and 0 < x < a; `s`: at
+least one block), `none` otherwise. -/
 def stepQ (c : ℚ) : Tag → LineQ → Option LineQ
   | .r x, ([], true, a) =>
       if decide (0 < x) && decide (x < a) then
@@ -176,7 +188,9 @@ def stepQ (c : ℚ) : Tag → LineQ → Option LineQ
   | .s, (u :: rest, _, a) => some (rest, true, c * max (max a u.o) (max u.g (pinQ rest)))
   | _, _ => none
 
-/-- Run the tags from BPTS[n^{a0}] and accept iff the last line is BPTS[n^{a'}] with a' < a0. -/
+/-- Replay the tags from an arbitrary start line: `some` of the last line if every step is legal,
+`none` otherwise. There is no endpoint or contraction test (e.g. `runQ c L [] = some L`); those
+are in `checkQ`. -/
 def runQ (c : ℚ) : LineQ → List Tag → Option LineQ
   | L, [] => some L
   | L, t :: ts =>
@@ -184,6 +198,8 @@ def runQ (c : ℚ) : LineQ → List Tag → Option LineQ
       | none => none
       | some M => runQ c M ts
 
+/-- Accept iff a0 > 0, the tag list is nonempty, and the replay (`runQ`) from BPTS[n^{a0}] is legal
+and ends at a quantifier-free line BPTS[n^{a'}] with a' < a0. -/
 def checkQ (c a0 : ℚ) (ts : List Tag) : Bool :=
   decide (0 < a0) && decide (1 ≤ ts.length) &&
     match runQ c ([], true, a0) ts with
@@ -266,6 +282,7 @@ theorem runQ_sound {c : ℚ} : ∀ (ts : List Tag) (L Lf : LineQ), runQ c L ts =
             have := hp j (by simp at hi; omega)
             simpa using this
 
+/-- If `checkQ c a0 ts = true`, there is a `Refutes` refutation at c (cast to ℝ). -/
 theorem checkQ_sound {c a0 : ℚ} {ts : List Tag} (h : checkQ c a0 ts = true) :
     ∃ n M, Refutes (c : ℝ) n M := by
   unfold checkQ at h
@@ -292,7 +309,8 @@ theorem checkQ_sound {c a0 : ℚ} {ts : List Tag} (h : checkQ c a0 ts = true) :
 /-! ### The unmerged randomized speedup -/
 
 /-- The literal calculus with the unmerged orientation of rule 4 added:
-⋯(Q n^g)^o BPTS[n^a] ⊆ ⋯(Q n^g)^o (¬Q n^0)^o (Q n^x)^{max(o,x)} (¬Q x log n)^o TS[n^{a−x}]. -/
+⋯(Q n^g)^o BPTS[n^a] ⊆ ⋯(Q n^g)^o (¬Q n^0)^o (Q n^x)^{max(o,x)} (¬Q x log n)^o TS[n^{a−x}],
+0 < x < a. -/
 inductive StepU (c : ℝ) : Line → Line → Prop
   | lit {L L' : Line} : Step c L L' → StepU c L L'
   | rspeedU (u : Blk) (rest : List Blk) (a x : ℝ) (hx : 0 < x) (hxa : x < a) :
@@ -301,9 +319,13 @@ inductive StepU (c : ℝ) : Line → Line → Prop
 
 def PathU (c : ℝ) (M : ℕ → Line) (n : ℕ) : Prop := ∀ i < n, StepU c (M i) (M (i + 1))
 
+/-- A non-strict refutation in `StepU`: n ≥ 1 steps from BPTS[n^{a₀}], a₀ > 0, to BPTS[n^{a'}],
+a' ≤ a₀. -/
 def RefutesU (c : ℝ) (n : ℕ) (M : ℕ → Line) : Prop :=
   1 ≤ n ∧ PathU c M n ∧ ∃ a₀ a', 0 < a₀ ∧ M 0 = ([], true, a₀) ∧ M n = ([], true, a') ∧ a' ≤ a₀
 
+/-- For c ≥ 0, every `StepU` step from a line satisfying `Inv` is an `MW.UStep` step between the
+encodings, and `Inv` is preserved. -/
 theorem lit_u {c : ℝ} (hc : 0 ≤ c) {L L' : Line} (h : StepU c L L') (hI : Inv L) :
     MW.UStep c (enc L) (enc L') ∧ Inv L' := by
   cases h with
@@ -324,8 +346,8 @@ theorem lit_u {c : ℝ} (hc : 0 ≤ c) {L L' : Line} (h : StepU c L L') (hI : In
       · exact hb v (by simp [hv])
     · show 0 ≤ a - x; linarith
 
-/-- No refutation (strict or non-strict) for c ≥ φ in the literal calculus with both orientations of
-the randomized speedup. -/
+/-- For c > 0 with c² ≥ c + 1 there is no refutation, strict or non-strict (`RefutesU`: from
+a₀ > 0, a' ≤ a₀), in the literal calculus with both orientations of the randomized speedup. -/
 theorem no_litU_refutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ) (M : ℕ → Line) :
     ¬ RefutesU c n M := by
   rintro ⟨hn, hp, a₀, a', ha₀, h0, hN, hle⟩
@@ -342,21 +364,22 @@ theorem no_litU_refutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n :
 
 /-! ### Weakening -/
 
-/-- Weakening of a literal line: the same quantifiers, every guess exponent, output superscript and
-the kernel exponent raised (each guess exponent staying at most its superscript), and the kernel
-kept or replaced by BPTS (TS ⊆ BPTS). -/
+/-- Weakening of a literal line: the same number of blocks with the same quantifiers, every guess
+exponent, output superscript and the kernel exponent at least its old value (each new guess
+exponent at most its new superscript), and the kernel kept or replaced by BPTS (TS ⊆ BPTS). -/
 def LitWeaker (L L' : Line) : Prop :=
   List.Forall₂ (fun u v : Blk => u.q = v.q ∧ u.g ≤ v.g ∧ v.g ≤ v.o ∧ u.o ≤ v.o) L.1 L'.1 ∧
     (L.2.1 = L'.2.1 ∨ L'.2.1 = true) ∧ L.2.2 ≤ L'.2.2
 
-/-- `StepU` plus weakening of an existing line. -/
+/-- `StepU` plus weakening of an existing line (`LitWeaker`). -/
 inductive StepW (c : ℝ) : Line → Line → Prop
   | rule {L L' : Line} : StepU c L L' → StepW c L L'
   | weaken {L L' : Line} : LitWeaker L L' → StepW c L L'
 
 def PathW (c : ℝ) (M : ℕ → Line) (n : ℕ) : Prop := ∀ i < n, StepW c (M i) (M (i + 1))
 
-/-- A non-strict refutation with weakening, at least one step being a rule step. -/
+/-- A non-strict refutation with weakening: a `StepW` path from BPTS[n^{a₀}], a₀ > 0, to
+BPTS[n^{a'}], a' ≤ a₀, at least one step being a rule step. -/
 def RefutesW (c : ℝ) (n : ℕ) (M : ℕ → Line) : Prop :=
   PathW c M n ∧ (∃ j < n, StepU c (M j) (M (j + 1))) ∧
     ∃ a₀ a', 0 < a₀ ∧ M 0 = ([], true, a₀) ∧ M n = ([], true, a') ∧ a' ≤ a₀
@@ -375,6 +398,8 @@ theorem forall₂_inv {l l' : List Blk}
     · exact ⟨le_trans hg0 hg, hgo, le_trans ho0 ho⟩
     · exact ih (fun z hz => hl z (Or.inr hz)) w hw
 
+/-- For c ≥ 0, every `StepW` step from a line satisfying `Inv` is an `MW.StepW` step between the
+encodings, and `Inv` is preserved. -/
 theorem lit_w {c : ℝ} (hc : 0 ≤ c) {L L' : Line} (h : StepW c L L') (hI : Inv L) :
     MW.StepW c (enc L) (enc L') ∧ Inv L' := by
   cases h with
@@ -386,8 +411,9 @@ theorem lit_w {c : ℝ} (hc : 0 ≤ c) {L L' : Line} (h : StepW c L L') (hI : In
     rw [List.forall₂_map_left_iff, List.forall₂_map_right_iff]
     exact hbs.imp fun _ _ h => h.2.2.2
 
-/-- No refutation (non-strict, at least one rule step) for c ≥ φ in the literal calculus with both
-orientations of the randomized speedup and with weakening. -/
+/-- For c > 0 with c² ≥ c + 1 there is no `RefutesW` refutation (from a₀ > 0, non-strict, at least
+one rule step) in the literal calculus with both orientations of the randomized speedup and with
+weakening. -/
 theorem no_litW_refutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ) (M : ℕ → Line) :
     ¬ RefutesW c n M := by
   rintro ⟨hp, ⟨j, hj, hu⟩, a₀, a', ha₀, h0, hN, hle⟩
@@ -410,16 +436,19 @@ def SameO (u v : Blk) : Prop := u.q = v.q ∧ u.o ≤ v.o
 
 /-- The extended calculus, in LP form (every output superscript and the kernel exponent only bounded
 below, guess exponents arbitrary, 0 ≤ x ≤ a). Lines need not alternate.
-* `rspeed0`: Theorem 2.10 on a quantifier-free line of either kernel, in either orientation;
+* `rspeed0`: Theorem 2.10 on a quantifier-free line of either kernel, in either orientation (new
+  outputs ≥ 0, ≥ x, ≥ 0, outermost first);
 * `rspeed`: Corollary 2.11 merged as its footnote prescribes, on either kernel (TS ⊆ BPTS; on a TS
   kernel this is also Lemma 2.7 with Q = ¬Q_k);
 * `rspeedU`: Theorem 2.10 under a block without absorbing its leading n^0 block, which may have
-  either type;
-* `dspeed`: Corollary 2.8; `dspeedU`: Lemma 2.7 with Q = Q_k, the new block not merged;
-* `slow`: Lemma 5.1 (α = 1), for either kernel, whatever the type of the next block;
+  either type, on either kernel;
+* `dspeed` (TS kernel): Corollary 2.8; `dspeedU` (TS kernel): Lemma 2.7 with Q = Q_k, the new
+  block not merged;
+* `slow`: Lemma 5.1 (α = 1), for either kernel, whatever the type of the next block, at cost at
+  least c·max(a, o, g, o'), o' = 1 if no block is left;
 * `combine`: (Q n^{g₁})^{o₁} (Q n^{g₂})^{o₂} ⊆ (Q n^g)^o with o ≥ o₂, anywhere in the prefix, the
   kernel exponent possibly raised; `split`: (Q n^g)^o ⊆ (Q n^{g₁})^{o₁} (Q n^{g₂})^{o₂}
-  with o₂ ≥ o and o₁ ≥ 0;
+  with o₂ ≥ o and o₁ ≥ 0, anywhere in the prefix, the kernel exponent possibly raised;
 * `weaken`: raise output superscripts and the kernel exponent, change guess exponents, keep the
   quantifiers, and keep the kernel or replace it by BPTS. -/
 inductive StepX (c : ℝ) : Line → Line → Prop
@@ -458,8 +487,8 @@ inductive StepX (c : ℝ) : Line → Line → Prop
 
 def PathX (c : ℝ) (M : ℕ → Line) (n : ℕ) : Prop := ∀ i < n, StepX c (M i) (M (i + 1))
 
-/-- A non-strict refutation in `StepX`: BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}], a' ≤ a₀, in which some line
-has at least one quantifier block. -/
+/-- A non-strict refutation in `StepX`: a `StepX` path BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}] with
+a₀ > 0 and a' ≤ a₀, in which some line has at least one quantifier block. -/
 def RefutesX (c : ℝ) (n : ℕ) (M : ℕ → Line) : Prop :=
   PathX c M n ∧ (∃ j ≤ n, (M j).1 ≠ []) ∧
     ∃ a₀ a', 0 < a₀ ∧ M 0 = ([], true, a₀) ∧ M n = ([], true, a') ∧ a' ≤ a₀
@@ -502,6 +531,8 @@ theorem rrT_drop {u₁ u₂ : Blk} (post : List Blk) (h : u₁.q = u₂.q) :
     · rw [rrT_same _ hp, rrT_same _ hp, rrT_drop post h pre q]
     · rw [rrT_diff _ hp, rrT_diff _ hp, rrT_drop post h pre p.q]
 
+/-- Dropping the outer one of two adjacent same-type blocks anywhere in a line does not change its
+run encoding `rr`. -/
 theorem rr_drop {u₁ u₂ : Blk} (pre post : List Blk) (h : u₁.q = u₂.q) :
     rr (pre ++ u₂ :: u₁ :: post) = rr (pre ++ u₂ :: post) := by
   cases pre with
@@ -519,6 +550,8 @@ theorem rrT_f2 {l l' : List Blk} (h : List.Forall₂ SameO l l') :
     · rw [rrT_diff _ hu, rrT_diff _ (huv.1 ▸ hu), ← huv.1]
       exact List.Forall₂.cons huv.2 (ih u.q)
 
+/-- Raising output superscripts while keeping the quantifiers (`SameO` blockwise) raises the run
+entries componentwise. -/
 theorem rr_f2 {l l' : List Blk} (h : List.Forall₂ SameO l l') :
     List.Forall₂ (· ≤ ·) (rr l) (rr l') := by
   cases h with
@@ -728,8 +761,9 @@ theorem rr_ne_nil {l : List Blk} (h : l ≠ []) : rr l ≠ [] := by
   | nil => exact absurd rfl h
   | cons u r => simp [rr]
 
-/-- **No refutation with delayed combining** for c ≥ φ: no `StepX` path from BPTS[n^{a₀}], a₀ > 0, to
-a quantifier-free BPTS[n^{a'}] with a' ≤ a₀ passes through a line with a quantifier block. -/
+/-- **No refutation with delayed combining** for c > 0 with c² ≥ c + 1: no `StepX` path from
+BPTS[n^{a₀}], a₀ > 0, to a quantifier-free BPTS[n^{a'}] with a' ≤ a₀ passes through a line with a
+quantifier block. -/
 theorem no_litX_refutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ) (M : ℕ → Line) :
     ¬ RefutesX c n M := by
   rintro ⟨hp, ⟨j, hj, hne⟩, a₀, a', ha₀, h0, hN, hle⟩
@@ -758,7 +792,8 @@ theorem step_stepX {c : ℝ} {L L' : Line} (h : Step c L L') : StepX c L L' := b
       rfl rfl le_rfl le_rfl le_rfl
   | slow u rest k a => exact StepX.slow u rest k a _ le_rfl
 
-/-- The unmerged orientation of rule 4 and weakening are `StepX` steps as well. -/
+/-- Every `StepW` step (the exact rules, the unmerged orientation of rule 4, and weakening) is a
+`StepX` step. -/
 theorem stepW_stepX {c : ℝ} {L L' : Line} (h : StepW c L L') : StepX c L L' := by
   cases h with
   | rule h =>
@@ -773,6 +808,7 @@ theorem stepW_stepX {c : ℝ} {L L' : Line} (h : StepW c L L') : StepX c L L' :=
     · exact StepX.weaken _ _ _ _ _ _ (hbs.imp fun _ _ h => ⟨h.1, h.2.2.2⟩) (Or.inl hk) ha
     · exact StepX.weaken _ _ _ _ _ _ (hbs.imp fun _ _ h => ⟨h.1, h.2.2.2⟩) (Or.inr hk) ha
 
+/-- A `Step` step from a quantifier-free line reaches a line with at least one block. -/
 theorem step_nil_ne {c : ℝ} {k : Bool} {a : ℝ} {L : Line} (h : Step c ([], k, a) L) : L.1 ≠ [] := by
   cases h with
   | rspeed0 => simp

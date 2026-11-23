@@ -6,22 +6,30 @@ import PastaMath.MWThreshold.Literal
 /-!
 # The threshold of the Mudigonda–Williams BPTS calculus is the golden ratio
 
-The literal calculus `MWL.Step` has threshold exactly φ = (1+√5)/2, both directions kernel-checked.
+For c ≥ 1, the literal calculus `MWL.Step` has a refutation iff c < φ = (1+√5)/2; both directions
+are kernel-checked.
 
-* `MWG.refutes_of_lt_phi`: for every c with 1 ≤ c and c(c−1) < 1 there is a strict refutation.
-  Construction: the macro `M(j+1)` = one randomized speedup, j deterministic speedups, j+2 slowdowns,
-  run under the (∃ n^0)^1 block that Theorem 2.10 leaves (`mac`). From kernel e = σ_{j+1}·T
-  (σ_0 = 1, σ_{i+1} = σ_i + c^i, T ≥ 1) it reaches the same block with kernel ≤ c^{j+2}·T, so it
-  multiplies the kernel by at most ρ = c^{j+2}/σ_{j+1}. If c(c−1) < 1 some j has ρ < 1
-  (`exists_contracting`); the macro is iterated (`iter`) and the (∃ n^0)^1 block is popped once.
-  The inner phase (`inner`) is an induction on the number of deterministic speedups left, with the
-  invariant "kernel = σ_j·t, pin ≤ c^j·t, t ≥ 1"; every max(·,1) floor is resolved by t ≥ 1.
-* `MWG.threshold_phi`: for c ≥ 1, (∃ refutation) ↔ c(c−1) < 1; `MWG.threshold_goldenRatio`:
-  ↔ c < (1+√5)/2. `MWG.threshold_phi_U`, `MWG.threshold_phi_W` and `MWG.threshold_phi_X`: the
-  same with the unmerged orientation of rule 4, with weakening as well, and with lines that need
-  not alternate (combining and splitting same-type blocks at any time).
+* `MWG.refutes_of_lt_phi`: for every c with 1 ≤ c and c(c−1) < 1 (that is, 1 ≤ c < φ) there is a
+  strict refutation. Construction, for c ≥ 1: the macro `M(j+1)` = one randomized speedup, j
+  deterministic speedups, j+2 slowdowns, run from BPTS[n^e] (creating the (∃ n^0)^1 block that
+  Theorem 2.10 leaves) or under that block (`mac`). From kernel e = σ_{j+1}·T (σ_0 = 1,
+  σ_{i+1} = σ_i + c^i, T ≥ 1) it reaches the line (∃ n^0)^1 BPTS[n^{e'}] with 0 ≤ e' ≤ c^{j+2}·T,
+  so it multiplies the kernel by at most ρ = c^{j+2}/σ_{j+1}. If 1 ≤ c and c(c−1) < 1, some j has
+  ρ < 1 (`exists_contracting`); from a kernel e ≥ 0 under the block, at most m macros (stopping as
+  soon as the kernel is below σ_{j+1}) reach a kernel ≤ max(ρ^m·e, σ_{j+1}) (`iter`), and the
+  (∃ n^0)^1 block is popped once. The inner phase (`inner`) starts from a TS kernel and an innermost
+  block of guess exponent 0 and output 1; it is an induction on the number of deterministic
+  speedups left, with the invariant "kernel = σ_j·t, pin ≤ c^j·t, t ≥ 1"; every max(·,1) floor is
+  resolved by t ≥ 1.
+* `MWG.threshold_phi`: for c ≥ 1, (∃ strict refutation) ↔ c(c−1) < 1; `MWG.threshold_goldenRatio`:
+  ↔ c < (1+√5)/2. `MWG.threshold_phi_U`, `MWG.threshold_phi_W` and `MWG.threshold_phi_X`: for
+  c ≥ 1, the same with the unmerged orientation of rule 4, with weakening as well, and with lines
+  that need not alternate (combining and splitting same-type blocks at any time). Their refutations
+  are non-strict (a' ≤ a₀, from a₀ > 0); for `StepW` they contain at least one rule step and for
+  `StepX` they pass through a line with a quantifier block.
 * `MWG.mw15_ok`: a 15-step refutation at c = 1467/1000, above the constant of the source paper's
-  Theorem 5.3 (`MWG.mw21_root_lt`).
+  Theorem 5.3 (`MWG.mw21_root_lt`); it uses the rule sequence of two M(3) macros with chosen
+  parameters, then the final slowdown.
 -/
 
 namespace PastaMath.MWThreshold
@@ -77,9 +85,10 @@ theorem sig_closed (c : ℝ) : ∀ j, (c - 1) * sig c j = c ^ j + c - 2
   | 0 => by simp [sig]; ring
   | j + 1 => by rw [sig_succ, mul_add, sig_closed c j, pow_succ]; ring
 
-/-- Inner phase: j deterministic speedups and j+1 slowdowns, from a line whose innermost block is an
-x·log n block.  Kernel σ_j·t, t ≥ 1, pin ≤ c^j·t ⟹ the line below is reached with a BPTS kernel
-≤ c^{j+1}·t. -/
+/-- Inner phase, for c ≥ 1: from a line R (q n^0)^1 TS[n^a] (innermost block of guess exponent 0
+and output 1, TS kernel) with a = σ_j·t, t ≥ 1 and pin R ≤ c^j·t, the line R BPTS[n^v] is reachable
+for some 0 ≤ v ≤ c^{j+1}·t. (The path built in the proof has j deterministic speedups and j+1
+slowdowns; the statement asserts only reachability.) -/
 theorem inner {c : ℝ} (hc : 1 ≤ c) : ∀ (j : ℕ) (q : Bool) (R : List Blk) (a t : ℝ),
     a = sig c j * t → 1 ≤ t → pin R ≤ c ^ j * t →
     ∃ v, 0 ≤ v ∧ v ≤ c ^ (j + 1) * t ∧ Reach c (⟨q, 0, 1⟩ :: R, false, a) (R, true, v) := by
@@ -120,8 +129,9 @@ theorem inner {c : ℝ} (hc : 1 ≤ c) : ∀ (j : ℕ) (q : Bool) (R : List Blk)
 /-- The block (∃ n^0)^1 left by Theorem 2.10. -/
 def top : Blk := ⟨true, 0, 1⟩
 
-/-- One macro M(j+1) under the (∃ n^0)^1 block (or, from the empty line, creating it):
-kernel σ_{j+1}·T ↦ kernel ≤ c^{j+2}·T. -/
+/-- One macro M(j+1), for c ≥ 1 and T ≥ 1: from BPTS[n^e] (creating the (∃ n^0)^1 block) or from
+(∃ n^0)^1 BPTS[n^e], with e = σ_{j+1}·T, the line (∃ n^0)^1 BPTS[n^{e'}] is reachable for some
+0 ≤ e' ≤ c^{j+2}·T. -/
 theorem mac {c : ℝ} (hc : 1 ≤ c) (j : ℕ) (B0 : List Blk) (hB : B0 = [] ∨ B0 = [top]) (e T : ℝ)
     (he : e = sig c (j + 1) * T) (hT : 1 ≤ T) :
     ∃ e', 0 ≤ e' ∧ e' ≤ c ^ (j + 2) * T ∧ Reach c (B0, true, e) ([top], true, e') := by
@@ -157,7 +167,9 @@ theorem mac {c : ℝ} (hc : 1 ≤ c) (j : ℕ) (B0 : List Blk) (hB : B0 = [] ∨
           mul_le_mul_of_nonneg_left hb hc0
       _ = c ^ (j + 2) * T := by rw [pow_succ c (j + 1)]; ring
 
-/-- Iterating the macro under the block: after m rounds the kernel is ≤ max(ρ^m e, σ_{j+1}). -/
+/-- Iterating the macro under the block, for c ≥ 1: from (∃ n^0)^1 BPTS[n^e] with e ≥ 0, the line
+(∃ n^0)^1 BPTS[n^{e'}] is reachable for some 0 ≤ e' ≤ max(ρ^m·e, σ_{j+1}), ρ = c^{j+2}/σ_{j+1}.
+The proof performs at most m macros, stopping as soon as the kernel is below σ_{j+1}. -/
 theorem iter {c : ℝ} (hc : 1 ≤ c) (j : ℕ) : ∀ (m : ℕ) (e : ℝ), 0 ≤ e →
     ∃ e', 0 ≤ e' ∧ e' ≤ max ((c ^ (j + 2) / sig c (j + 1)) ^ m * e) (sig c (j + 1)) ∧
       Reach c ([top], true, e) ([top], true, e') := by
@@ -185,7 +197,7 @@ theorem iter {c : ℝ} (hc : 1 ≤ c) (j : ℕ) : ∀ (m : ℕ) (e : ℝ), 0 ≤
     · push Not at h
       exact ⟨e, he, le_trans h.le (le_max_right _ _), Reach.refl _⟩
 
-/-- Bernoulli's inequality, in the form used below. -/
+/-- Bernoulli's inequality, in the form used below: for c ≥ 1, 1 + k(c − 1) ≤ c^k. -/
 theorem bernoulli {c : ℝ} (hc : 1 ≤ c) : ∀ k : ℕ, 1 + k * (c - 1) ≤ c ^ k
   | 0 => by simp
   | k + 1 => by
@@ -195,7 +207,7 @@ theorem bernoulli {c : ℝ} (hc : 1 ≤ c) : ∀ k : ℕ, 1 + k * (c - 1) ≤ c 
       rw [pow_succ]
       nlinarith [mul_nonneg (sub_nonneg.2 this) (sub_nonneg.2 hc), one_le_pow₀ (n := k) hc]
 
-/-- If c(c−1) < 1, some macro contracts: c^{j+2} < σ_{j+1}. -/
+/-- If 1 ≤ c and c(c−1) < 1, some macro contracts: c^{j+2} < σ_{j+1} for some j. -/
 theorem exists_contracting {c : ℝ} (hc : 1 ≤ c) (hphi : c * (c - 1) < 1) :
     ∃ j : ℕ, c ^ (j + 2) < sig c (j + 1) := by
   rcases eq_or_lt_of_le hc with h | h
@@ -217,7 +229,8 @@ theorem exists_contracting {c : ℝ} (hc : 1 ≤ c) (hphi : c * (c - 1) < 1) :
       rw [hcl, pow_succ c (N + 1)]; nlinarith
     exact lt_of_mul_lt_mul_left this (by linarith)
 
-/-- **Refutations for every c < φ** in MW21's literal calculus. -/
+/-- **Refutations for every 1 ≤ c < φ** in MW21's literal calculus: if 1 ≤ c and c(c−1) < 1, there
+is a strict refutation (`Refutes`). -/
 theorem refutes_of_lt_phi {c : ℝ} (hc : 1 ≤ c) (hphi : c * (c - 1) < 1) :
     ∃ n M, Refutes c n M := by
   have hc0 : 0 ≤ c := by linarith
@@ -267,7 +280,7 @@ theorem refutes_of_lt_phi {c : ℝ} (hc : 1 ≤ c) (hphi : c * (c - 1) < 1) :
         · rw [max_eq_left h]; exact hA
 
 /-- **Threshold of MW21's BPTS calculus, both directions kernel-checked.** For c ≥ 1 there is a strict
-refutation iff c(c−1) < 1. -/
+refutation (`Refutes`: n ≥ 1 steps, a₀ > 0, a' < a₀) iff c(c−1) < 1. -/
 theorem threshold_phi {c : ℝ} (hc : 1 ≤ c) : (∃ n M, Refutes c n M) ↔ c * (c - 1) < 1 := by
   constructor
   · rintro ⟨n, M, h⟩
@@ -276,7 +289,8 @@ theorem threshold_phi {c : ℝ} (hc : 1 ≤ c) : (∃ n M, Refutes c n M) ↔ c 
     exact no_lit_refutation (by linarith) (by nlinarith) n M h
   · exact refutes_of_lt_phi hc
 
-/-- The same with the golden ratio φ = (1+√5)/2 written out. -/
+/-- The same with the golden ratio φ = (1+√5)/2 written out: for c ≥ 1, a strict refutation exists
+iff c < φ. -/
 theorem threshold_goldenRatio {c : ℝ} (hc : 1 ≤ c) :
     (∃ n M, Refutes c n M) ↔ c < Real.goldenRatio := by
   rw [threshold_phi hc]
@@ -286,8 +300,9 @@ theorem threshold_goldenRatio {c : ℝ} (hc : 1 ≤ c) :
   · intro h; by_contra hn; push Not at hn; nlinarith
   · intro h; nlinarith
 
-/-- With both orientations of the randomized speedup the literal calculus is still capped at φ, and
-the construction above is unchanged (it uses only `Step`). -/
+/-- With both orientations of the randomized speedup the literal calculus is still capped at φ: for
+c ≥ 1, a `RefutesU` refutation (non-strict, n ≥ 1 steps, from a₀ > 0) exists iff c(c−1) < 1. The
+construction above is unchanged (it uses only `Step`). -/
 theorem threshold_phi_U {c : ℝ} (hc : 1 ≤ c) :
     ((∃ n M, RefutesU c n M) ↔ c * (c - 1) < 1) := by
   constructor
@@ -299,8 +314,10 @@ theorem threshold_phi_U {c : ℝ} (hc : 1 ≤ c) :
     obtain ⟨n, M, hn, hp, a₀, a', ha, h0, hN, hlt⟩ := refutes_of_lt_phi hc h
     exact ⟨n, M, hn, fun i hi => StepU.lit (hp i hi), a₀, a', ha, h0, hN, hlt.le⟩
 
-/-- With weakening added as well (raising exponents of an existing line, TS ⊆ BPTS), the threshold
-is unchanged. The left side asks only for a non-strict refutation with at least one rule step. -/
+/-- With weakening added as well (raising exponents of an existing line, each guess exponent at most
+its output, TS ⊆ BPTS), the threshold is unchanged: for c ≥ 1, a `RefutesW` refutation exists iff
+c(c−1) < 1. The left side asks only for a non-strict refutation from a₀ > 0 with at least one rule
+step. -/
 theorem threshold_phi_W {c : ℝ} (hc : 1 ≤ c) :
     ((∃ n M, RefutesW c n M) ↔ c * (c - 1) < 1) := by
   constructor
@@ -315,8 +332,9 @@ theorem threshold_phi_W {c : ℝ} (hc : 1 ≤ c) :
 
 /-- With lines that need not alternate, combining and splitting adjacent same-type blocks anywhere
 in the prefix at any later time, Lemma 2.7 with Q = Q_k unmerged, both orientations of rule 4 and
-weakening, the threshold is unchanged. The left side asks only for a non-strict refutation in which
-some line has a quantifier block. -/
+weakening, the threshold is unchanged: for c ≥ 1, a `RefutesX` refutation exists iff c(c−1) < 1.
+The left side asks only for a non-strict refutation from a₀ > 0 in which some line has a quantifier
+block. -/
 theorem threshold_phi_X {c : ℝ} (hc : 1 ≤ c) :
     ((∃ n M, RefutesX c n M) ↔ c * (c - 1) < 1) := by
   constructor
@@ -331,14 +349,21 @@ theorem threshold_phi_X {c : ℝ} (hc : 1 ≤ c) :
     exact ⟨n, M, fun i hi => step_stepX (hp i hi), ⟨1, hn, step_nil_ne h1⟩,
       a₀, a', ha, h0, hN, hlt.le⟩
 
-/-! ### A 15-step refutation at c = 1.467: M(3) M(3), then the final slowdown -/
+/-! ### A 15-step refutation at c = 1.467
 
+The rule sequence of two M(3) macros with parameters chosen for this sequence, then the final
+slowdown. The parameters are not those of `mac`: for the first speedup the macro lemma would take
+x = c²·10000/σ_3 = 21520890000/5619089 ≈ 3829.96069, and `mw15` uses exactly 3830. -/
+
+/-- The 15 tags of the refutation at c = 1467/1000 from a₀ = 10000. -/
 def mw15 : List Tag :=
   [.r 3830, .d (206250 / 79), .d (105000 / 59), .s, .s, .s, .s,
    .r (1550000 / 491), .d (170000 / 79), .d (1040000 / 709), .s, .s, .s, .s, .s]
 
+/-- The checker accepts `mw15` at c = 1467/1000 from a₀ = 10000. -/
 theorem mw15_ok : checkQ (1467 / 1000) 10000 mw15 = true := by decide +kernel
 
+/-- A strict refutation at c = 1467/1000 in the literal calculus. -/
 theorem mw15_refutes : ∃ n M, Refutes (1467 / 1000 : ℝ) n M := by
   have h := checkQ_sound mw15_ok; push_cast at h; exact h
 

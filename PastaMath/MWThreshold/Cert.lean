@@ -4,10 +4,10 @@ import PastaMath.MWThreshold.Literal
 /-!
 # A concrete refutation at c = 8/5
 
-A refutation in the literal calculus `MWL.Step` at c = 8/5, a₀ = 10000, with 2687 steps: the macro
-M(8) (one randomized speedup, seven deterministic speedups, nine slowdowns) applied 158 times, the
-first time creating and afterwards under the (∃ n^0)^1 block of Theorem 2.10, then the final
-slowdown. Each macro takes T = e/σ₈ rounded up to six decimals, for the current kernel exponent e,
+A refutation in the literal calculus `MWL.Step` at c = 8/5, a₀ = 10000, with 2687 steps: the rule
+sequence of the macro M(8) (one randomized speedup, seven deterministic speedups, nine slowdowns)
+applied 158 times, the first time creating and afterwards under the (∃ n^0)^1 block of
+Theorem 2.10, then the final slowdown. Each macro takes T = e/σ₈ rounded up to six decimals, for the current kernel exponent e,
 and uses the speedup parameters c⁷T, c⁶T, …, T; it is repeated while e ≥ σ₈. The list is checked by
 kernel evaluation of the executable checker `MWL.checkQ` (`decide +kernel`, no extra axioms).
 `MWG.refutes_of_lt_phi` makes this instance redundant; it is kept as an explicit example, and the

@@ -19,26 +19,39 @@ innermost first (guess exponents are dropped: every line of such a proof is orde
 `k = true` for a BPTS kernel and `false` for a TS kernel, and `a` is the kernel exponent.
 The input superscript in front of the outermost block is 0 (the paper has 1; 0 is more permissive).
 
-* `rspeed0`: Theorem 2.10 (rule 3): BPTS[n^a] ⊆ (∃ n^0)^1 (∀ n^x)^{max(x,1)} (∃ x log n) TS[n^{a−x}];
-* `rspeed`: Corollary 2.11 (rule 4), also allowed on TS kernels (TS ⊆ BPTS):
-  ⋯(Q n^{a_k})^{b} K[n^a] ⊆ ⋯(Q n^{a_k})^{b} (Q' n^x)^{max(b,x)} (Q x log n)^{b} TS[n^{a−x}];
-* `dspeed`: Corollary 2.8 (rule 2): ⋯(Q n^{a_k})^{b} TS[n^a] ⊆
+The source rules, with the paper's exact outputs:
+* Theorem 2.10 (rule 3): BPTS[n^a] ⊆ (∃ n^0)^1 (∀ n^x)^{max(x,1)} (∃ x log n) TS[n^{a−x}];
+* Corollary 2.11 (rule 4): ⋯(Q n^{a_k})^{b} BPTS[n^a] ⊆
+  ⋯(Q n^{a_k})^{b} (Q' n^x)^{max(b,x)} (Q x log n)^{b} TS[n^{a−x}];
+* Corollary 2.8 (rule 2): ⋯(Q n^{a_k})^{b} TS[n^a] ⊆
   ⋯(Q n^{max(a_k,x)})^{max(b,x)} (Q' x log n)^{b} TS[n^{a−x}];
-* `slow`: Lemma 5.1 (rule 5, α = 1): ⋯^{b'} (Q n^{a_k})^{b} K[n^a] ⊆ ⋯^{b'} BPTS[n^{c·max(a, b, a_k, b')}].
-Outputs are only bounded below, and 0 ≤ x ≤ a.
+* Lemma 5.1 (rule 5, α = 1): ⋯^{b'} (Q n^{a_k})^{b} K[n^a] ⊆ ⋯^{b'} BPTS[n^{c·max(a, b, a_k, b')}].
+`MStep` relaxes them: every rule needs 0 ≤ x ≤ a and gives a new kernel exponent a₂ ≥ a − x, and
+the new outputs are only bounded below.
+* `rspeed0`, from a quantifier-free line of either kernel: new outputs b₁ ≥ 0, b₂ ≥ max(x, 0),
+  b₃ ≥ 0 (outermost first), TS kernel;
+* `rspeed`, on either kernel (TS ⊆ BPTS): the innermost output b is kept, new outputs
+  b₂ ≥ max(b, x) and b₃ ≥ b, TS kernel;
+* `dspeed`, on a TS kernel: b is replaced by t₂ ≥ max(b, x), a new output b₃ ≥ b, TS kernel;
+* `slow`, on either kernel: the innermost block is removed and the BPTS kernel is any e ≥
+  c·max(b', b, a), where b' is the output of the next block, or 0 if there is none.
 
 `UStep` adds the unmerged orientation of the randomized speedup (three new blocks), and `StepW`
-adds weakening of an existing line (`Weaker`: raise superscripts or the kernel exponent, or replace
-a TS kernel by BPTS). `XStep` adds two rules that are needed when the entries are read as maximal
-runs of adjacent same-type blocks (`rspeedS`, `slowIn`); under that reading combining or splitting
-blocks is a weakening (see `MWL.StepX` and `MWL.lit_x`).
+adds weakening of an existing line (`Weaker`: the same number of blocks, superscripts and the
+kernel exponent raised, the kernel kept or replaced by BPTS). `XStep` adds two rules that are
+needed when the entries are read as maximal runs of adjacent same-type blocks (`rspeedS`,
+`slowIn`); under that reading combining or splitting blocks is a weakening (see `MWL.StepX` and
+`MWL.lit_x`).
 
-Main results: if c > 0 and c² ≥ c + 1 (that is, c ≥ φ), every quantifier-free line BPTS[n^{a'}] reached from
-BPTS[n^{a₀}] after at least one step has a' ≥ c·a₀ (`qf_ge`, `qf_ge_u`, and `qf_ge_w` when at least
-one step is a rule step), so there is no refutation, strict or not (`no_mrefutation`,
-`no_urefutation`, `no_wrefutation`); the same holds for `XStep` when some line has a block
-(`qf_ge_x`, `no_xrefutation`). The proof is a potential `Φ` that never decreases along a step
-(`phi_step`, `phi_ustep`, `phi_xstep`) and is monotone under weakening (`phi_mono`).
+Main results: let c > 0 and c² ≥ c + 1 (that is, c ≥ φ). For a₀ ≥ 0, every quantifier-free line
+BPTS[n^{a'}] reached from BPTS[n^{a₀}] has a' ≥ c·a₀ if the path has at least one `MStep` or
+`UStep` step (`qf_ge`, `qf_ge_u`), contains at least one rule step (`StepW`, `qf_ge_w`), or passes
+through a line with a block (`XStep`, `qf_ge_x`). So there is no refutation from a₀ > 0, strict or
+not (`no_mrefutation`, `no_urefutation`, `no_wrefutation`, `no_xrefutation`, with the rule-step and
+block conditions of `WRefutes` and `XRefutes`). The proof is a potential `Φ c g` with
+g = 1/(c² − 1): for any g with `Facts c g`, it does not decrease along a step from a line with
+nonnegative entries (`phi_step`, `phi_ustep`, `phi_xstep`) or under a weakening of such a line
+(`phi_mono`).
 -/
 
 namespace PastaMath.MWThreshold
@@ -65,8 +78,9 @@ inductive MStep (c : ℝ) : MLine → MLine → Prop
 
 def Path (c : ℝ) (M : ℕ → MLine) (n : ℕ) : Prop := ∀ i < n, MStep c (M i) (M (i + 1))
 
-/-- A refutation (MW21 Def. 2.14 / Lemma 5.2), non-strict: BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}], a' ≤ a₀,
-at least one step.  Intermediate lines are unrestricted (this only strengthens the theorem). -/
+/-- A refutation (MW21 Def. 2.14 / Lemma 5.2), non-strict: an `MStep` path
+BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}] with a₀ > 0, a' ≤ a₀ and at least one step. Intermediate lines are
+unrestricted (this only strengthens the theorem). -/
 def MRefutes (c : ℝ) (n : ℕ) (M : ℕ → MLine) : Prop :=
   1 ≤ n ∧ Path c M n ∧ ∃ a₀ a', 0 < a₀ ∧ M 0 = ([], true, a₀) ∧ M n = ([], true, a') ∧ a' ≤ a₀
 
@@ -75,7 +89,8 @@ def NN (L : MLine) : Prop := (∀ b ∈ L.1, 0 ≤ b) ∧ 0 ≤ L.2.2
 /-- Line potential: max(b, a) on BPTS lines, max(b, g·a) on TS lines. -/
 def pot (g b : ℝ) (k : Bool) (a : ℝ) : ℝ := if k then max b a else max b (g * a)
 
-/-- Lift through the outer blocks: popping a block of superscript b' costs c·max(b', ·). -/
+/-- Lift through the outer blocks: popping a block of superscript b' costs c·max(b', ·), and the
+last lift, for the input, costs c·max(0, ·). -/
 def up (c : ℝ) : List ℝ → ℝ → ℝ
   | [], y => c * max 0 y
   | b :: rest, y => up c rest (c * max b y)
@@ -92,13 +107,14 @@ theorem up_mono {c : ℝ} (hc : 0 ≤ c) : ∀ (l : List ℝ) {y y' : ℝ}, y �
       simp only [up]
       exact up_mono hc rest (mul_le_mul_of_nonneg_left (max_le_max le_rfl h) hc)
 
-/-- The balance inequality: (1+g)·max(x, g(a−x)) ≥ g·a. -/
+/-- The balance inequality: for g ≥ 0 (and any x, a), (1+g)·max(x, g(a−x)) ≥ g·a. -/
 theorem bal {g a x : ℝ} (hg : 0 ≤ g) :
     g * a ≤ (1 + g) * max x (g * (a - x)) := by
   have h1 : x ≤ max x (g * (a - x)) := le_max_left _ _
   have h2 : g * (a - x) ≤ max x (g * (a - x)) := le_max_right _ _
   nlinarith
 
+/-- The inequalities on c and g used by the potential argument. -/
 structure Facts (c g : ℝ) : Prop where
   c1 : 1 ≤ c
   g0 : 0 ≤ g
@@ -106,6 +122,8 @@ structure Facts (c g : ℝ) : Prop where
   cg : 1 + g ≤ c
   c2g : 1 + g ≤ c ^ 2 * g
 
+/-- For c > 0 with c² ≥ c + 1, g = 1/(c² − 1) satisfies `Facts`: 1 ≤ c, 0 ≤ g ≤ 1, 1 + g ≤ c and
+1 + g ≤ c²·g (the last holds with equality, but only the inequality is recorded). -/
 theorem facts_of_phi {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) : Facts c (1 / (c ^ 2 - 1)) := by
   have hc1 : 1 ≤ c := by nlinarith
   have hd : 0 < c ^ 2 - 1 := by nlinarith
@@ -119,7 +137,7 @@ theorem facts_of_phi {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) : Facts c 
   · have : c ^ 2 * (1 / (c ^ 2 - 1)) = 1 + 1 / (c ^ 2 - 1) := by field_simp; ring
     rw [this]
 
-/-- TS-speedup key inequality. -/
+/-- TS-speedup key inequality: for `Facts c g` and x ≥ 0 (any a), g·a ≤ c·max(x, g(a−x)). -/
 theorem key_d {c g a x : ℝ} (F : Facts c g) (hx : 0 ≤ x) :
     g * a ≤ c * max x (g * (a - x)) := by
   have hb := bal (a := a) (x := x) F.g0
@@ -128,7 +146,7 @@ theorem key_d {c g a x : ℝ} (F : Facts c g) (hx : 0 ≤ x) :
     mul_le_mul_of_nonneg_right F.cg hm
   linarith
 
-/-- BPTS-speedup key inequality. -/
+/-- BPTS-speedup key inequality: for `Facts c g` and 0 ≤ x ≤ a, a ≤ c²·max(x, g(a−x)). -/
 theorem key_r {c g a x : ℝ} (F : Facts c g) (hx : 0 ≤ x) (hxa : x ≤ a) :
     a ≤ c ^ 2 * max x (g * (a - x)) := by
   have hb := bal (a := a) (x := x) F.g0
@@ -188,7 +206,8 @@ theorem nn_step {c : ℝ} (hc : 0 ≤ c) {L L' : MLine} (h : MStep c L L') (hL :
     have : 0 ≤ c * max (max (pin rest) b) a := mul_nonneg hc (le_trans ha (le_max_right _ _))
     linarith
 
-/-- The potential never decreases along a step (c ≥ φ). -/
+/-- For g with `Facts c g` (`facts_of_phi` gives g = 1/(c² − 1) when c > 0 and c² ≥ c + 1),
+`Φ c g` does not decrease along an `MStep` step from a line with nonnegative entries (`NN`). -/
 theorem phi_step {c g : ℝ} (F : Facts c g) {L L' : MLine} (h : MStep c L L') (hL : NN L) :
     Φ c g L ≤ Φ c g L' := by
   have hc0 : 0 ≤ c := by linarith [F.c1]
@@ -285,7 +304,8 @@ theorem phi_path {c g : ℝ} (F : Facts c g) {M : ℕ → MLine} {n : ℕ} (hp :
     · obtain ⟨h, _⟩ := ih hj (by omega)
       exact ⟨le_trans h (phi_step F (hp j (by omega)) (hnn j (by omega))), hnn _ hi⟩
 
-/-- The first step from a quantifier-free BPTS line already raises the potential to c·a₀. -/
+/-- For `Facts c g`, any `MStep` step from a quantifier-free line of kernel exponent a₀ (either
+kernel) reaches a line of potential at least c·a₀. -/
 theorem first_step {c g : ℝ} (F : Facts c g) {a₀ : ℝ} {k : Bool} {L : MLine}
     (h : MStep c ([], k, a₀) L) : c * a₀ ≤ Φ c g L := by
   have hc0 : 0 ≤ c := by linarith [F.c1]
@@ -302,8 +322,9 @@ theorem first_step {c g : ℝ} (F : Facts c g) {a₀ : ℝ} {k : Bool} {L : MLin
         _ ≤ _ := mul_le_mul_of_nonneg_left (le_trans hy2 (le_max_right _ _)) hc0
     exact mul_le_mul_of_nonneg_left (le_trans h1 (le_max_right _ _)) hc0
 
-/-- **Limit theorem.** For c ≥ φ (c² ≥ c + 1, c > 0) MW21's BPTS calculus has no refutation, strict or
-non-strict: every quantifier-free line reached after ≥ 1 step from BPTS[n^{a₀}] has exponent ≥ c·a₀. -/
+/-- **Limit theorem.** Let c > 0 with c² ≥ c + 1 (c ≥ φ) and a₀ ≥ 0. In the relaxed calculus
+`MStep`, every quantifier-free line BPTS[n^{a'}] reached from BPTS[n^{a₀}] in n ≥ 1 steps has
+a' ≥ c·a₀. (`no_mrefutation` deduces that there is no `MRefutes` refutation, from a₀ > 0.) -/
 theorem qf_ge {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) {M : ℕ → MLine} {n : ℕ}
     (hp : Path c M n) (hn : 1 ≤ n) {a₀ a' : ℝ} (ha₀ : 0 ≤ a₀) (h0 : M 0 = ([], true, a₀))
     (hN : M n = ([], true, a')) : c * a₀ ≤ a' := by
@@ -317,6 +338,7 @@ theorem qf_ge {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) {M : ℕ → MLin
   rw [e] at hmono
   linarith
 
+/-- For c > 0 with c² ≥ c + 1 there is no `MRefutes` refutation (n ≥ 1 steps, a₀ > 0, a' ≤ a₀). -/
 theorem no_mrefutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ) (M : ℕ → MLine) :
     ¬ MRefutes c n M := by
   rintro ⟨hn, hp, a₀, a', ha₀, h0, hN, hle⟩
@@ -327,9 +349,10 @@ theorem no_mrefutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ
 
 /-! ### The unmerged randomized speedup -/
 
-/-- `MStep` plus the unmerged randomized speedup: ⋯(Q)^b K[n^a] ⊆ ⋯(Q)^b (Q' n^0)^{b₁}
-(¬Q' n^x)^{b₂} (Q' x log n)^{b₃} TS[n^{a₂}], with only lower bounds on the outputs
-(b₁ ≥ 0 is weaker than the paper's b₁ = b). -/
+/-- `MStep` plus the unmerged randomized speedup, on either kernel: ⋯(Q)^b K[n^a] ⊆ ⋯(Q)^b
+(Q' n^0)^{b₁} (¬Q' n^x)^{b₂} (Q' x log n)^{b₃} TS[n^{a₂}] with 0 ≤ x ≤ a and only lower bounds
+b₁ ≥ 0, b₂ ≥ max(b, x), b₃ ≥ b, a₂ ≥ a − x (b₁ ≥ 0 is weaker than the value b₁ = b of
+`MWL.StepU.rspeedU`). -/
 inductive UStep (c : ℝ) : MLine → MLine → Prop
   | base {L L' : MLine} : MStep c L L' → UStep c L L'
   | rspeedU (b : ℝ) (rest : List ℝ) (k : Bool) (a x b₁ b₂ b₃ a₂ : ℝ) (hx : 0 ≤ x) (hxa : x ≤ a)
@@ -338,6 +361,8 @@ inductive UStep (c : ℝ) : MLine → MLine → Prop
 
 def UPath (c : ℝ) (M : ℕ → MLine) (n : ℕ) : Prop := ∀ i < n, UStep c (M i) (M (i + 1))
 
+/-- A non-strict refutation in `UStep`: n ≥ 1 steps from BPTS[n^{a₀}], a₀ > 0, to BPTS[n^{a'}],
+a' ≤ a₀. -/
 def URefutes (c : ℝ) (n : ℕ) (M : ℕ → MLine) : Prop :=
   1 ≤ n ∧ UPath c M n ∧ ∃ a₀ a', 0 < a₀ ∧ M 0 = ([], true, a₀) ∧ M n = ([], true, a') ∧ a' ≤ a₀
 
@@ -356,6 +381,8 @@ theorem nn_ustep {c : ℝ} (hc : 0 ≤ c) {L L' : MLine} (h : UStep c L L') (hL 
     · exact hb0
     · exact hb y (by simp [hy])
 
+/-- For `Facts c g`, `Φ c g` does not decrease along a `UStep` step from a line with nonnegative
+entries. -/
 theorem phi_ustep {c g : ℝ} (F : Facts c g) {L L' : MLine} (h : UStep c L L') (hL : NN L) :
     Φ c g L ≤ Φ c g L' := by
   have hc0 : 0 ≤ c := by linarith [F.c1]
@@ -411,8 +438,9 @@ theorem first_ustep {c g : ℝ} (F : Facts c g) {a₀ : ℝ} {k : Bool} {L : MLi
   cases h with
   | base h => exact first_step F h
 
-/-- **Limit theorem with both orientations of the randomized speedup.** For c ≥ φ every
-quantifier-free line reached after ≥ 1 step of `UStep` from BPTS[n^{a₀}] has exponent ≥ c·a₀. -/
+/-- **Limit theorem with both orientations of the randomized speedup.** Let c > 0 with c² ≥ c + 1
+and a₀ ≥ 0. Every quantifier-free line BPTS[n^{a'}] reached from BPTS[n^{a₀}] in n ≥ 1 `UStep`
+steps has a' ≥ c·a₀. -/
 theorem qf_ge_u {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) {M : ℕ → MLine} {n : ℕ}
     (hp : UPath c M n) (hn : 1 ≤ n) {a₀ a' : ℝ} (ha₀ : 0 ≤ a₀) (h0 : M 0 = ([], true, a₀))
     (hN : M n = ([], true, a')) : c * a₀ ≤ a' := by
@@ -426,6 +454,7 @@ theorem qf_ge_u {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) {M : ℕ → ML
   rw [e] at hmono
   linarith
 
+/-- For c > 0 with c² ≥ c + 1 there is no `URefutes` refutation (from a₀ > 0, non-strict). -/
 theorem no_urefutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ) (M : ℕ → MLine) :
     ¬ URefutes c n M := by
   rintro ⟨hn, hp, a₀, a', ha₀, h0, hN, hle⟩
@@ -461,7 +490,8 @@ theorem pot_mono {g b b' a a' : ℝ} (k : Bool) (hg : 0 ≤ g) (hb : b ≤ b') (
   · simp only [pot, if_true]
     exact max_le_max hb ha
 
-/-- **The potential is monotone under weakening.** -/
+/-- **The potential is monotone under weakening.** For `Facts c g` and a line `L` with nonnegative
+entries, `Φ c g L ≤ Φ c g L'` for every weakening `L'` of `L`. -/
 theorem phi_mono {c g : ℝ} (F : Facts c g) {L L' : MLine} (h : Weaker L L') (hL : NN L) :
     Φ c g L ≤ Φ c g L' := by
   have hc0 : 0 ≤ c := by linarith [F.c1]
@@ -505,8 +535,9 @@ inductive StepW (c : ℝ) : MLine → MLine → Prop
 
 def PathW (c : ℝ) (M : ℕ → MLine) (n : ℕ) : Prop := ∀ i < n, StepW c (M i) (M (i + 1))
 
-/-- A non-strict refutation with weakening: BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}], a' ≤ a₀, in which at
-least one step is a rule step (MW21's Definition 2.14 asks for a speedup). -/
+/-- A non-strict refutation with weakening: a `StepW` path BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}] with
+a₀ > 0 and a' ≤ a₀, in which at least one step is a rule step (MW21's Definition 2.14 asks for a
+speedup). -/
 def WRefutes (c : ℝ) (n : ℕ) (M : ℕ → MLine) : Prop :=
   PathW c M n ∧ (∃ j < n, UStep c (M j) (M (j + 1))) ∧
     ∃ a₀ a', 0 < a₀ ∧ M 0 = ([], true, a₀) ∧ M n = ([], true, a') ∧ a' ≤ a₀
@@ -516,20 +547,24 @@ theorem nn_stepw {c : ℝ} (hc : 0 ≤ c) {L L' : MLine} (h : StepW c L L') (hL 
   | rule h => exact nn_ustep hc h hL
   | weaken h => exact nn_weaker h hL
 
+/-- For `Facts c g`, `Φ c g` does not decrease along a `StepW` step from a line with nonnegative
+entries. -/
 theorem phi_stepw {c g : ℝ} (F : Facts c g) {L L' : MLine} (h : StepW c L L') (hL : NN L) :
     Φ c g L ≤ Φ c g L' := by
   cases h with
   | rule h => exact phi_ustep F h hL
   | weaken h => exact phi_mono F h hL
 
+/-- A `UStep` step from a quantifier-free line reaches a line with at least one block. -/
 theorem ustep_nil_ne {c : ℝ} {k : Bool} {a : ℝ} {L : MLine} (h : UStep c ([], k, a) L) :
     L.1 ≠ [] := by
   cases h with
   | base h => cases h with
     | rspeed0 => simp
 
-/-- **Limit theorem with weakening.** For c ≥ φ, if a `StepW` path from BPTS[n^{a₀}] to a
-quantifier-free BPTS[n^{a'}] contains at least one rule step, then a' ≥ c·a₀. -/
+/-- **Limit theorem with weakening.** Let c > 0 with c² ≥ c + 1 and a₀ ≥ 0. If a `StepW` path
+from BPTS[n^{a₀}] to a quantifier-free BPTS[n^{a'}] contains at least one rule step, then
+a' ≥ c·a₀. -/
 theorem qf_ge_w {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) {M : ℕ → MLine} {n : ℕ}
     (hp : PathW c M n) (hj : ∃ j < n, UStep c (M j) (M (j + 1))) {a₀ a' : ℝ} (ha₀ : 0 ≤ a₀)
     (h0 : M 0 = ([], true, a₀)) (hN : M n = ([], true, a')) : c * a₀ ≤ a' := by
@@ -577,6 +612,8 @@ theorem qf_ge_w {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) {M : ℕ → ML
   · obtain ⟨j, hj, hu⟩ := hj
     exact absurd hu (hno j hj)
 
+/-- For c > 0 with c² ≥ c + 1 there is no `WRefutes` refutation (from a₀ > 0, non-strict, with at
+least one rule step). -/
 theorem no_wrefutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ) (M : ℕ → MLine) :
     ¬ WRefutes c n M := by
   rintro ⟨hp, hj, a₀, a', ha₀, h0, hN, hle⟩
@@ -589,7 +626,7 @@ theorem no_wrefutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ
 
 Read the entries of a line as maximal runs of adjacent same-type blocks, each entry being the output
 superscript of the innermost block of its run. Combining or splitting blocks inside a run is then a
-weakening (`Weaker`). Two more rules are needed: the same-type unmerged randomized speedup, whose new
+weakening (`Weaker`) of the encodings. Two more rules are needed: the same-type unmerged randomized speedup, whose new
 n^0 block becomes the innermost block of the run below it (`rspeedS`), and a slowdown that removes
 the innermost block of a run of two or more blocks, so that the run stays (`slowIn`). -/
 
@@ -604,8 +641,9 @@ inductive XStep (c : ℝ) : MLine → MLine → Prop
 
 def XPath (c : ℝ) (M : ℕ → MLine) (n : ℕ) : Prop := ∀ i < n, XStep c (M i) (M (i + 1))
 
-/-- A non-strict refutation in `XStep`: BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}], a' ≤ a₀, in which some line
-has at least one block (so at least one step is not a weakening). -/
+/-- A non-strict refutation in `XStep`: an `XStep` path BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}] with
+a₀ > 0 and a' ≤ a₀, in which some line has at least one block (so at least one step is not a
+weakening). -/
 def XRefutes (c : ℝ) (n : ℕ) (M : ℕ → MLine) : Prop :=
   XPath c M n ∧ (∃ j ≤ n, (M j).1 ≠ []) ∧
     ∃ a₀ a', 0 < a₀ ∧ M 0 = ([], true, a₀) ∧ M n = ([], true, a') ∧ a' ≤ a₀
@@ -634,6 +672,8 @@ theorem nn_xstep {c : ℝ} (hc : 0 ≤ c) {L L' : MLine} (h : XStep c L L') (hL 
       have : 0 ≤ c * max b a := mul_nonneg hc (le_trans hb0 (le_max_left _ _))
       linarith
 
+/-- For `Facts c g`, `Φ c g` does not decrease along an `XStep` step from a line with nonnegative
+entries. -/
 theorem phi_xstep {c g : ℝ} (F : Facts c g) {L L' : MLine} (h : XStep c L L') (hL : NN L) :
     Φ c g L ≤ Φ c g L' := by
   have hc0 : 0 ≤ c := by linarith [F.c1]
@@ -680,8 +720,9 @@ theorem xstep_nil {c : ℝ} {k : Bool} {a : ℝ} {L : MLine} (h : XStep c ([], k
   cases h with
   | w h => exact h
 
-/-- **Limit theorem for `XStep`.** For c ≥ φ, if an `XStep` path from BPTS[n^{a₀}] to a
-quantifier-free BPTS[n^{a'}] passes through a line with at least one block, then a' ≥ c·a₀. -/
+/-- **Limit theorem for `XStep`.** Let c > 0 with c² ≥ c + 1 and a₀ ≥ 0. If an `XStep` path from
+BPTS[n^{a₀}] to a quantifier-free BPTS[n^{a'}] passes through a line with at least one block, then
+a' ≥ c·a₀. -/
 theorem qf_ge_x {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) {M : ℕ → MLine} {n : ℕ}
     (hp : XPath c M n) (hj : ∃ j ≤ n, (M j).1 ≠ []) {a₀ a' : ℝ} (ha₀ : 0 ≤ a₀)
     (h0 : M 0 = ([], true, a₀)) (hN : M n = ([], true, a')) : c * a₀ ≤ a' := by
@@ -728,6 +769,8 @@ theorem qf_ge_x {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) {M : ℕ → ML
   · obtain ⟨j, hj, hne⟩ := hj
     exact absurd (hno j hj) hne
 
+/-- For c > 0 with c² ≥ c + 1 there is no `XRefutes` refutation (from a₀ > 0, non-strict, through
+a line with a block). -/
 theorem no_xrefutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ) (M : ℕ → MLine) :
     ¬ XRefutes c n M := by
   rintro ⟨hp, hj, a₀, a', ha₀, h0, hN, hle⟩
