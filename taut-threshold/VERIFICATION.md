@@ -37,6 +37,8 @@ Every theorem must depend only on `propext`, `Classical.choice` and `Quot.sound`
 'PastaMath.TautThreshold.TDL.threshold_literal' depends on axioms: [propext, Classical.choice, Quot.sound]
 'PastaMath.TautThreshold.TW.w5_nf' depends on axioms: [propext, Classical.choice, Quot.sound]
 'PastaMath.TautThreshold.TW.wq_proof' depends on axioms: [propext, Classical.choice, Quot.sound]
+'PastaMath.TautThreshold.TW.w13_combine' depends on axioms: [propext, Classical.choice, Quot.sound]
+'PastaMath.TautThreshold.TW.a27_combine' depends on axioms: [propext, Classical.choice, Quot.sound]
 'PastaMath.TautThreshold.TL.tlv_refutes' depends on axioms: [propext, Classical.choice, Quot.sound]
 ```
 
@@ -44,7 +46,7 @@ The Lean files contain no `sorry`, `admit`, `native_decide`, `implemented_by` or
 
 ## Headline theorems
 
-All names are in namespace `PastaMath.TautThreshold`. The rule relations are defined in `PastaMath/TautThreshold/Literal.lean`: `TW.WStepE` (exact rules of Williams's Lemmas 6.1 and 6.2, merging adjacent same-type blocks), `TW.WStep` (its relaxation: outputs only bounded below), `TW.WStepXE` (`WStepE` plus the exact non-merging speedup, matching-kernel flip and quantifier-free flip) and `TW.WStepX` (the relaxation of `WStepXE`; lines need not alternate). Lean proves `WStepE ⊆ WStep ⊆ WStepX` and `WStepXE ⊆ WStepX`. `TW.LineLE B A` means: same blocks and kernel type, and every exponent of B at most that of A.
+All names are in namespace `PastaMath.TautThreshold`. The rule relations are defined in `PastaMath/TautThreshold/Literal.lean`: `TW.WStepE` (exact rules of Williams's Lemmas 6.1 and 6.2, merging adjacent same-type blocks), `TW.WStep` (its relaxation: outputs only bounded below), `TW.WStepXE` (`WStepE` plus the exact non-merging speedup, matching-kernel flip and quantifier-free flip, and the identity (Q n^a)^a (Q n^b)^b = (Q n^{max(a,b)})^b of Williams's §2 applied in either direction to any two adjacent blocks) and `TW.WStepX` (the relaxation of `WStepXE`; lines need not alternate, and two adjacent same-type blocks anywhere in a line can be combined into one, or one block split into two). Lean proves `WStepE ⊆ WStep ⊆ WStepX` and `WStepXE ⊆ WStepX`. `TW.LineLE B A` means: same blocks and kernel type, and every exponent of B at most that of A.
 
 | Theorem | File | Plain-language meaning |
 |---|---|---|
@@ -60,9 +62,10 @@ All names are in namespace `PastaMath.TautThreshold`. The rule relations are def
 | `TDL.nf_exists` | `DvMWLiteral.lean` | For 1 ≤ c with c³ < 4, a normal-form proof exists using only the exact merging rules (the Diehl–van Melkebeek–Williams construction). |
 | `TDL.threshold_literal` | `DvMWLiteral.lean` | For c ≥ 1: a normal-form proof with the exact merging rules exists iff c³ < 4. |
 | `TW.w5_nf`, `TW.wq_proof`, `TL.tlv_refutes` | `Literal.lean`, `Limit.lean` | Non-vacuity: concrete proofs at c = 5/4 and c = 13/10 are accepted by the definitions. |
+| `TW.w13_combine`, `TW.a27_combine` | `Literal.lean` | Non-vacuity: the §2 identity (∃n)¹(∃n)¹ NTS[n] ⊆ (∃n)¹ NTS[n] is one `WStepXE` step, and the combining step on p. A:27 of Williams's paper is one `WStepX` step. |
 
 ## What the build does not check
 
-Lean checks the theorems about the formal calculus. It does not check that the formal rules cover the rules of Williams's paper (a modelling claim; the remaining reading points, such as dropping n^{o(1)} terms from the exponents, are listed in Section 9(b) of `paper/paper.tex`), or that the calculus is sound for complexity classes.
+Lean checks the theorems about the formal calculus. It does not check that the formal rules cover the rules of Williams's paper (a modelling claim; the remaining reading points, such as dropping n^{o(1)} terms from the exponents, are listed in Section 9(b) of `paper/paper.tex`), or that the calculus is sound for complexity classes. Williams's Lemma 6.5 (a normal-form proof contradicts the hypothesis) is cited only for proofs in the published calculus: in `WStepX`, `flipQ` alone gives a two-line normal-form proof at c = 1, which Lemma 6.5's argument does not cover. The existence direction uses only `WStepE`.
 
-The scripts in [`scripts/`](scripts/) (Python standard library, exact rational arithmetic) check numbers quoted from Williams's paper; they are not part of the kernel-checked results. Run them with `python3 scripts/w13_listing.py` and `python3 scripts/w13_lp.py --lines 5,8,11` from this directory.
+The scripts in [`scripts/`](scripts/) (Python standard library, exact rational arithmetic) check numbers quoted from Williams's paper; they are not part of the kernel-checked results. Run them with `python3 scripts/w13_listing.py` (well under a second) and `python3 scripts/w13_lp.py --lines 5,8,11` (about a minute) from this directory; `python3 scripts/w13_lp.py --lines 14 --digits 3` takes several minutes.

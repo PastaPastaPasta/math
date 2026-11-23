@@ -11,8 +11,8 @@ Lemma 6.1 speedup, Lemma 6.2 slowdown, Definition 6.4 normal form), and its limi
 The connection to the calculus in Williams's own line format is made in `Literal.lean`.
 
 A line is (sups, matching, a): the input constraints of the quantifier blocks (outermost
-first), whether the kernel's type matches the innermost block (NTS under ∃, coNTS under ∀),
-and the kernel exponent. Potential: `Ps c b a = min (max b a) (max (c/2 · a) (5/2 · b))` on
+first; `Literal.lean` keeps one entry per run of adjacent same-type blocks), whether the kernel's
+type matches the innermost block (NTS under ∃, coNTS under ∀), and the kernel exponent. Potential: `Ps c b a = min (max b a) (max (c/2 · a) (5/2 · b))` on
 matching lines, `Ps c b (c · Ps c b a)` on opposite lines.
 -/
 
@@ -210,8 +210,11 @@ guessed configurations into the last block and opens an index block of the other
 (Lemma 6.1 without merging, from either kernel type); `flip` applies H to the kernel alone
 (Lemma 6.2(3),(4), and the matching-kernel direction); `pop` removes the last block with its
 matching kernel (Lemma 6.2(1),(2)); the new innermost block may have either type, so the result
-may be matching or opposite; `weak` is weakening. With x = 0, `speedM`/`speedO` are dummy
-blocks. -/
+may be matching or opposite; `popIn` removes the innermost of two adjacent blocks of the same
+type, so the entry of their run becomes the next block's input constraint b' and the kernel no
+longer matches (Lemma 6.2(1),(2) when the next block has the popped block's type, under the
+grouping of same-type runs used in `Literal.lean`); `weak` is weakening. With x = 0,
+`speedM`/`speedO` are dummy blocks. -/
 inductive TStep (c : ℝ) : TLine → TLine → Prop
   | init (a : ℝ) : TStep c ([], true, a) ([0], true, a)
   | speedM (bs : List ℝ) (b a x b₁ b₂ a₂ : ℝ) (hx : 0 ≤ x) (hxa : x ≤ a) (h₁ : max x b ≤ b₁)
@@ -223,6 +226,8 @@ inductive TStep (c : ℝ) : TLine → TLine → Prop
       TStep c (bs ++ [b], t, a) (bs ++ [b], !t, e)
   | pop {t : Bool} (bs : List ℝ) (b a e : ℝ) (h : c * max (top bs) (max b a) ≤ e) :
       TStep c (bs ++ [b], true, a) (bs, t, e)
+  | popIn (bs : List ℝ) (b b' a e : ℝ) (hb' : 0 ≤ b') (h : c * max b' (max b a) ≤ e) :
+      TStep c (bs ++ [b], true, a) (bs ++ [b'], false, e)
   | weak (bs bs' : List ℝ) (t : Bool) (a a' : ℝ) (hl : bs'.length = bs.length)
       (hle : ∀ i, bs.getD i 0 ≤ bs'.getD i 0) (ha : a ≤ a') : TStep c (bs, t, a) (bs', t, a')
 
@@ -249,7 +254,9 @@ theorem tstep_inv {c : ℝ} {L L' : TLine} (h : TStep c L L') :
     (∃ (bs : List ℝ) (b : ℝ), L.1 = bs ++ [b] ∧ L.2.1 = true ∧ L'.1 = bs ∧
       c * max (top bs) (max b L.2.2) ≤ L'.2.2) ∨
     (L'.1.length = L.1.length ∧ (∀ i, L.1.getD i 0 ≤ L'.1.getD i 0) ∧ L'.2.1 = L.2.1 ∧
-      L.2.2 ≤ L'.2.2) := by
+      L.2.2 ≤ L'.2.2) ∨
+    (∃ (bs : List ℝ) (b b' : ℝ), L.1 = bs ++ [b] ∧ L.2.1 = true ∧ L'.1 = bs ++ [b'] ∧
+      L'.2.1 = false ∧ 0 ≤ b' ∧ c * max b' (max b L.2.2) ≤ L'.2.2) := by
   cases h with
   | init a => exact Or.inl ⟨rfl, rfl, rfl, rfl⟩
   | speedM bs b a x b₁ b₂ a₂ hx hxa h₁ h₂ h₃ =>
@@ -258,7 +265,10 @@ theorem tstep_inv {c : ℝ} {L L' : TLine} (h : TStep c L L') :
     exact Or.inr (Or.inr (Or.inl ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, rfl, rfl, rfl⟩))
   | flip bs b a e t h => exact Or.inr (Or.inr (Or.inr (Or.inl ⟨bs, b, rfl, rfl, rfl, h⟩)))
   | pop bs b a e h => exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨bs, b, rfl, rfl, rfl, h⟩))))
-  | weak bs bs' t a a' hl hle ha => exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨hl, hle, rfl, ha⟩))))
+  | weak bs bs' t a a' hl hle ha =>
+    exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨hl, hle, rfl, ha⟩)))))
+  | popIn bs b b' a e hb' h =>
+    exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨bs, b, b', rfl, rfl, rfl, rfl, hb', h⟩)))))
 
 theorem getD_snoc_len (bs : List ℝ) (b : ℝ) : (bs ++ [b]).getD bs.length 0 = b := by
   rw [List.getD_append_right _ _ _ _ le_rfl, Nat.sub_self]; rfl
@@ -294,7 +304,7 @@ theorem tstep_nonneg {c : ℝ} (hc : 0 ≤ c) {L L' : TLine} (h : TStep c L L') 
   obtain ⟨hL1, hL2⟩ := hL
   rcases tstep_inv h with ⟨-, e1, -, e2⟩ | ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, e0, -, e1, -⟩ |
     ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, e0, e1, -⟩ | ⟨bs, b, e0, e1, -, hf⟩ |
-    ⟨bs, b, e0, -, e1, hf⟩ | ⟨hl, hle, -, ha⟩
+    ⟨bs, b, e0, -, e1, hf⟩ | ⟨hl, hle, -, ha⟩ | ⟨bs, b, b', e0, -, e1, -, hb', hf⟩
   · refine ⟨?_, by rw [e2]; exact hL2⟩
     rw [e1]; exact getD1_nonneg le_rfl
   · rw [e0] at hL1
@@ -321,6 +331,10 @@ theorem tstep_nonneg {c : ℝ} (hc : 0 ≤ c) {L L' : TLine} (h : TStep c L L') 
     · exact nn_pref hL1 i hi
     · rw [List.getD_eq_default _ _ hi]
   · exact ⟨fun i => le_trans (hL1 i) (hle i), le_trans hL2 ha⟩
+  · rw [e0] at hL1
+    refine ⟨?_, le_trans (mul_nonneg hc (le_trans hb' (le_max_left _ _))) hf⟩
+    rw [e1]
+    exact nn_app (nn_pref hL1) (getD1_nonneg hb')
 
 theorem tstep_restrict {c c₀ : ℝ} (hcc : c₀ ≤ c) {L L' : TLine} (h : TStep c L L') (hL : NN L) :
     TStep c₀ L L' := by
@@ -338,11 +352,14 @@ theorem tstep_restrict {c c₀ : ℝ} (hcc : c₀ ≤ c) {L L' : TLine} (h : TSt
     exact TStep.pop bs b a e (le_trans (mul_le_mul_of_nonneg_right hcc
       (le_trans (le_trans hb (le_max_left _ _)) (le_max_right _ _))) hf)
   | weak bs bs' t a a' hl hle ha => exact TStep.weak bs bs' t a a' hl hle ha
+  | popIn bs b b' a e hb' hf =>
+    exact TStep.popIn bs b b' a e hb' (le_trans (mul_le_mul_of_nonneg_right hcc
+      (le_trans hb' (le_max_left _ _))) hf)
 
 theorem tstep_len {c : ℝ} {L L' : TLine} (h : TStep c L L') : L.1.length ≤ L'.1.length + 1 := by
   rcases tstep_inv h with ⟨e0, e1, -⟩ | ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, -, e1, -⟩ |
     ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, e1, -⟩ | ⟨bs, b, e0, e1, -, -⟩ |
-    ⟨bs, b, e0, -, e1, -⟩ | ⟨hl, -, -, -⟩
+    ⟨bs, b, e0, -, e1, -⟩ | ⟨hl, -, -, -⟩ | ⟨bs, b, b', e0, -, e1, -⟩
   all_goals first
     | (rw [e0, e1]; simp)
     | omega
@@ -353,7 +370,7 @@ theorem tstep_pop {c : ℝ} {L L' : TLine} (h : TStep c L L')
       c * max (top L'.1) (max (top L.1) L.2.2) ≤ L'.2.2 := by
   rcases tstep_inv h with ⟨e0, e1, -⟩ | ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, -, e1, -⟩ |
     ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, e1, -⟩ | ⟨bs, b, e0, e1, -, -⟩ |
-    ⟨bs, b, e0, t1, e1, hf⟩ | ⟨hl, -, -, -⟩
+    ⟨bs, b, e0, t1, e1, hf⟩ | ⟨hl, -, -, -⟩ | ⟨bs, b, b', e0, -, e1, -⟩
   · rw [e0, e1] at hd; simp at hd
   · rw [e0, e1] at hd; simp at hd
   · rw [e0, e1] at hd; simp at hd
@@ -362,12 +379,13 @@ theorem tstep_pop {c : ℝ} {L L' : TLine} (h : TStep c L L')
     · rw [e0, e1, top_concat]
     · rw [e0, e1, top_concat]; exact hf
   · omega
+  · rw [e0, e1] at hd; simp at hd
 
 theorem tstep_getD_mono {c : ℝ} {L L' : TLine} (h : TStep c L L') {k : ℕ}
     (hk : k + 2 ≤ L.1.length) : L.1.getD k 0 ≤ L'.1.getD k 0 := by
   rcases tstep_inv h with ⟨e0, -, -⟩ | ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, -, e1, -⟩ |
     ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, e1, -⟩ | ⟨bs, b, e0, e1, -, -⟩ |
-    ⟨bs, b, e0, -, e1, -⟩ | ⟨-, hle, -, -⟩
+    ⟨bs, b, e0, -, e1, -⟩ | ⟨-, hle, -, -⟩ | ⟨bs, b, b', e0, -, e1, -⟩
   · rw [e0] at hk; simp at hk
   · rw [e0] at hk ⊢; rw [e1]
     simp only [List.length_append, List.length_singleton] at hk
@@ -380,6 +398,9 @@ theorem tstep_getD_mono {c : ℝ} {L L' : TLine} (h : TStep c L L') {k : ℕ}
     simp only [List.length_append, List.length_singleton] at hk
     rw [getD_lt (by omega)]
   · exact hle k
+  · rw [e0] at hk ⊢; rw [e1]
+    simp only [List.length_append, List.length_singleton] at hk
+    rw [getD_lt (by omega), getD_lt (by omega)]
 
 theorem pot_true {c : ℝ} {L : TLine} (h : L.2.1 = true) : pot c L = Ps c (top L.1) L.2.2 := by
   unfold pot; rw [if_pos h]
@@ -481,7 +502,7 @@ theorem segment {c : ℝ} (hc3 : 4 ≤ c ^ 3) (hc2 : c ≤ 2) (L : ℕ → TLine
   have htopp : top (L p).1 = (L p).1.getD k 0 := top_of_len hp
   rcases tstep_inv hs0 with ⟨e0, -, -⟩ | ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, e0, t0, e1, t1⟩ |
     ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, e0, e1, t1⟩ | ⟨bs, b, e0, e1, t1, hf⟩ |
-    ⟨bs, b, e0, -, e1, -⟩ | ⟨hl, hle, t1, ha⟩
+    ⟨bs, b, e0, -, e1, -⟩ | ⟨hl, hle, t1, ha⟩ | ⟨bs, b, b', e0, t0, e1, t1, hb', hf⟩
   · rw [e0] at hp; simp at hp
   · -- speedM
     have hbs : bs.length = k := by
@@ -655,6 +676,37 @@ theorem segment {c : ℝ} (hc3 : 4 ≤ c ^ 3) (hc2 : c ≤ 2) (L : ℕ → TLine
     split_ifs
     · exact ps_mono hc0 htop ha
     · exact ps_mono hc0 htop (mul_le_mul_of_nonneg_left (ps_mono hc0 htop ha) hc0)
+  · -- popIn: like a flip, the potential at least doubles in the kernel
+    have hl1 : (L (p + 1)).1.length = k + 1 := by
+      rw [e1]; rw [e0] at hp; simpa using hp
+    have hrest := ih (len - 1) (by omega) (p + 1) k (fun i h1 h2 => hstep i (by omega) (by omega))
+      (fun i h1 h2 => hdep i (by omega) (by omega)) hl1
+      (by rw [show p + 1 + (len - 1) = p + len by omega]; exact hq)
+    rw [show p + 1 + (len - 1) = p + len by omega] at hrest
+    refine le_trans ?_ hrest
+    have hb0 : 0 ≤ b := by have := hNNp.1 bs.length; rwa [e0, getD_snoc_len] at this
+    have ha0 := hNNp.2
+    have htp : top (L p).1 = b := by rw [e0, top_concat]
+    have htp1 : top (L (p + 1)).1 = b' := by rw [e1, top_concat]
+    rw [pot_true t0, pot_false t1, htp, htp1]
+    set m := max b (L p).2.2 with hm
+    have hm0 : 0 ≤ m := le_trans hb0 (le_max_left _ _)
+    have hE : c * m ≤ (L (p + 1)).2.2 :=
+      le_trans (mul_le_mul_of_nonneg_left (le_max_right _ _) hc0) hf
+    have hE0 : 0 ≤ (L (p + 1)).2.2 := le_trans (mul_nonneg hc0 hm0) hE
+    have e2 : c / 2 * (L (p + 1)).2.2 ≤ Ps c b' (L (p + 1)).2.2 := ps_ge_g hc0 hc2 hE0
+    have hY0 : 0 ≤ c * Ps c b' (L (p + 1)).2.2 :=
+      mul_nonneg hc0 (le_trans (mul_nonneg (by linarith) hE0) e2)
+    have e3 : c / 2 * (c * Ps c b' (L (p + 1)).2.2) ≤ Ps c b' (c * Ps c b' (L (p + 1)).2.2) :=
+      ps_ge_g hc0 hc2 hY0
+    have e4 : c / 2 * (c * (c / 2 * (c * m))) ≤ c / 2 * (c * Ps c b' (L (p + 1)).2.2) := by
+      apply mul_le_mul_of_nonneg_left _ (by linarith)
+      apply mul_le_mul_of_nonneg_left _ hc0
+      exact le_trans (mul_le_mul_of_nonneg_left hE (by linarith)) e2
+    have e5 : c / 2 * (c * (c / 2 * (c * m))) = c ^ 4 / 4 * m := by ring
+    have hc4 : 1 ≤ c ^ 4 / 4 := by nlinarith
+    have e6 : m ≤ c ^ 4 / 4 * m := by nlinarith
+    exact le_trans ps_le_max (by linarith)
 
 theorem cube_min {c : ℝ} (hc3 : 4 ≤ c ^ 3) : 4 ≤ min c 2 ^ 3 := by
   rcases le_total c 2 with h | h
@@ -690,7 +742,7 @@ theorem return_bound {c : ℝ} (hc3 : 4 ≤ c ^ 3) (n : ℕ) (L : ℕ → TLine)
   have hL1 : (L 1).1 = [0] ∧ (L 1).2.1 = true ∧ (L 1).2.2 = (L 0).2.2 := by
     rcases tstep_inv (hs 0 (by omega)) with ⟨-, e1, t1, e2⟩ |
       ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, -⟩ | ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, -⟩ |
-      ⟨bs, b, e0, -⟩ | ⟨bs, b, e0, -⟩ | ⟨hl, -⟩
+      ⟨bs, b, e0, -⟩ | ⟨bs, b, e0, -⟩ | ⟨hl, -⟩ | ⟨bs, b, b', e0, -⟩
     · exact ⟨e1, t1, e2⟩
     all_goals first
       | (rw [h0] at e0; simp at e0)
