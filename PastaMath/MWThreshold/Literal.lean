@@ -417,7 +417,7 @@ below, guess exponents arbitrary, 0 ≤ x ≤ a). Lines need not alternate.
 * `dspeed`: Corollary 2.8; `dspeedU`: Lemma 2.7 with Q = Q_k, the new block not merged;
 * `slow`: Lemma 5.1 (α = 1), for either kernel, whatever the type of the next block;
 * `combine`: (Q n^{g₁})^{o₁} (Q n^{g₂})^{o₂} ⊆ (Q n^g)^o with o ≥ o₂, anywhere in the prefix, the
-  kernel exponent possibly raised; `split`: the converse, (Q n^g)^o ⊆ (Q n^{g₁})^{o₁} (Q n^{g₂})^{o₂}
+  kernel exponent possibly raised; `split`: (Q n^g)^o ⊆ (Q n^{g₁})^{o₁} (Q n^{g₂})^{o₂}
   with o₂ ≥ o and o₁ ≥ 0;
 * `weaken`: raise output superscripts and the kernel exponent, change guess exponents, keep the
   quantifiers, and keep the kernel or replace it by BPTS. -/
