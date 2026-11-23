@@ -1,0 +1,493 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{array,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\NTS}{\mathsf{NTS}}
+\newcommand{\coNTS}{\mathsf{coNTS}}
+\newcommand{\NTIME}{\mathsf{NTIME}}
+\newcommand{\coNTIME}{\mathsf{coNTIME}}
+\newcommand{\NTISP}{\mathsf{NTISP}}
+\newcommand{\TAUT}{\mathrm{TAUT}}
+\newcommand{\lean}[1]{\texttt{#1}}
+\newcommand{\pin}{\mathrm{pin}}
+\newcommand{\topv}{\mathrm{top}}
+\newcommand{\pot}{\mathrm{pot}}
+\newcommand{\cbrt}{\sqrt[3]{4}}
+
+\title{The alternation-trading calculus for TAUTOLOGY versus $\NTS$\\ stops exactly at $\cbrt$: a kernel-checked proof}
+\author{PastaPastaPasta}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Williams \cite[\S6]{W13} set up a calculus of alternation-trading proofs for showing that
+TAUTOLOGY has no nondeterministic algorithm running in time $n^c$ and space $n^{o(1)}$.
+Diehl, van Melkebeek and Williams \cite{DvMW11} gave proofs in this calculus for every $c<\cbrt\approx 1.5874$.
+Williams conjectured that no proof in the calculus works for any $c>\cbrt$ (Conjecture~6.8 of \cite{W13}) and proved that none works for $c\ge\varphi\approx 1.618$ (Theorem~6.9).
+
+We prove Conjecture~6.8 for a formalisation, in Lean~4 with Mathlib, of the calculus of \cite[\S6]{W13} (Lemmas~6.1 and~6.2 in the line format of \cite[\S2]{W13}). We prove slightly more: for every $c$ with $c^3\ge 4$, including $c=\cbrt$, no sequence of rule applications takes any line to its complement, and no normal-form proof exists. Together with a Lean re-proof of the \cite{DvMW11} construction, this shows that for $c\ge 1$ the formalised calculus has a normal-form proof if and only if $c^3<4$. The impossibility proof uses a potential function with two line types and a first-return induction on proofs.
+
+\emph{What is kernel-checked:} both directions of this threshold, for the formal calculus, including the reduction of arbitrary proofs to normal form (the analogue of \cite[Theorem~6.6]{W13}, whose proof \cite{W13} omits).
+\emph{What is not machine-checked:} that the formal rules coincide with the published calculus (a modelling claim, which we compare rule by rule on paper in Table~\ref{tab:rules}), and soundness of the calculus itself (which is published, not formalised). Conjecture~6.8 refers to ``alternation-trading proofs'' in the sense of \cite{W13}, whose rules are fixed only informally there; our theorem is about the formalised rule set. The result is a limit on one proof calculus. It says nothing about lower bounds for TAUTOLOGY proved by other methods.
+\end{abstract}
+
+\section{Introduction}
+
+\paragraph{Background.}
+Fortnow and van Melkebeek \cite{FvM00} showed that TAUTOLOGY cannot be solved in time $n^{\sqrt2-o(1)}$ by a nondeterministic algorithm using $n^{o(1)}$ space. Williams \cite{W13} cast proofs of this kind (``alternation-trading proofs'') as sequences of rule applications whose exponents can be optimised by linear programming, and used computer search to find better proofs. Generalising the proofs found, Diehl, van Melkebeek and Williams \cite{DvMW11} obtained the exponent $\cbrt$; Williams presents the argument as Theorem~6.7 of \cite{W13}. Exhaustive search over short proofs led to Conjecture~6.8 of \cite{W13}:
+
+\begin{quote}
+There is no alternation trading proof that $\coNTIME[n]\not\subseteq\NTS[n^c]$, for any $c>\cbrt$.
+\end{quote}
+
+\cite{W13} proves the weaker limit $c<\varphi$ (Theorem~6.9). For the analogous problem of SAT versus deterministic time and $n^{o(1)}$ space, Buss and Williams \cite{BW15} proved that the calculus stops at $2\cos(\pi/7)$. Buss's 2013 survey \cite{B13} states, after recalling the $\cbrt$ bound, that extending the methods of \cite{BW15} to show that $\cbrt$ is optimal for alternation-trading proofs ``has not been attempted yet and so it remains an open problem''.
+
+\paragraph{Results.}
+We work with a formalisation of the calculus of \cite[\S6]{W13}, described in Section~\ref{sec:calculus}. Result numbers of the form $x.y$ (Lemma~6.1, Theorem~6.6, \dots) always refer to \cite{W13}; our own results are numbered $1,2,3,\dots$ All statements below are Lean theorems; the names are those of the accompanying Lean library (namespace \lean{PastaMath.TautThreshold}).
+
+\begin{itemize}
+\item \textbf{Impossibility} (Theorem~\ref{thm:main}; \lean{TW.no\_literal\_proof}, \lean{TW.no\_literal\_proofE}, \lean{TW.no\_nf}). Let $c$ be real with $c^3\ge4$. For every line $A$ (any number of quantifier blocks, any real parameters) and every $N\ge1$, there is no sequence of $N$ rule applications from $A$ to its complement $\neg A$. There is no normal-form proof.
+\item \textbf{Normal form} (Theorem~\ref{thm:nf}; \lean{TW.normal\_form}, \lean{TW.normal\_formE}). For every $c$, a proof of $A\subseteq\neg A$ with at least two lines yields a normal-form proof in the same calculus.
+\item \textbf{Threshold} (Theorem~\ref{thm:threshold}; \lean{TDL.nf\_exists}, \lean{TDL.threshold\_literal}). For $c\ge1$, a normal-form proof using the exact rules exists if and only if $c^3<4$.
+\end{itemize}
+
+So Conjecture~6.8 holds for the formalised calculus, and also at $c=\cbrt$ itself.
+Section~\ref{sec:verified} lists exactly what is kernel-checked and what rests on paper arguments.
+
+\paragraph{Novelty.}
+We are not aware of a prior proof. Buss's 2013 survey \cite{B13} lists the question as open, and the TOCT author copy of \cite{W13} calls Conjecture~6.8 ``still open''. Our literature search was not exhaustive.
+
+\paragraph{AI assistance.}
+The proofs and the Lean formalisation were produced with Anthropic's Claude models under the author's direction. The kernel-checked Lean proofs are the primary evidence for the theorems about the formal calculus; this text explains them and states what they do and do not establish.
+
+\section{The calculus}\label{sec:calculus}
+
+\subsection{Lines}
+
+Write $\NTS[n^a]=\NTISP[n^{a},n^{o(1)}]$ and $\coNTS[n^a]$ for its complement class \cite[\S6.1]{W13}. The hypothesis is $H_c$: $\TAUT\in\NTS[n^c]$. By \cite[Theorem~3.1]{W13} it gives $\coNTIME[n]\subseteq\NTS[n^{c+o(1)}]$.
+
+A \emph{line} is a class
+\[
+(Q_1\, n^{g_1})^{o_1}\,(Q_2\, n^{g_2})^{o_2}\cdots(Q_m\, n^{g_m})^{o_m}\; K[n^{a}],
+\]
+with quantifiers $Q_i\in\{\exists,\forall\}$, guess exponents $g_i\ge0$ (where $n^0$ means $\log n$), input constraints $o_i$ (the $i$-th block passes on $n^{o_i}$ bits; \cite{W13} writes $b_{i+1}$), a kernel type $K\in\{\NTS,\coNTS\}$ and a kernel exponent $a$. The input to the first block has length $n$, so the input constraint in front of block~1 is $1$. For a block list $Q$ let $\pin(Q)$ be the input constraint of its innermost block, and $\pin(\emptyset)=1$. A line with $m=0$ is \emph{quantifier-free}. A kernel is \emph{matching} if its type agrees with the innermost quantifier ($\NTS$ under $\exists$, $\coNTS$ under $\forall$) and \emph{opposite} otherwise. The \emph{complement} $\neg A$ of a line $A$ swaps every quantifier and the kernel type and keeps all exponents.
+
+\subsection{Rules}
+
+The rules are \cite[Lemmas~6.1 and~6.2]{W13}. Throughout, $Q$ is a block list and $b=\pin(Q)$.
+
+\begin{itemize}
+\item \textbf{Speedup} (Lemma~6.1 with space $n^{o(1)}$). For $b\ge1$, $a\ge1$, $x\ge0$:
+\[ Q\,\NTS[n^a]\subseteq Q\,(\exists\, n^{x})^{\max(b,x)}(\forall\,\log n)^{b}\,\NTS[n^{a-x}], \]
+and dually $Q\,\coNTS[n^a]\subseteq Q\,(\forall\, n^{x})^{\max(b,x)}(\exists\,\log n)^{b}\,\coNTS[n^{a-x}]$.
+If the innermost block of $Q$ already has the new first quantifier, the two blocks merge \cite[\S2]{W13}; for example, if $Q=Q'(\exists\, n^{g})^{o}$ then the result is $Q'(\exists\, n^{\max(g,x)})^{\max(o,x)}(\forall\,\log n)^{o}\,\NTS[n^{a-x}]$, as in \cite[eq.~(14)]{W13}.
+\item \textbf{Slowdown} (Lemma~6.2, under $H_c$).
+\begin{enumerate}
+\item[(1)] $Q\,(\exists\, n^{g})^{o}\,\NTS[n^{a}]\subseteq Q\,\coNTS[n^{c\max(g,a,o,b)}]$;
+\item[(2)] $Q\,(\forall\, n^{g})^{o}\,\coNTS[n^{a}]\subseteq Q\,\NTS[n^{c\max(g,a,o,b)}]$;
+\item[(3)] $Q\,(\exists\, n^{g})^{o}\,\coNTS[n^{a}]\subseteq Q\,(\exists\, n^{g})^{o}\,\NTS[n^{c\max(a,o)}]$;
+\item[(4)] $Q\,(\forall\, n^{g})^{o}\,\NTS[n^{a}]\subseteq Q\,(\forall\, n^{g})^{o}\,\coNTS[n^{c\max(a,o)}]$.
+\end{enumerate}
+Rules (1)/(2) remove (``pop'') the innermost block over a matching kernel. Rules (3)/(4) flip an opposite kernel.
+\end{itemize}
+
+\subsection{Proofs and normal form}
+
+A \emph{proof} (from $A_0$ to $A_N$) is a sequence of lines $A_0,\dots,A_N$, $N\ge1$, each obtained from the previous one by one rule. Following \cite[Definition~6.4]{W13}, a proof is in \emph{normal form} if its first line is $\NTS[n^a]$, its last line is $\coNTS[n^{a'}]$ with $a'\le a$, and no other line is quantifier-free. \cite[Lemma~6.5]{W13} shows that, for $c\ge1$, a normal-form proof with at least two lines contradicts $H_c$ (Lemma~6.3 covers $a'<a$, a separate argument covers $a'=a$). \cite[Theorem~6.6]{W13} states that a proof between simple complementary classes can be converted into a normal-form proof; its proof is omitted there (``analogous to that of Theorem~4.4'').
+
+\subsection{The formalisation}
+
+A Lean line is a triple $(\mathit{bl},k,a)$: the block list $\mathit{bl}$, stored innermost first, of blocks $\langle q,g,o\rangle$ ($q=\mathtt{true}$ for $\exists$); the kernel type $k$ ($\mathtt{true}$ for $\NTS$); and the kernel exponent $a\in\mathbb R$ (\lean{TW.WLine}, \lean{TW.Blk}, \lean{TW.pin}, \lean{TW.compl}). There are two rule relations.
+
+\begin{itemize}
+\item $\lean{TW.WStepE}\,c$ has the exact output values of Lemmas~6.1 and~6.2 and the side conditions $b\ge1$, $a\ge1$, $x\ge0$ of Lemma~6.1.
+\item $\lean{TW.WStep}\,c$ is its relaxation: the same four rule shapes, but every output exponent is only bounded below by the exact value (so weakening is built in), and the only side condition is $x\ge0$. Lean proves $\lean{WStepE}\subseteq\lean{WStep}$ (\lean{TW.wstepE\_wstep}).
+\end{itemize}
+
+The impossibility theorems are proved for \lean{WStep}, and hence hold for \lean{WStepE}; the construction uses only \lean{WStepE}. Table~\ref{tab:rules} compares the rules. In it, $k$ is the kernel type, $\bar k$ the other type, $Q_k$ the quantifier matching $k$ ($\exists$ for $\NTS$), $u=\langle q,g,o\rangle$ the innermost block and $\mathit{rest}$ the blocks outside it.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{8.4cm}@{}}
+\toprule
+Rule of \cite{W13} & Lean constructor & Effect and cost in \lean{WStepE} (in \lean{WStep}: each output only $\ge$ this) \\
+\midrule
+Lemma~6.1, block list empty or innermost block not of type $Q_k$ & \lean{speedNew} &
+opens $(Q_k\,n^{x})^{\max(b,x)}(\bar Q_k\,\log n)^{b}$ with $b=\pin(\mathit{bl})$; kernel $a-x$; requires $b\ge1$, $a\ge1$, $x\ge0$ \\
+Lemma~6.1 with merging (\cite[\S2, eq.~(14)]{W13}) & \lean{speedMerge} &
+$u=\langle Q_k,g,o\rangle$ becomes $(Q_k\,n^{\max(g,x)})^{\max(o,x)}$, then $(\bar Q_k\,\log n)^{o}$ is opened; kernel $a-x$; requires $o\ge1$, $a\ge1$, $x\ge0$ \\
+Lemma~6.2(1),(2) (pop) & \lean{pop}, $q$ matches $k$ &
+removes $u$; kernel type $\bar k$, exponent $c\max(g,a,o,\pin(\mathit{rest}))$, with $\pin(\emptyset)=1$ \\
+Lemma~6.2(3),(4) (flip) & \lean{flip}, $q$ opposite to $k$ &
+keeps blocks; kernel type $\bar k$, exponent $c\max(a,o)$ \\
+\midrule
+not a rule: $\NTS[n^a]\subseteq\coNTS[n^{c\max(a,1)}]$ (quantifier-free flip) & none & sound under $H_c$; omitted; harmless by Proposition~\ref{prop:qfflip} \\
+not a rule: speedup that opens a new block of the same type as the innermost one without merging & none & sound; not covered (Remark~\ref{rem:nonmerge}) \\
+\bottomrule
+\end{tabular}
+\caption{The rules of \cite[\S6]{W13} and their Lean counterparts. The $\log n$ blocks are represented with guess exponent $0$.}
+\label{tab:rules}
+\end{table}
+
+\paragraph{Where the formalisation is more permissive.}
+Each of the following only makes the impossibility theorem stronger. \lean{WStep} has no side conditions $a\ge1$, $b\ge1$, no lower bound on kernel exponents, and no bound $x\le a-1$ (the DTS analogue Lemma~3.3 of \cite{W13} has one; Lemma~6.1 as printed has none); parameters are arbitrary reals; outputs may be weakened; the start line of Theorem~\ref{thm:main} need not alternate. The constructor \lean{speedNew} does forbid opening a block of the same type as the innermost block without merging, so a non-alternating line can only come from the start line.
+
+\paragraph{Where it is exact.}
+The construction of Section~\ref{sec:construction} uses only \lean{WStepE}, and every speedup in it has $b=1$, $a\ge1$ and in fact $a-x\ge1$ (Section~\ref{sec:construction}).
+
+\section{Statements}
+
+\begin{theorem}[\lean{TW.no\_literal\_proof}, \lean{TW.no\_literal\_proofE}, \lean{TW.no\_nf}]\label{thm:main}
+Let $c\in\mathbb R$ with $c^3\ge4$.
+\begin{enumerate}
+\item For every line $A$ and every $N\ge1$ there is no \lean{WStep}\,$c$-path of length $N$ from $A$ to $\neg A$; hence none in \lean{WStepE}\,$c$.
+\item There is no normal-form proof in \lean{WStep}\,$c$.
+\end{enumerate}
+\end{theorem}
+
+\begin{theorem}[\lean{TW.normal\_form}, \lean{TW.normal\_formE}; generic form \lean{TW.normal\_form\_gen}]\label{thm:nf}
+Let $c\in\mathbb R$ and let $R$ be \lean{WStep}\,$c$ or \lean{WStepE}\,$c$ (more generally, any relation contained in \lean{WStep}\,$c$ and closed under complement). If there is an $R$-path of length $N\ge1$ from a line $A$ to $\neg A$, then there is a normal-form proof in $R$.
+\end{theorem}
+
+\begin{theorem}[\lean{TDL.nf\_exists}, \lean{TDL.threshold\_literal}]\label{thm:threshold}
+Let $c\ge1$. There is a normal-form proof in \lean{WStepE}\,$c$ if and only if $c^3<4$.
+\end{theorem}
+
+Theorem~\ref{thm:threshold} ($\Leftarrow$) is the result of \cite{DvMW11} (Theorem~6.7 of \cite{W13}), re-proved in Lean following the inductive argument printed in \cite[\S6.3]{W13}. Lean's normal-form predicate does not require $a'\ge1$ (needed by \cite[Lemma~6.3]{W13}); the proofs constructed have $a'=c^2\ell$ with $\ell\ge1$. The Lean version of Theorem~\ref{thm:nf} does not include the length bound of \cite[Theorem~6.6]{W13}.
+
+The proof of Theorem~\ref{thm:main} has three steps: reduce to normal form (Section~\ref{sec:nf}); map a normal-form proof into a reduced homogeneous calculus (Section~\ref{sec:reduced}); show the reduced calculus has no refutation (Section~\ref{sec:limit}).
+
+\section{Reduction to normal form}\label{sec:nf}
+
+Fix $c$ and a relation $R\subseteq\lean{WStep}\,c$ closed under complement. \lean{WStep} and \lean{WStepE} are closed under complement (\lean{TW.wstep\_compl}, \lean{TW.wstepE\_compl}), since every rule is stated symmetrically in $\exists/\forall$ and $\NTS/\coNTS$. The \emph{outermost quantifier} of a non-quantifier-free line is the quantifier of its block~1.
+
+\begin{lemma}[\lean{TW.step\_from\_nil}]\label{lem:fromnil}
+A step from a quantifier-free line leads to a line that is not quantifier-free.
+\end{lemma}
+\begin{proof}
+Only the speedup with an empty block list applies to a quantifier-free line, and it opens two blocks.
+\end{proof}
+
+\begin{lemma}[\lean{TW.outer\_step}, \lean{TW.stretch\_outer}]\label{lem:outer}
+If $L\to L'$ is a step and neither $L$ nor $L'$ is quantifier-free, then $L$ and $L'$ have the same outermost quantifier. Hence the outermost quantifier is constant along any stretch of non-quantifier-free lines.
+\end{lemma}
+\begin{proof}
+Every rule acts at the innermost block. A speedup on a nonempty block list adds blocks inside, or merges into the innermost block keeping its quantifier; a pop removes the innermost block, and since $L'$ is not quantifier-free, block~1 survives; a flip changes no block.
+\end{proof}
+
+\begin{lemma}[\lean{TW.seg\_types}]\label{lem:segtypes}
+Let $M_0,\dots,M_n$ ($n\ge1$) be a path whose end lines are quantifier-free and whose interior lines are not. Then the kernel type of $M_n$ is the opposite of that of $M_0$.
+\end{lemma}
+\begin{proof}
+By Lemma~\ref{lem:fromnil}, $n\ge2$. The first step is a speedup from an empty block list, so the outermost quantifier of $M_1$ matches the kernel type of $M_0$. By Lemma~\ref{lem:outer} this quantifier is unchanged up to $M_{n-1}$. The last step produces an empty block list, so it is a pop of block~1, whose quantifier matches the kernel of $M_{n-1}$; the pop flips the kernel type.
+\end{proof}
+
+\begin{lemma}[\lean{TW.qf\_up}]\label{lem:qfup}
+Suppose there is no normal-form proof in $R$. Then for every $R$-path $M_0,\dots,M_n$ ($n\ge1$) whose two end lines are quantifier-free, the kernel exponent of $M_n$ is strictly larger than that of $M_0$.
+\end{lemma}
+\begin{proof}
+First let the path have no quantifier-free interior line (a \emph{segment}). If $M_0$ has kernel $\NTS$, then $M_n$ has kernel $\coNTS$ by Lemma~\ref{lem:segtypes}, and if the exponent did not increase the path would be a normal-form proof. If $M_0$ has kernel $\coNTS$, apply the same argument to the complemented path $\neg M_0,\dots,\neg M_n$, which is an $R$-path with the same exponents. So every segment strictly increases the exponent. A general path splits at its first quantifier-free interior line into a segment and a shorter path; conclude by strong induction on $n$.
+\end{proof}
+
+\begin{lemma}[\lean{TW.exists\_qf}]\label{lem:existsqf}
+Every $R$-path from $A$ to $\neg A$ contains a quantifier-free line.
+\end{lemma}
+\begin{proof}
+Otherwise, by Lemma~\ref{lem:outer}, $A$ and $\neg A$ have the same outermost quantifier; but complementation swaps it.
+\end{proof}
+
+\begin{lemma}[\lean{TW.splice}]\label{lem:splice}
+Let $L_0,\dots,L_N$ be an $R$-path with $L_N=\neg L_0$, and $0\le i\le N$. Then there is an $R$-path of length $N$ from $L_i$ to $\neg L_i$.
+\end{lemma}
+\begin{proof}
+Concatenate the path with its complement $\neg L_0=L_N,\neg L_1,\dots,\neg L_N=L_0$ (an $R$-path by closure under complement), and take the window of length $N$ starting at position $i$.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:nf}]
+Suppose there is no normal-form proof in $R$. By Lemma~\ref{lem:existsqf} some $L_i$ is quantifier-free; by Lemma~\ref{lem:splice} there is an $R$-path of length $N\ge1$ from $L_i$ to $\neg L_i$. Both ends are quantifier-free and have the same kernel exponent, contradicting Lemma~\ref{lem:qfup}.
+\end{proof}
+
+This argument needs no parity argument and no case split, unlike the proof of \cite[Theorem~4.4]{W13} that Theorem~6.6 refers to.
+
+\section{The reduced calculus}\label{sec:reduced}
+
+The limit argument runs on a homogeneous relaxation, in the style of \cite{BW15}, adapted to two kernel types (\lean{TL.TLine}, \lean{TL.TStep}).
+
+\begin{definition}[reduced lines and rules]
+A \emph{reduced line} is $(s_1,\dots,s_m;\,t;\,a)$: a list of reals (input constraints, outermost first), a flag $t\in\{\mathrm{match},\mathrm{opp}\}$ and a real $a$. Its \emph{depth} is $m$, and $\topv(s)=s_m$ ($\topv(\emptyset)=0$). Write $s\cdot b$ for the list $s$ with $b$ appended. The rules of $\lean{TStep}\,c$ are:
+\begin{itemize}
+\item \lean{init}: $(\emptyset;\mathrm{match};a)\vdash(0;\mathrm{match};a)$ (a virtual block of constraint $0$ stands for the input);
+\item \lean{speedM}: $(s\cdot b;\mathrm{match};a)\vdash(s\cdot b_1\cdot b_2;\mathrm{opp};a_2)$ with $0\le x\le a$, $b_1\ge\max(x,b)$, $b_2\ge b$, $a_2\ge a-x$;
+\item \lean{speedO}: $(s\cdot b;\mathrm{opp};a)\vdash(s\cdot b\cdot b_1\cdot b_2;\mathrm{opp};a_2)$ with the same conditions;
+\item \lean{flip}: $(s\cdot b;t;a)\vdash(s\cdot b;\bar t;e)$ with $e\ge c\max(b,a)$, in both directions;
+\item \lean{pop}: $(s\cdot b;\mathrm{match};a)\vdash(s;\mathrm{match};e)$ with $e\ge c\max(\topv(s),b,a)$;
+\item \lean{weak}: increase any entries and $a$, keeping depth and flag.
+\end{itemize}
+$\lean{TRefutes}\,c\,n\,L$ says: $L_0,\dots,L_n$ is a $\lean{TStep}\,c$-path with $n\ge2$, $L_0=(\emptyset;\mathrm{match};a_0)$ with $a_0>0$, $L_n$ has depth $0$ and exponent $\le a_0$, and no interior line has depth $0$.
+\end{definition}
+
+The \emph{encoding} \lean{TW.enc} maps a literal line to the list of its input constraints (outermost first), the flag ``matching'' ($\mathrm{match}$ for a quantifier-free line), and $\max(a,0)$. Guess exponents are dropped.
+
+\begin{lemma}[simulation; \lean{TW.sim}, \lean{TW.sim0}]\label{lem:sim}
+Let $c\ge0$. A \lean{WStep}\,$c$ step $L\to L'$ from a line with an alternating, nonempty block list is one \lean{TStep}\,$c$ step from $\mathrm{enc}(L)$ to $\mathrm{enc}(L')$. A \lean{WStep}\,$c$ step from a quantifier-free line $L$ is \lean{init} followed by one \lean{TStep}\,$c$ step to $\mathrm{enc}(L')$.
+\end{lemma}
+\begin{proof}
+Each reduced rule only bounds outputs from below by expressions monotone in the inputs, and the literal rules give at least these bounds. A \lean{speedNew} on a nonempty list acts on an opposite kernel and becomes \lean{speedO}; from the empty list it becomes \lean{init} then \lean{speedM} with $b=0$ (the literal constraints $\max(1,x)$ and $1$ dominate $\max(x,0)$ and $0$); \lean{speedMerge} acts on a matching kernel and becomes \lean{speedM} with $b=o$. A literal pop costs $c\max(g,a,o,\pin(\mathit{rest}))\ge c\max(\topv,o,a)$, using $\pin(\emptyset)=1\ge0=\topv(\emptyset)$. After a pop the new innermost block has the other quantifier, by alternation, and the kernel type has flipped, so the result is again matching; this is the only use of alternation. A literal flip becomes a reduced flip. If $x>a$, the reduced step uses $x'=\min(x,\max(a,0))$, and clamping the kernel at $0$ keeps the inequalities (\lean{TW.clamp\_sub}, \lean{TW.cmax\_le}).
+\end{proof}
+
+Rules preserve alternation (\lean{TW.alt\_step}), so along a path from a quantifier-free line every block list alternates (\lean{TW.path\_alt}).
+
+\begin{lemma}[\lean{TW.nf\_trefutes}]\label{lem:nftref}
+Let $c>0$. A normal-form \lean{WStep}\,$c$ proof with $n$ steps gives a $\lean{TRefutes}\,c\,(n+1)$ instance.
+\end{lemma}
+\begin{proof}
+Encode the lines and insert \lean{init} after the first. By Lemma~\ref{lem:fromnil}, $n\ge2$. The last literal step pops block~1, at cost at least $c\cdot\pin(\emptyset)=c>0$ (\lean{TW.pop\_pos}), so $a\ge a'\ge c>0$.
+\end{proof}
+
+Two facts about \lean{TStep} are used below. For $c\ge0$, nonnegativity of all entries and the exponent is preserved from the start line (\lean{TL.tstep\_nonneg}). On nonnegative lines, a $\lean{TStep}\,c$ step is a $\lean{TStep}\,c_0$ step for every $c_0\le c$, since every cost is $c$ times a nonnegative quantity (\lean{TL.tstep\_restrict}). So for the limit theorem we may replace $c$ by $\min(c,2)$ and assume $\cbrt\le c\le2$.
+
+\section{The limit theorem}\label{sec:limit}
+
+\begin{theorem}[\lean{TL.no\_trefutation}]\label{thm:limit}
+If $c^3\ge4$ then $\lean{TRefutes}\,c\,n\,L$ fails for all $n$ and $L$.
+\end{theorem}
+
+The proof shows more: the final exponent of a path from $(\emptyset;\mathrm{match};a_0)$ back to depth~$0$ is at least $(\min(c,2)^2/2)\,a_0\ge 2^{1/3}a_0$. This bound appears inside the proof; it is not stated as a separate Lean theorem.
+
+\subsection{The potential}
+
+Let $\cbrt\le c\le2$, $\gamma=c/2$ and $\kappa=5/2$. For reals $b,a$ define
+\[
+\Psi(b,a)=\min\bigl(\max(b,a),\ \max(\gamma a,\kappa b)\bigr)\qquad(\lean{TL.Ps}).
+\]
+The potential of a reduced line with $\topv=b$ and exponent $a$ is $\Psi(b,a)$ if it is matching and $\Psi(b,c\,\Psi(b,a))$ if it is opposite (\lean{TL.pot}). The second value is the potential the line would have after flipping its kernel to matching at cost $c$.
+
+\begin{lemma}[\lean{TL.ps\_mono}, \lean{ps\_le\_max}, \lean{ps\_ge\_g}, \lean{ps\_ge\_min}, \lean{ps\_ge\_b}, \lean{ps\_nonneg}]\label{lem:psi}
+For $b,a\ge0$ and $0\le c\le2$ where needed: $\Psi$ is monotone in both arguments; $\Psi(b,a)\le\max(b,a)$; $\Psi(b,a)\ge\gamma a$; $\Psi(b,a)\ge\min(a,\kappa b)$; $\Psi(b,a)\ge b$ if $a\le b$; $\Psi(b,a)\ge0$.
+\end{lemma}
+
+\begin{lemma}[\lean{TL.cfacts}]\label{lem:cfacts}
+For $\cbrt\le c\le 2$: $c\ge3/2$, $c^2\ge5/2$, $c-c^2/5\ge1$, $c^4/4\ge c$, and $c^3/4\ge1$.
+\end{lemma}
+
+The constant $\kappa=5/2$ is chosen just below $(\cbrt)^2\approx2.5198$.
+
+\subsection{The key inequality}
+
+\begin{lemma}[key inequality; \lean{TL.key}]\label{lem:key}
+Let $\cbrt\le c\le2$, $b\ge0$, $0\le x\le a$, $T\ge\max(x,b)$, $D=a-x$, $P=\Psi(b,D)$, $W=\Psi(b,cP)$ and $E\ge c\max(T,W)$. Then $\Psi(b,a)\le\Psi(T,E)$.
+\end{lemma}
+
+Reading: a matching line with top $b$ and exponent $a$ is sped up by $x$; the merged configuration block ends with constraint $T$; the inner part has potential at least $W$ when it returns, and popping the index block costs $E$. The potential does not drop.
+
+\begin{proof}
+Write $h=\Psi(b,a)$, so $h\le\max(b,a)$ and $h\le\max(\gamma a,\kappa b)$; in particular $h\le\gamma a$ or $h\le\kappa b$. Since $\Psi(T,E)=\min(\max(T,E),\max(\gamma E,\kappa T))$, it suffices to show (A) $E\ge h$ and (B) $\max(\gamma E,\kappa T)\ge h$. We use $E\ge cT\ge cx$, $E\ge cW$, and, from Lemma~\ref{lem:psi}, $P\ge\gamma D$, $W\ge\gamma cP\ge(c^3/4)D\ge D$, $P\ge\min(D,\kappa b)$ and $W\ge\min(cP,\kappa b)$.
+
+(A) If $h\le cT$ we are done, so assume $cT<h$; then $cb<h$.
+\begin{itemize}
+\item \emph{Case $D\le b$.} Then $P\ge b$ and $W\ge\min(cb,\kappa b)=cb$, so $E\ge c^2b$. If $h\le c^2 b$ we are done. Otherwise $h>c^2b\ge\kappa b$, so $h\le\gamma a$, and $c^2b<\gamma a=ca/2$ gives $cb<a/2$. Since $x\ge a-b$, we get $E\ge cx\ge ca-cb>ca-a/2\ge ca/2\ge h$, using $c\ge1$.
+\item \emph{Case $D>b$ and $h\le\gamma a$.} From $E\ge cW\ge cD$ and $E\ge cx$ we get $2E\ge c(D+x)=ca$, so $E\ge\gamma a\ge h$.
+\item \emph{Case $D>b$ and $h\le\kappa b$.} If $W\ge\kappa b$ then $E\ge c\kappa b\ge\kappa b\ge h$. Otherwise $W\ge cP$. If $P\ge D$ then $E\ge c^2D\ge\kappa D>\kappa b\ge h$. If $P\ge\kappa b$ then $E\ge c^2\kappa b\ge h$.
+\end{itemize}
+
+(B) If $\kappa T\ge h$ we are done, so assume $\kappa T<h$. Then $\kappa x<h$ and $\kappa b<h$, so $h\le\gamma a$, and $\kappa x<\gamma a$ gives $x<(\gamma/\kappa)a=(c/5)a$. Hence
+\[ E\ge cW\ge c\cdot\tfrac{c^3}{4}D=\tfrac{c^4}{4}D\ge cD=c(a-x)\ge\bigl(c-\tfrac{c^2}{5}\bigr)a\ge a, \]
+using Lemma~\ref{lem:cfacts} and $a\ge0$ (which follows from $0\le\kappa b<h\le\gamma a$). So $\gamma E\ge\gamma a\ge h$.
+\end{proof}
+
+\begin{remark}[tightness]
+At $c^3=4$, $b=0$, $x=a/2$, $T=a/2$, $E=c\max(T,W)$: $P=ca/4$, $W=c^3a/8=a/2$, $E=ca/2$ and $\Psi(a/2,ca/2)=ca/2=\Psi(0,a)$, so case (A) is an equality. This is one stage of the \cite{DvMW11} recursion: speed up by half, use the previous stage twice, pop. Correspondingly, the fixed-point equation $s=1+s^2/c^3$ of \cite[Claim~2]{W13} has a real solution if and only if $c^3\ge4$.
+\end{remark}
+
+\subsection{Segments and excursions}
+
+Fix $\cbrt\le c\le 2$ and a $\lean{TStep}\,c$-path $L_0,L_1,\dots$ of nonnegative lines. Depth changes by $+1$ under \lean{speedM}, by $+2$ under \lean{speedO}, by $-1$ under \lean{pop}, and not at all under \lean{flip} and \lean{weak} (\lean{TL.tstep\_len}, \lean{TL.tstep\_pop}).
+
+\begin{lemma}[\lean{TL.entry\_mono}]\label{lem:entry}
+If every line $L_i$ with $p\le i<q$ has depth at least $k+2$, then entry $k$ (0-indexed) of $L_q$ is at least entry $k$ of $L_p$.
+\end{lemma}
+\begin{proof}
+A step from a line of depth $\ge k+2$ changes only entries at positions $\ge k+1$, except \lean{weak}, which increases entries.
+\end{proof}
+
+\begin{lemma}[segment lemma; \lean{TL.segment}]\label{lem:segment}
+Let $L_p,\dots,L_{p+\ell}$ all have depth $\ge k+1$, and let $L_p$ and $L_{p+\ell}$ have depth exactly $k+1$. Then $\pot(L_p)\le\pot(L_{p+\ell})$.
+\end{lemma}
+
+\begin{lemma}[excursion lemma; \lean{TL.excursion}]\label{lem:excursion}
+Assume Lemma~\ref{lem:segment} for all stretches shorter than $q-p$. Let $L_p$ have depth $k+1$, $L_i$ have depth $\ge k+1$ for $p\le i<q$, and $L_q$ have depth $k$. Then $L_q$ is matching and its exponent is at least $c\max(\topv(L_q),\pot(L_p))$.
+\end{lemma}
+\begin{proof}
+Depth drops only by \lean{pop}, so $L_{q-1}=(s\cdot b;\mathrm{match};a)$ has depth $k+1$ and $L_q=(s;\mathrm{match};e)$ with $e\ge c\max(\topv(s),b,a)$. By Lemma~\ref{lem:segment} on $L_p,\dots,L_{q-1}$, $\pot(L_p)\le\pot(L_{q-1})=\Psi(b,a)\le\max(b,a)$.
+\end{proof}
+
+\begin{proof}[Proof of Lemma~\ref{lem:segment}]
+Strong induction on $\ell$; for $\ell=0$ there is nothing to show. Let $b=\topv(L_p)$ and $a$ its exponent. Split on the first step $L_p\to L_{p+1}$. \lean{init} and \lean{pop} cannot occur (depth $\ge1$, and a pop would reach depth $k$).
+\begin{itemize}
+\item \lean{weak}, \lean{flip}: $L_{p+1}$ has depth $k+1$, and by induction it suffices to show $\pot(L_p)\le\pot(L_{p+1})$. For \lean{weak} this is monotonicity of $\Psi$. For a flip from matching to opposite with new exponent $e\ge c\max(b,a)\ge ca$: $c\Psi(b,e)\ge c\gamma e\ge(c^3/2)a\ge a$, so $\Psi(b,c\Psi(b,e))\ge\Psi(b,a)$. For a flip from opposite to matching: $e\ge c\max(b,a)\ge c\Psi(b,a)$, so $\Psi(b,e)\ge\Psi(b,c\Psi(b,a))$.
+\item \lean{speedM}: $L_p=(s\cdot b;\mathrm{match};a)$, $L_{p+1}=(s\cdot b_1\cdot b_2;\mathrm{opp};a_2)$. Let $L_m$ be the first line after $p$ of depth $\le k+1$; it has depth exactly $k+1$ and $m\le p+\ell$. By monotonicity, $\pot(L_{p+1})=\Psi(b_2,c\Psi(b_2,a_2))\ge\Psi(b,c\Psi(b,a-x))=W$. By Lemma~\ref{lem:excursion} (at level $k+1$), $L_m$ is matching with exponent $E\ge c\max(T,W)$, where $T=\topv(L_m)$; by Lemma~\ref{lem:entry}, $T\ge b_1\ge\max(x,b)$. Lemma~\ref{lem:key} gives $\pot(L_p)=\Psi(b,a)\le\Psi(T,E)=\pot(L_m)$, and the induction hypothesis on $L_m,\dots,L_{p+\ell}$ finishes.
+\item \lean{speedO}: $L_p=(s\cdot b;\mathrm{opp};a)$, $L_{p+1}=(s\cdot b\cdot b_1\cdot b_2;\mathrm{opp};a_2)$. Let $m_1$ be the first index after $p$ with depth $\le k+2$ and $m_0$ the first index after $m_1$ with depth $\le k+1$. As in the previous case (excursion at level $k+2$), $L_{m_1}$ is matching and $\Psi(b,a)\le\pot(L_{m_1})$ by Lemma~\ref{lem:key} applied to the virtual matching line $(b,a)$. By Lemma~\ref{lem:excursion} at level $k+1$, $L_{m_0}$ is matching with exponent $\ge c\,\pot(L_{m_1})\ge c\Psi(b,a)$, and by Lemma~\ref{lem:entry} its top is $\ge b$. So $\pot(L_{m_0})\ge\Psi(b,c\Psi(b,a))=\pot(L_p)$, and induction finishes.
+\end{itemize}
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:limit}]
+Replace $c$ by $\min(c,2)$ (Section~\ref{sec:reduced}). The first step of a refutation must be \lean{init} (the other rules need depth $\ge1$, and \lean{weak} would give a quantifier-free interior line), so $L_1=(0;\mathrm{match};a_0)$ with $\pot(L_1)=\Psi(0,a_0)\ge\gamma a_0$. The rest is one excursion from depth~1 to depth~0, so by Lemma~\ref{lem:excursion} the final exponent is at least $c\gamma a_0=(c^2/2)a_0\ge(5/4)a_0>a_0$, using $c^2\ge5/2$ and $a_0>0$.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+$c^3\ge4$ implies $c>0$ (\lean{TW.pos\_of\_cube}). Part~2: a normal-form proof gives a refutation by Lemma~\ref{lem:nftref}, which Theorem~\ref{thm:limit} excludes. Part~1: by Theorem~\ref{thm:nf} a path from $A$ to $\neg A$ yields a normal-form proof, excluded by Part~2 (\lean{TW.literal\_trefutes}).
+\end{proof}
+
+\section{The construction below \texorpdfstring{$\cbrt$}{cube root of 4}}\label{sec:construction}
+
+We follow the inductive argument of \cite[\S6.3]{W13} (Claims~1 and~2), using only the exact rules \lean{WStepE}. Fix $c\ge1$. For a kernel type $k$ write $Q_k$ for the matching quantifier and $\bar Q_k$, $\bar k$ for the opposite ones. All derivations below pass only through lines that are not quantifier-free (\lean{TDL.DNW}).
+
+\begin{definition}[\lean{TDL.MacE}, \lean{TDL.InnerE}]
+$\mathrm{Mac}(s,R)$ holds if for every scale $\ell\ge R$ and every kernel type $k$ the following hold, where in each case $w,g,\kappa$ are some reals (depending on the data) with $1\le w\le\ell$, $g\le w$, $\kappa\le\ell$:
+\begin{enumerate}
+\item for every block list $P$ with $\pin(P)=1$ whose innermost block (if any) is not of type $Q_k$, the line $P\,K_k[n^{s\ell}]$ derives $P\,(Q_k\,n^{\ell})^{\ell}(\bar Q_k\,n^{g})^{w}\,K_{\bar k}[n^{\kappa}]$;
+\item for every $g_0\le\ell$ and every $\mathit{rest}$, the line $\mathit{rest}\,(Q_k\,n^{g_0})^{1}\,K_k[n^{s\ell}]$ derives $\mathit{rest}\,(Q_k\,n^{\ell})^{\ell}(\bar Q_k\,n^{g})^{w}\,K_{\bar k}[n^{\kappa}]$.
+\end{enumerate}
+$\mathrm{Inner}(s,R)$ holds if for every $\ell\ge R$, every $P$ and $k$, the line $P\,(Q_k\,n^{\ell})^{\ell}(\bar Q_k\,\log n)^{1}\,K_k[n^{s\ell-\ell}]$ derives $P\,(Q_k\,n^{\ell})^{\ell}(\bar Q_k\,n^{g})^{w}\,K_{\bar k}[n^{\kappa}]$ for some $w,g,\kappa$ as above.
+\end{definition}
+
+\begin{lemma}[\lean{TDL.macE\_of\_inner}]
+If $R\ge1$, $s\ge1$ and $\mathrm{Inner}(s,R)$, then $\mathrm{Mac}(s,R)$.
+\end{lemma}
+\begin{proof}
+Apply the speedup with $x=\ell$ to the kernel exponent $s\ell\ge1$, with $b=\pin(P)=1$ (case~1, \lean{speedNew}) or $b=1$ from the block $(Q_k\,n^{g_0})^1$ (case~2, \lean{speedMerge}, where $\max(g_0,\ell)=\ell$). Both give $(Q_k\,n^{\ell})^{\ell}(\bar Q_k\,\log n)^{1}\,K_k[n^{s\ell-\ell}]$; then use $\mathrm{Inner}(s,R)$.
+\end{proof}
+
+\begin{lemma}[base, W13's stage 2; \lean{TDL.innerE\_base}]
+If $R\ge c$ then $\mathrm{Inner}(1+1/c,R)$.
+\end{lemma}
+\begin{proof}
+The kernel exponent is $\ell/c\ge1$, and the kernel is opposite to the $\log n$ block. Flip (Lemma~6.2(3)/(4)) at cost $c\max(\ell/c,1)=\ell$; take $w=1$, $g=0$, $\kappa=\ell$.
+\end{proof}
+
+\begin{lemma}[stage step; \lean{TDL.innerE\_step}]
+If $R\ge1$, $s\ge1$ and $\mathrm{Mac}(s,R)$, then $\mathrm{Inner}(1+s^2/c^3,\,c^3R)$.
+\end{lemma}
+\begin{proof}
+Let $\ell\ge c^3R$, $\mu=s\ell/c^3$ and $\nu=\ell/c$; then $\mu,\nu\ge R\ge1$, $\nu\le\ell$, and the kernel exponent is $(1+s^2/c^3)\ell-\ell=s\mu$. Write $C=P\,(Q_k\,n^{\ell})^{\ell}(\bar Q_k\,\log n)^{1}$; $\pin(C)=1$ and its innermost block is not of type $Q_k$.
+\begin{enumerate}
+\item $\mathrm{Mac}(s,R)$, case~1, at scale $\mu$: $C\,K_k[n^{s\mu}]$ derives $C\,(Q_k\,n^{\mu})^{\mu}(\bar Q_k\,n^{g_1})^{w_1}K_{\bar k}[n^{\kappa_1}]$.
+\item Pop the $\bar Q_k$ block: cost $c\max(g_1,\kappa_1,w_1,\mu)=c\mu$, giving $C\,(Q_k\,n^{\mu})^{\mu}K_k[n^{c\mu}]$.
+\item Pop the $Q_k$ block: cost $c\max(\mu,c\mu,\mu,1)=c^2\mu=s\nu$, giving $C\,K_{\bar k}[n^{s\nu}]$. Now the innermost block $(\bar Q_k\,\log n)^1$ matches the kernel.
+\item $\mathrm{Mac}(s,R)$, case~2 (kernel type $\bar k$, $g_0=0$), at scale $\nu$: derive $P\,(Q_k\,n^{\ell})^{\ell}(\bar Q_k\,n^{\nu})^{\nu}(Q_k\,n^{g_2})^{w_2}K_k[n^{\kappa_2}]$.
+\item Pop the $Q_k$ block: cost $c\max(g_2,\kappa_2,w_2,\nu)=c\nu=\ell$, giving $P\,(Q_k\,n^{\ell})^{\ell}(\bar Q_k\,n^{\nu})^{\nu}K_{\bar k}[n^{\ell}]$.
+\end{enumerate}
+Take $w=g=\nu$ and $\kappa=\ell$. No weakening is needed: the final $\bar Q_k$ block keeps its exact exponent $\nu$.
+\end{proof}
+
+Let $s_0=1+1/c$ and $s_{j+1}=1+s_j^2/c^3$ (\lean{TDL.sq}; these are the ratios $s_k$ of \cite[Claim~2]{W13}, shifted to start at the $s_2$ of \cite{W13}). Induction gives $\mathrm{Mac}(s_j,\,c(c^3)^j)$ for all $j$ (\lean{TDL.macE\_all}). Since
+\[ s_{j+1}-s_j=\frac{(s_j-c^3/2)^2}{c^3}+1-\frac{c^3}{4}\ge1-\frac{c^3}{4}, \]
+we have $s_j\ge1+j(1-c^3/4)$ (\lean{TDL.sq\_growth}).
+
+\begin{proof}[Proof of Theorem~\ref{thm:threshold}]
+($\Rightarrow$) A normal-form proof in \lean{WStepE} is one in \lean{WStep}, excluded for $c^3\ge4$ by Theorem~\ref{thm:main}. ($\Leftarrow$) If $c^3<4$, pick $j$ with $s_j\ge c^2$ and let $\ell=c(c^3)^j\ge1$. By $\mathrm{Mac}(s_j,\ell)$, case~1 with $P$ empty and $k=\NTS$, the line $\NTS[n^{s_j\ell}]$ derives $(\exists\,n^{\ell})^{\ell}(\forall\,n^{g})^{w}\coNTS[n^{\kappa}]$. Pop the $\forall$ block at cost $c\ell$ and then the $\exists$ block at cost $c\max(\ell,c\ell,\ell,1)=c^2\ell\le s_j\ell$, reaching $\coNTS[n^{c^2\ell}]$.
+\end{proof}
+
+\paragraph{Side conditions.}
+Every speedup in this construction has $b=1$ and kernel exponent $s\ell\ge1$, and leaves a kernel exponent $\ge1$: in the base case $\ell/c\ge1$, and in the stage step $s\mu\ge\mu\ge1$. These facts are established inside the Lean proofs (\lean{innerE\_base}, \lean{innerE\_step}), although they are not part of the statement of \lean{nf\_exists}. So every speedup also satisfies the bound $x\le a-1$ of \cite[Lemma~3.3]{W13}. That every other line also has kernel exponent $\ge1$ is not stated in Lean and is not needed. The depth $j$ needed grows like $c^2/(1-c^3/4)$ and the number of lines roughly doubles with each stage, so the proofs become very long as $c\to\cbrt$.
+
+The reduced calculus has the same threshold (\lean{TD.dvmw}, \lean{TD.threshold}): for $c\ge1$, $\lean{TRefutes}\,c$ instances exist if and only if $c^3<4$.
+
+\section{What is and is not verified}\label{sec:verified}
+
+\paragraph{(a) Kernel-checked.}
+Lean~4.31 with Mathlib (pinned revision in the repository). The library builds with no \texttt{sorry}, no \texttt{admit}, no \texttt{native\_decide} and no new axioms; \texttt{\#print axioms} reports only \texttt{propext}, \texttt{Classical.choice} and \texttt{Quot.sound} for every headline theorem. Checked are: Theorems~\ref{thm:main}, \ref{thm:nf}, \ref{thm:threshold} and~\ref{thm:limit}; Lemmas~\ref{lem:sim} and~\ref{lem:nftref}; the key inequality and the segment lemma; and non-vacuity: the five-line example of \cite[\S6]{W13} is a normal-form proof under the exact rules at $c=5/4$ (\lean{TW.w5\_nf}), a proof $A\subseteq\neg A$ with $a'=a$ exists at $c=5/4$ (\lean{TW.wq\_proof}), and a five-step reduced refutation exists at $c=13/10$ (\lean{TL.tlv\_refutes}).
+
+\paragraph{(b) Not machine-checked.}
+\begin{itemize}
+\item \emph{That \lean{WStepE} is the calculus of \cite{W13}.} This is a modelling claim. Table~\ref{tab:rules} compares it rule by rule with \cite[\S2 and \S6]{W13}. \cite{W13} fixes the notion of alternation-trading proof in \S6 only by analogy with \S4 (``analogous'' rules, normal form and Theorem~6.6), so Conjecture~6.8 itself is informal; our theorem concerns the formal rule set. Two points of reading: we take $b=1$ for the block outside the outermost one (the input has length $n$), and we read the dual speedup for $\coNTS$ (which Lemma~6.1 does not state separately) as the complement of the $\NTS$ rule, as used in \cite[eq.~(18)]{W13}.
+\item \emph{Soundness of the calculus}, i.e.\ \cite[Theorem~3.1 and Lemmas~6.1--6.5]{W13}. These are published results; we do not formalise complexity classes. Theorem~\ref{thm:threshold} ($\Leftarrow$) is a lower bound for TAUTOLOGY only through \cite[Lemma~6.5]{W13}.
+\end{itemize}
+
+\paragraph{(c) The quantifier-free flip.}
+Under $H_c$ the inclusion $\NTS[n^a]\subseteq\coNTS[n^{c\max(a,1)}]$ is sound. It is not a rule of \cite{W13}: every item of Lemma~6.2 has an explicit innermost block, and the corresponding DTS rule of \cite[Definition~4.1]{W13} is stated for $k>0$. We omit it. It cannot help:
+
+\begin{proposition}[paper argument, not formalised]\label{prop:qfflip}
+Let $c^3\ge4$ and let $R'$ be \lean{WStep}\,$c$ together with the steps $F$: $(\emptyset,k,a)\to(\emptyset,\bar k,e)$ with $e\ge c\max(a,1)$. Then there is no $R'$-path of length $\ge1$ from any line $A$ to $\neg A$.
+\end{proposition}
+\begin{proof}
+For $c>1$ an $F$ step strictly increases the exponent: if $a\ge1$ then $e\ge ca>a$, and if $a<1$ then $e\ge c>1>a$. Repeat the proof of Theorem~\ref{thm:nf} for $R'$. Lemma~\ref{lem:existsqf} still holds, since $F$ acts only on quantifier-free lines. Lemma~\ref{lem:splice} still holds, since $F$ is closed under complement. For Lemma~\ref{lem:qfup}, split a path between quantifier-free lines at its quantifier-free lines: each piece is either a single $F$ step, which strictly increases the exponent, or a \lean{WStep} segment, which strictly increases it because otherwise it or its complement would be a normal-form proof, excluded by Theorem~\ref{thm:main}. So the exponent strictly increases from $Q$ to $\neg Q$, a contradiction.
+\end{proof}
+
+This could be formalised by generalising \lean{normal\_form\_gen} to allow extra steps on quantifier-free lines that strictly increase the exponent; we have not done so.
+
+\begin{remark}[non-merged same-type blocks]\label{rem:nonmerge}
+Lemma~6.2(1) is stated for an arbitrary prefix. If a speedup were allowed to open a new $\exists$ block directly inside an $\exists$ block instead of merging, a later pop would remove only the inner block, at a cost that omits the outer guess exponent. This is sound, but outside \lean{WStep} and arguably outside \cite{W13}'s calculus, whose lines alternate (\cite[Definition~4.1]{W13}; adjacent blocks of the same type ``are combined'', \S2; Theorem~6.6 speaks of simple classes). A bounded numerical search (not part of this repository) found no gain from this move for proofs of up to 17 lines. That is evidence only; no theorem here covers it.
+\end{remark}
+
+\begin{remark}[proofs ending below the complement]
+Theorem~\ref{thm:main}(1) excludes reaching exactly $\neg A$. Reaching a line $B$ that is componentwise below $\neg A$ also leads to a normal-form proof, because \lean{WStep} is monotone in its inputs; this is a paper argument only. \cite[Theorem~6.6]{W13} is itself stated for complementary classes.
+\end{remark}
+
+\paragraph{(d) The published 11-line example.}
+The 11-line proof printed in \cite[\S6.2]{W13} gives one exponent per block. Line~6 prints the $\forall$ block as $(\forall\,n^{2.378})$. By Lemma~6.1 (merging the speedup into this block) the value at that position is $\max(1,x)$ with $x=2.857-1.181=1.676$. If the printed $2.378$ is read as the input constraint of that block, the slowdown producing line~8 would cost $c\max(\dots,2.378)\approx3.37$ instead of the printed $2.378$; that is, the printed listing would omit the term $b$ of Lemma~6.2(1)/(2). With $1.676$, every printed value follows from the rules including that term. The table values of \cite[\S6.2]{W13} include the term: an LP reimplementation (not part of this repository) reproduces the tabulated exponents $1.380$ (8 lines) and $1.419$ (11 lines) with the $b$ term and gives larger values without it. We therefore read line~6 as a misprint, and the calculus as including the $b$ term, as Lemma~6.2 states.
+
+\paragraph{(e) Scope.}
+The result limits one proof calculus. Rules outside the formalised set---for example other speedup or slowdown variants, or non-relativizing ingredients---are not covered. Nothing here bears on lower bounds for TAUTOLOGY proved by other methods.
+
+\section{Relation to earlier work}
+
+\cite[Theorem~6.9]{W13} (no proof for $c\ge\varphi$) is proved by deleting a pattern $1,0,0$ from a minimal annotation. Our potential adds the cap $\max(b,a)$ and the $\kappa b$ term, and treats two line types (matching and opposite). For SAT versus $\mathsf{DTS}$, Buss and Williams \cite{BW15} showed that alternation-trading proofs stop at $2\cos(\pi/7)\approx1.8019$, the exponent reached by earlier alternation-trading proofs of Williams; their proof uses an invariant on achievable pairs. Here a scalar potential on two line types and a first-return induction play that role. Buss's survey \cite{B13} reviews these results and lists the optimality of $\cbrt$ as open.
+
+\section*{Licence}
+This text is licensed under CC BY 4.0. The Lean code is licensed under the Apache License~2.0.
+
+\begin{thebibliography}{DvMW11}
+
+\bibitem[B13]{B13}
+S.~Buss.
+\newblock Alternation trading proofs and their limitations.
+\newblock In K.~Chatterjee and J.~Sgall, editors, \emph{Mathematical Foundations of Computer Science 2013 (MFCS 2013)}, volume 8087 of \emph{Lecture Notes in Computer Science}, pages 1--7. Springer, 2013.
+\newblock \href{https://doi.org/10.1007/978-3-642-40313-2_1}{doi:10.1007/978-3-642-40313-2\_1}.
+
+\bibitem[BW15]{BW15}
+S.~R. Buss and R.~Williams.
+\newblock Limits on alternation trading proofs for time--space lower bounds.
+\newblock \emph{Computational Complexity}, 24(3):533--600, 2015.
+\newblock \href{https://doi.org/10.1007/s00037-015-0104-9}{doi:10.1007/s00037-015-0104-9}.
+\newblock Preliminary version in CCC 2012, pages 181--191.
+
+\bibitem[DvMW11]{DvMW11}
+S.~Diehl, D.~van Melkebeek, and R.~Williams.
+\newblock An improved time-space lower bound for tautologies.
+\newblock \emph{Journal of Combinatorial Optimization}, 22(3):325--338, 2011.
+\newblock \href{https://doi.org/10.1007/s10878-009-9286-x}{doi:10.1007/s10878-009-9286-x}.
+\newblock Preliminary version in COCOON 2009, pages 429--438.
+
+\bibitem[FvM00]{FvM00}
+L.~Fortnow and D.~van Melkebeek.
+\newblock Time-space tradeoffs for nondeterministic computation.
+\newblock In \emph{Proceedings of the 15th Annual IEEE Conference on Computational Complexity (CCC 2000)}, pages 2--13, 2000.
+\newblock \href{https://doi.org/10.1109/CCC.2000.856730}{doi:10.1109/CCC.2000.856730}.
+
+\bibitem[W13]{W13}
+R.~Williams.
+\newblock Alternation-trading proofs, linear programming, and lower bounds.
+\newblock \emph{ACM Transactions on Computation Theory}, 5(2):Article~6, 1--49, 2013.
+\newblock \href{https://doi.org/10.1145/2493246.2493249}{doi:10.1145/2493246.2493249}.
+\newblock Preliminary version in STACS 2010.
+
+\end{thebibliography}
+
+\end{document}
