@@ -19,6 +19,11 @@ open PastaMath.MWThreshold
 #print axioms MW.no_wrefutation
 #print axioms MW.qf_ge_w
 #print axioms MW.phi_mono
+#print axioms MWG.threshold_phi_X
+#print axioms MWL.no_litX_refutation
+#print axioms MW.no_xrefutation
+#print axioms MW.qf_ge_x
+#print axioms MWL.lit_x
 #print axioms MWL.lit_m
 #print axioms MWL.checkQ_sound
 #print axioms MWG.mw15_ok

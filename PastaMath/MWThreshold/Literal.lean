@@ -24,8 +24,12 @@ a' < a₀, with at least one step.
 `lit_m` maps every literal step to a step of the relaxed calculus `MW.MStep`, so
 `MW.no_mrefutation` applies (`no_lit_refutation`). `StepU` adds the unmerged orientation of rule 4
 and `StepW` adds weakening of an existing line; both are covered as well (`no_litU_refutation`,
-`no_litW_refutation`). `checkQ_sound` turns a rational tag list accepted by the executable checker
-`checkQ` into a refutation.
+`no_litW_refutation`). `StepX` lets lines stop alternating: it adds Lemma 2.7 with Q = Q_k before
+merging, the unmerged rule 4 with a leading block of either type, and combining or splitting
+adjacent same-type blocks anywhere in the prefix at any time. Its run encoding `encR` (one entry
+per maximal run of same-type blocks) maps every `StepX` step to an `MW.XStep` step (`lit_x`), so
+it is covered as well (`no_litX_refutation`). `checkQ_sound` turns a rational tag list accepted by
+the executable checker `checkQ` into a refutation.
 -/
 
 namespace PastaMath.MWThreshold
@@ -396,6 +400,380 @@ theorem no_litW_refutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n :
     ⟨j, hj, (lit_u hc0.le hu (hI j hj.le)).1⟩, a₀, a', ha₀, ?_, ?_, hle⟩
   · show enc (M 0) = _; rw [h0]; rfl
   · show enc (M n) = _; rw [hN]; rfl
+
+
+/-! ### Lines that need not alternate: combining and splitting blocks -/
+
+/-- `u` and `v` have the same quantifier and `v` passes at least as many bits. -/
+def SameO (u v : Blk) : Prop := u.q = v.q ∧ u.o ≤ v.o
+
+/-- The extended calculus, in LP form (every output superscript and the kernel exponent only bounded
+below, guess exponents arbitrary, 0 ≤ x ≤ a). Lines need not alternate.
+* `rspeed0`: Theorem 2.10 on a quantifier-free line of either kernel, in either orientation;
+* `rspeed`: Corollary 2.11 merged as its footnote prescribes, on either kernel (TS ⊆ BPTS; on a TS
+  kernel this is also Lemma 2.7 with Q = ¬Q_k);
+* `rspeedU`: Theorem 2.10 under a block without absorbing its leading n^0 block, which may have
+  either type;
+* `dspeed`: Corollary 2.8; `dspeedU`: Lemma 2.7 with Q = Q_k, the new block not merged;
+* `slow`: Lemma 5.1 (α = 1), for either kernel, whatever the type of the next block;
+* `combine`: (Q n^{g₁})^{o₁} (Q n^{g₂})^{o₂} ⊆ (Q n^g)^o with o ≥ o₂, anywhere in the prefix, the
+  kernel exponent possibly raised; `split`: the converse, (Q n^g)^o ⊆ (Q n^{g₁})^{o₁} (Q n^{g₂})^{o₂}
+  with o₂ ≥ o and o₁ ≥ 0;
+* `weaken`: raise output superscripts and the kernel exponent, change guess exponents, keep the
+  quantifiers, and keep the kernel or replace it by BPTS. -/
+inductive StepX (c : ℝ) : Line → Line → Prop
+  | rspeed0 (k : Bool) (a x a₂ : ℝ) (v₁ v₂ v₃ : Blk) (hx : 0 ≤ x) (hxa : x ≤ a)
+      (hq₂ : v₂.q = !v₁.q) (hq₃ : v₃.q = v₁.q) (h₁ : 0 ≤ v₁.o) (h₂ : x ≤ v₂.o) (h₃ : 0 ≤ v₃.o)
+      (ha : a - x ≤ a₂) :
+      StepX c ([], k, a) ([v₃, v₂, v₁], false, a₂)
+  | rspeed (u : Blk) (rest : List Blk) (k : Bool) (a x a₂ : ℝ) (v₂ v₃ : Blk) (hx : 0 ≤ x)
+      (hxa : x ≤ a) (hq₂ : v₂.q = !u.q) (hq₃ : v₃.q = u.q) (h₂ : max u.o x ≤ v₂.o) (h₃ : u.o ≤ v₃.o)
+      (ha : a - x ≤ a₂) :
+      StepX c (u :: rest, k, a) (v₃ :: v₂ :: u :: rest, false, a₂)
+  | rspeedU (u : Blk) (rest : List Blk) (k : Bool) (a x a₂ : ℝ) (v₁ v₂ v₃ : Blk) (hx : 0 ≤ x)
+      (hxa : x ≤ a) (hq₂ : v₂.q = !v₁.q) (hq₃ : v₃.q = v₁.q) (h₁ : u.o ≤ v₁.o)
+      (h₂ : max u.o x ≤ v₂.o) (h₃ : u.o ≤ v₃.o) (ha : a - x ≤ a₂) :
+      StepX c (u :: rest, k, a) (v₃ :: v₂ :: v₁ :: u :: rest, false, a₂)
+  | dspeed (u : Blk) (rest : List Blk) (a x a₂ : ℝ) (v₂ v₃ : Blk) (hx : 0 ≤ x) (hxa : x ≤ a)
+      (hq₂ : v₂.q = u.q) (hq₃ : v₃.q = !u.q) (h₂ : max u.o x ≤ v₂.o) (h₃ : u.o ≤ v₃.o)
+      (ha : a - x ≤ a₂) :
+      StepX c (u :: rest, false, a) (v₃ :: v₂ :: rest, false, a₂)
+  | dspeedU (u : Blk) (rest : List Blk) (a x a₂ : ℝ) (v₂ v₃ : Blk) (hx : 0 ≤ x) (hxa : x ≤ a)
+      (hq₂ : v₂.q = u.q) (hq₃ : v₃.q = !u.q) (h₂ : max u.o x ≤ v₂.o) (h₃ : u.o ≤ v₃.o)
+      (ha : a - x ≤ a₂) :
+      StepX c (u :: rest, false, a) (v₃ :: v₂ :: u :: rest, false, a₂)
+  | slow (u : Blk) (rest : List Blk) (k : Bool) (a e : ℝ)
+      (he : c * max (max a u.o) (max u.g (pin rest)) ≤ e) :
+      StepX c (u :: rest, k, a) (rest, true, e)
+  | combine (pre post : List Blk) (u₁ u₂ w : Blk) (k : Bool) (a a' : ℝ) (h₁ : u₁.q = u₂.q)
+      (hw : w.q = u₂.q) (ho : u₂.o ≤ w.o) (ha : a ≤ a') :
+      StepX c (pre ++ u₂ :: u₁ :: post, k, a) (pre ++ w :: post, k, a')
+  | split (pre post : List Blk) (w u₁ u₂ : Blk) (k : Bool) (a a' : ℝ) (h₁ : u₁.q = w.q)
+      (h₂ : u₂.q = w.q) (h₁o : 0 ≤ u₁.o) (ho : w.o ≤ u₂.o) (ha : a ≤ a') :
+      StepX c (pre ++ w :: post, k, a) (pre ++ u₂ :: u₁ :: post, k, a')
+  | weaken (bl bl' : List Blk) (k k' : Bool) (a a' : ℝ) (hb : List.Forall₂ SameO bl bl')
+      (hk : k = k' ∨ k' = true) (ha : a ≤ a') :
+      StepX c (bl, k, a) (bl', k', a')
+
+def PathX (c : ℝ) (M : ℕ → Line) (n : ℕ) : Prop := ∀ i < n, StepX c (M i) (M (i + 1))
+
+/-- A non-strict refutation in `StepX`: BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}], a' ≤ a₀, in which some line
+has at least one quantifier block. -/
+def RefutesX (c : ℝ) (n : ℕ) (M : ℕ → Line) : Prop :=
+  PathX c M n ∧ (∃ j ≤ n, (M j).1 ≠ []) ∧
+    ∃ a₀ a', 0 < a₀ ∧ M 0 = ([], true, a₀) ∧ M n = ([], true, a') ∧ a' ≤ a₀
+
+/-- Every output superscript and the kernel exponent are nonnegative. -/
+def InvX (L : Line) : Prop := (∀ u ∈ L.1, 0 ≤ u.o) ∧ 0 ≤ L.2.2
+
+/-- Entries of the runs outside a block of type `q`, innermost first; blocks of type `q` directly
+outside it belong to its run and are skipped. -/
+def rrT (q : Bool) : List Blk → List ℝ
+  | [] => []
+  | v :: rest => if v.q = q then rrT q rest else v.o :: rrT v.q rest
+
+/-- One entry per maximal run of adjacent same-type blocks, innermost first: the output superscript
+of the innermost block of the run. -/
+def rr : List Blk → List ℝ
+  | [] => []
+  | u :: rest => u.o :: rrT u.q rest
+
+/-- The run encoding of a literal line. -/
+def encR (L : Line) : MW.MLine := (rr L.1, L.2.1, L.2.2)
+
+theorem rrT_same {q : Bool} {v : Blk} (rest : List Blk) (hv : v.q = q) :
+    rrT q (v :: rest) = rrT q rest := by simp [rrT, hv]
+
+theorem rrT_diff {q : Bool} {v : Blk} (rest : List Blk) (hv : v.q ≠ q) :
+    rrT q (v :: rest) = v.o :: rrT v.q rest := by simp [rrT, hv]
+
+/-- Dropping the outer one of two adjacent same-type blocks does not change the run entries. -/
+theorem rrT_drop {u₁ u₂ : Blk} (post : List Blk) (h : u₁.q = u₂.q) :
+    ∀ (pre : List Blk) (q : Bool), rrT q (pre ++ u₂ :: u₁ :: post) = rrT q (pre ++ u₂ :: post)
+  | [], q => by
+    simp only [List.nil_append]
+    by_cases hu : u₂.q = q
+    · rw [rrT_same _ hu, rrT_same _ (h.trans hu), rrT_same _ hu]
+    · rw [rrT_diff _ hu, rrT_diff _ hu, rrT_same _ h]
+  | p :: pre, q => by
+    simp only [List.cons_append]
+    by_cases hp : p.q = q
+    · rw [rrT_same _ hp, rrT_same _ hp, rrT_drop post h pre q]
+    · rw [rrT_diff _ hp, rrT_diff _ hp, rrT_drop post h pre p.q]
+
+theorem rr_drop {u₁ u₂ : Blk} (pre post : List Blk) (h : u₁.q = u₂.q) :
+    rr (pre ++ u₂ :: u₁ :: post) = rr (pre ++ u₂ :: post) := by
+  cases pre with
+  | nil => simp only [List.nil_append, rr]; rw [rrT_same _ h]
+  | cons p pre => simp only [List.cons_append, rr]; rw [rrT_drop post h pre p.q]
+
+theorem rrT_f2 {l l' : List Blk} (h : List.Forall₂ SameO l l') :
+    ∀ q, List.Forall₂ (· ≤ ·) (rrT q l) (rrT q l') := by
+  induction h with
+  | nil => intro q; exact List.Forall₂.nil
+  | @cons u v _ _ huv _ ih =>
+    intro q
+    by_cases hu : u.q = q
+    · rw [rrT_same _ hu, rrT_same _ (huv.1 ▸ hu)]; exact ih q
+    · rw [rrT_diff _ hu, rrT_diff _ (huv.1 ▸ hu), ← huv.1]
+      exact List.Forall₂.cons huv.2 (ih u.q)
+
+theorem rr_f2 {l l' : List Blk} (h : List.Forall₂ SameO l l') :
+    List.Forall₂ (· ≤ ·) (rr l) (rr l') := by
+  cases h with
+  | nil => exact List.Forall₂.nil
+  | @cons u v _ _ huv h' =>
+    simp only [rr]
+    rw [← huv.1]
+    exact List.Forall₂.cons huv.2 (rrT_f2 h' u.q)
+
+theorem sameO_refl : ∀ l : List Blk, List.Forall₂ SameO l l
+  | [] => List.Forall₂.nil
+  | _ :: l => List.Forall₂.cons ⟨rfl, le_rfl⟩ (sameO_refl l)
+
+theorem sameO_app {u w : Blk} (h : SameO u w) :
+    ∀ (pre post : List Blk), List.Forall₂ SameO (pre ++ u :: post) (pre ++ w :: post)
+  | [], post => List.Forall₂.cons h (sameO_refl post)
+  | _ :: pre, post => List.Forall₂.cons ⟨rfl, le_rfl⟩ (sameO_app h pre post)
+
+theorem sameO_nn {l l' : List Blk} (h : List.Forall₂ SameO l l') (hl : ∀ u ∈ l, 0 ≤ u.o) :
+    ∀ v ∈ l', 0 ≤ v.o := by
+  induction h with
+  | nil => simp
+  | @cons u v _ _ huv _ ih =>
+    intro w hw
+    simp only [List.mem_cons] at hw hl
+    rcases hw with rfl | hw
+    · exact le_trans (hl u (Or.inl rfl)) huv.2
+    · exact ih (fun z hz => hl z (Or.inr hz)) w hw
+
+theorem weaker_of_f2 {c : ℝ} {l l' : List ℝ} (h : List.Forall₂ (· ≤ ·) l l') {k k' : Bool} {a a' : ℝ}
+    (hk : k = k' ∨ k' = true) (ha : a ≤ a') : MW.XStep c (l, k, a) (l', k', a') :=
+  MW.XStep.w (MW.StepW.weaken ⟨h, hk, ha⟩)
+
+/-- Every `StepX` step is an `MW.XStep` step of the run encodings. -/
+theorem lit_x {c : ℝ} (hc : 0 ≤ c) {L L' : Line} (h : StepX c L L') (hI : InvX L) :
+    MW.XStep c (encR L) (encR L') ∧ InvX L' := by
+  cases h with
+  | rspeed0 k a x a₂ v₁ v₂ v₃ hx hxa hq₂ hq₃ h₁ h₂ h₃ hA =>
+    obtain ⟨hb, ha⟩ := hI
+    simp only at hb ha
+    have e : encR ([v₃, v₂, v₁], false, a₂) = ([v₃.o, v₂.o, v₁.o], false, a₂) := by
+      simp [encR, rr, rrT, hq₂, hq₃]
+    refine ⟨?_, ?_, ?_⟩
+    · rw [e]
+      exact MW.XStep.w (MW.StepW.rule (MW.UStep.base (MW.MStep.rspeed0 k a x v₁.o v₂.o v₃.o a₂
+        hx hxa h₁ h₂ (le_trans hx h₂) h₃ hA)))
+    · intro u hu
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hu
+      rcases hu with rfl | rfl | rfl
+      · exact h₃
+      · exact le_trans hx h₂
+      · exact h₁
+    · show 0 ≤ a₂; linarith
+  | rspeed u rest k a x a₂ v₂ v₃ hx hxa hq₂ hq₃ h₂ h₃ hA =>
+    obtain ⟨hb, ha⟩ := hI
+    simp only at hb ha
+    have hu0 : 0 ≤ u.o := hb u (by simp)
+    have e : encR (v₃ :: v₂ :: u :: rest, false, a₂) =
+        (v₃.o :: v₂.o :: u.o :: rrT u.q rest, false, a₂) := by
+      simp [encR, rr, rrT, hq₂, hq₃]
+    refine ⟨?_, ?_, ?_⟩
+    · rw [e]
+      exact MW.XStep.w (MW.StepW.rule (MW.UStep.base (MW.MStep.rspeed u.o (rrT u.q rest) k a x
+        v₂.o v₃.o a₂ hx hxa h₂ h₃ hA)))
+    · intro v hv
+      simp only [List.mem_cons] at hv
+      rcases hv with rfl | rfl | rfl | hv
+      · exact le_trans hu0 h₃
+      · exact le_trans (le_trans hu0 (le_max_left _ _)) h₂
+      · exact hu0
+      · exact hb v (by simp [hv])
+    · show 0 ≤ a₂; linarith
+  | rspeedU u rest k a x a₂ v₁ v₂ v₃ hx hxa hq₂ hq₃ h₁ h₂ h₃ hA =>
+    obtain ⟨hb, ha⟩ := hI
+    simp only at hb ha
+    have hu0 : 0 ≤ u.o := hb u (by simp)
+    refine ⟨?_, ?_, ?_⟩
+    · by_cases hv : v₁.q = u.q
+      · have e : encR (v₃ :: v₂ :: v₁ :: u :: rest, false, a₂) =
+            (v₃.o :: v₂.o :: v₁.o :: rrT u.q rest, false, a₂) := by
+          simp [encR, rr, rrT, hq₂, hq₃, hv]
+        rw [e]
+        exact MW.XStep.rspeedS u.o (rrT u.q rest) k a x v₁.o v₂.o v₃.o a₂ hx hxa
+          (le_trans hu0 h₁) h₂ (le_trans hu0 h₃) hA
+      · have e : encR (v₃ :: v₂ :: v₁ :: u :: rest, false, a₂) =
+            (v₃.o :: v₂.o :: v₁.o :: u.o :: rrT u.q rest, false, a₂) := by
+          have hv' : u.q ≠ v₁.q := fun h => hv h.symm
+          simp [encR, rr, rrT, hq₂, hq₃, hv']
+        rw [e]
+        exact MW.XStep.w (MW.StepW.rule (MW.UStep.rspeedU u.o (rrT u.q rest) k a x v₁.o v₂.o v₃.o
+          a₂ hx hxa (le_trans hu0 h₁) h₂ h₃ hA))
+    · intro v hv
+      simp only [List.mem_cons] at hv
+      rcases hv with rfl | rfl | rfl | rfl | hv
+      · exact le_trans hu0 h₃
+      · exact le_trans (le_trans hu0 (le_max_left _ _)) h₂
+      · exact le_trans hu0 h₁
+      · exact hu0
+      · exact hb v (by simp [hv])
+    · show 0 ≤ a₂; linarith
+  | dspeed u rest a x a₂ v₂ v₃ hx hxa hq₂ hq₃ h₂ h₃ hA =>
+    obtain ⟨hb, ha⟩ := hI
+    simp only at hb ha
+    have hu0 : 0 ≤ u.o := hb u (by simp)
+    have e : encR (v₃ :: v₂ :: rest, false, a₂) = (v₃.o :: v₂.o :: rrT u.q rest, false, a₂) := by
+      simp [encR, rr, rrT, hq₂, hq₃]
+    refine ⟨?_, ?_, ?_⟩
+    · rw [e]
+      exact MW.XStep.w (MW.StepW.rule (MW.UStep.base (MW.MStep.dspeed u.o (rrT u.q rest) a x
+        v₂.o v₃.o a₂ hx hxa h₂ h₃ hA)))
+    · intro v hv
+      simp only [List.mem_cons] at hv
+      rcases hv with rfl | rfl | hv
+      · exact le_trans hu0 h₃
+      · exact le_trans (le_trans hu0 (le_max_left _ _)) h₂
+      · exact hb v (by simp [hv])
+    · show 0 ≤ a₂; linarith
+  | dspeedU u rest a x a₂ v₂ v₃ hx hxa hq₂ hq₃ h₂ h₃ hA =>
+    obtain ⟨hb, ha⟩ := hI
+    simp only at hb ha
+    have hu0 : 0 ≤ u.o := hb u (by simp)
+    have e : encR (v₃ :: v₂ :: u :: rest, false, a₂) =
+        (v₃.o :: v₂.o :: rrT u.q rest, false, a₂) := by
+      simp [encR, rr, rrT, hq₂, hq₃]
+    refine ⟨?_, ?_, ?_⟩
+    · rw [e]
+      exact MW.XStep.w (MW.StepW.rule (MW.UStep.base (MW.MStep.dspeed u.o (rrT u.q rest) a x
+        v₂.o v₃.o a₂ hx hxa h₂ h₃ hA)))
+    · intro v hv
+      simp only [List.mem_cons] at hv
+      rcases hv with rfl | rfl | rfl | hv
+      · exact le_trans hu0 h₃
+      · exact le_trans (le_trans hu0 (le_max_left _ _)) h₂
+      · exact hu0
+      · exact hb v (by simp [hv])
+    · show 0 ≤ a₂; linarith
+  | slow u rest k a e he =>
+    obtain ⟨hb, ha⟩ := hI
+    simp only at hb ha
+    have hu0 : 0 ≤ u.o := hb u (by simp)
+    have hcost : c * max (max (MW.pin (rr rest)) u.o) a ≤ e ∧ c * max u.o a ≤ e := by
+      have hp : MW.pin (rr rest) ≤ pin rest := by
+        cases rest with
+        | nil => simp [MW.pin, rr, pin]
+        | cons v r => simp [MW.pin, rr, pin]
+      constructor
+      · refine le_trans (mul_le_mul_of_nonneg_left ?_ hc) he
+        exact max_le (max_le (le_trans hp (le_trans (le_max_right _ _) (le_max_right _ _)))
+          (le_trans (le_max_right _ _) (le_max_left _ _))) (le_trans (le_max_left _ _) (le_max_left _ _))
+      · refine le_trans (mul_le_mul_of_nonneg_left ?_ hc) he
+        exact max_le (le_trans (le_max_right _ _) (le_max_left _ _))
+          (le_trans (le_max_left _ _) (le_max_left _ _))
+    refine ⟨?_, fun v hv => hb v (by simp [hv]), ?_⟩
+    · cases rest with
+      | nil =>
+        exact MW.XStep.w (MW.StepW.rule (MW.UStep.base (MW.MStep.slow u.o [] k a e hcost.1)))
+      | cons v r =>
+        by_cases hv : v.q = u.q
+        · have e1 : encR (u :: v :: r, k, a) = (u.o :: rrT u.q r, k, a) := by
+            simp [encR, rr, rrT, hv]
+          have e2 : encR (v :: r, true, e) = (v.o :: rrT u.q r, true, e) := by
+            simp [encR, rr, hv]
+          rw [e1, e2]
+          exact MW.XStep.slowIn u.o (rrT u.q r) k a v.o e (hb v (by simp)) hcost.2
+        · have e1 : encR (u :: v :: r, k, a) = (u.o :: rr (v :: r), k, a) := by
+            simp [encR, rr, rrT, hv]
+          rw [e1]
+          exact MW.XStep.w (MW.StepW.rule (MW.UStep.base
+            (MW.MStep.slow u.o (rr (v :: r)) k a e hcost.1)))
+    · show 0 ≤ e
+      exact le_trans (mul_nonneg hc (le_trans ha (le_max_right _ _))) hcost.2
+  | combine pre post u₁ u₂ w k a a' h₁ hw ho hA =>
+    obtain ⟨hb, ha⟩ := hI
+    simp only at hb ha
+    refine ⟨?_, ?_, le_trans ha hA⟩
+    · show MW.XStep c (rr (pre ++ u₂ :: u₁ :: post), k, a) (rr (pre ++ w :: post), k, a')
+      rw [rr_drop pre post h₁]
+      exact weaker_of_f2 (rr_f2 (sameO_app ⟨hw.symm, ho⟩ pre post)) (Or.inl rfl) hA
+    · intro v hv
+      simp only [List.mem_append, List.mem_cons] at hv hb
+      rcases hv with hv | rfl | hv
+      · exact hb v (Or.inl hv)
+      · exact le_trans (hb u₂ (Or.inr (Or.inl rfl))) ho
+      · exact hb v (Or.inr (Or.inr (Or.inr hv)))
+  | split pre post w u₁ u₂ k a a' h₁ h₂ h₁o ho hA =>
+    obtain ⟨hb, ha⟩ := hI
+    simp only at hb ha
+    refine ⟨?_, ?_, le_trans ha hA⟩
+    · show MW.XStep c (rr (pre ++ w :: post), k, a) (rr (pre ++ u₂ :: u₁ :: post), k, a')
+      rw [rr_drop pre post (h₁.trans h₂.symm)]
+      exact weaker_of_f2 (rr_f2 (sameO_app ⟨h₂.symm, ho⟩ pre post)) (Or.inl rfl) hA
+    · intro v hv
+      simp only [List.mem_append, List.mem_cons] at hv hb
+      rcases hv with hv | rfl | rfl | hv
+      · exact hb v (Or.inl hv)
+      · exact le_trans (hb w (Or.inr (Or.inl rfl))) ho
+      · exact h₁o
+      · exact hb v (Or.inr (Or.inr hv))
+  | weaken bl bl' k k' a a' hbl hk hA =>
+    obtain ⟨hb, ha⟩ := hI
+    simp only at hb ha
+    exact ⟨weaker_of_f2 (rr_f2 hbl) hk hA, sameO_nn hbl hb, le_trans ha hA⟩
+
+theorem rr_ne_nil {l : List Blk} (h : l ≠ []) : rr l ≠ [] := by
+  cases l with
+  | nil => exact absurd rfl h
+  | cons u r => simp [rr]
+
+/-- **No refutation with delayed combining** for c ≥ φ: no `StepX` path from BPTS[n^{a₀}], a₀ > 0, to
+a quantifier-free BPTS[n^{a'}] with a' ≤ a₀ passes through a line with a quantifier block. -/
+theorem no_litX_refutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ) (M : ℕ → Line) :
+    ¬ RefutesX c n M := by
+  rintro ⟨hp, ⟨j, hj, hne⟩, a₀, a', ha₀, h0, hN, hle⟩
+  have hI : ∀ i ≤ n, InvX (M i) := by
+    intro i
+    induction i with
+    | zero => intro _; rw [h0]; exact ⟨by simp, ha₀.le⟩
+    | succ j ih => intro hj; exact (lit_x hc0.le (hp j (by omega)) (ih (by omega))).2
+  apply MW.no_xrefutation hc0 hphi n (fun i => encR (M i))
+  refine ⟨fun i hi => (lit_x hc0.le (hp i hi) (hI i hi.le)).1, ⟨j, hj, rr_ne_nil hne⟩,
+    a₀, a', ha₀, ?_, ?_, hle⟩
+  · show encR (M 0) = _; rw [h0]; rfl
+  · show encR (M n) = _; rw [hN]; rfl
+
+/-- The exact rules are `StepX` steps. -/
+theorem step_stepX {c : ℝ} {L L' : Line} (h : Step c L L') : StepX c L L' := by
+  cases h with
+  | rspeed0 a x hx hxa =>
+    exact StepX.rspeed0 true a x (a - x) ⟨true, 0, 1⟩ ⟨false, x, max x 1⟩ ⟨true, 0, 1⟩ hx.le hxa.le
+      rfl rfl zero_le_one (le_max_left _ _) zero_le_one le_rfl
+  | rspeed u rest a x hx hxa =>
+    exact StepX.rspeed u rest true a x (a - x) ⟨!u.q, x, max u.o x⟩ ⟨u.q, 0, u.o⟩ hx.le hxa.le
+      rfl rfl le_rfl le_rfl le_rfl
+  | dspeed u rest a x hx hxa =>
+    exact StepX.dspeed u rest a x (a - x) ⟨u.q, max u.g x, max u.o x⟩ ⟨!u.q, 0, u.o⟩ hx.le hxa.le
+      rfl rfl le_rfl le_rfl le_rfl
+  | slow u rest k a => exact StepX.slow u rest k a _ le_rfl
+
+/-- The unmerged orientation of rule 4 and weakening are `StepX` steps as well. -/
+theorem stepW_stepX {c : ℝ} {L L' : Line} (h : StepW c L L') : StepX c L L' := by
+  cases h with
+  | rule h =>
+    cases h with
+    | lit h => exact step_stepX h
+    | rspeedU u rest a x hx hxa =>
+      exact StepX.rspeedU u rest true a x (a - x) ⟨!u.q, 0, u.o⟩ ⟨u.q, x, max u.o x⟩ ⟨!u.q, 0, u.o⟩
+        hx.le hxa.le (by simp) rfl le_rfl le_rfl le_rfl le_rfl
+  | weaken h =>
+    obtain ⟨hbs, hk, ha⟩ := h
+    rcases hk with hk | hk
+    · exact StepX.weaken _ _ _ _ _ _ (hbs.imp fun _ _ h => ⟨h.1, h.2.2.2⟩) (Or.inl hk) ha
+    · exact StepX.weaken _ _ _ _ _ _ (hbs.imp fun _ _ h => ⟨h.1, h.2.2.2⟩) (Or.inr hk) ha
+
+theorem step_nil_ne {c : ℝ} {k : Bool} {a : ℝ} {L : Line} (h : Step c ([], k, a) L) : L.1 ≠ [] := by
+  cases h with
+  | rspeed0 => simp
 
 end MWL
 end PastaMath.MWThreshold

@@ -29,13 +29,16 @@ Outputs are only bounded below, and 0 ≤ x ≤ a.
 
 `UStep` adds the unmerged orientation of the randomized speedup (three new blocks), and `StepW`
 adds weakening of an existing line (`Weaker`: raise superscripts or the kernel exponent, or replace
-a TS kernel by BPTS).
+a TS kernel by BPTS). `XStep` adds two rules that are needed when the entries are read as maximal
+runs of adjacent same-type blocks (`rspeedS`, `slowIn`); under that reading combining or splitting
+blocks is a weakening (see `MWL.StepX` and `MWL.lit_x`).
 
 Main results: if c² ≥ c + 1 (c ≥ φ), every quantifier-free line BPTS[n^{a'}] reached from
 BPTS[n^{a₀}] after at least one step has a' ≥ c·a₀ (`qf_ge`, `qf_ge_u`, and `qf_ge_w` when at least
 one step is a rule step), so there is no refutation, strict or not (`no_mrefutation`,
-`no_urefutation`, `no_wrefutation`). The proof is a potential `Φ` that never decreases along a
-step (`phi_step`, `phi_ustep`) and is monotone under weakening (`phi_mono`).
+`no_urefutation`, `no_wrefutation`); the same holds for `XStep` when some line has a block
+(`qf_ge_x`, `no_xrefutation`). The proof is a potential `Φ` that never decreases along a step
+(`phi_step`, `phi_ustep`, `phi_xstep`) and is monotone under weakening (`phi_mono`).
 -/
 
 namespace PastaMath.MWThreshold
@@ -578,6 +581,157 @@ theorem no_wrefutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ
     ¬ WRefutes c n M := by
   rintro ⟨hp, hj, a₀, a', ha₀, h0, hN, hle⟩
   have := qf_ge_w hc0 hphi hp hj ha₀.le h0 hN
+  have hc1 : 1 < c := by nlinarith
+  nlinarith
+
+
+/-! ### Runs of same-type blocks
+
+Read the entries of a line as maximal runs of adjacent same-type blocks, each entry being the output
+superscript of the innermost block of its run. Combining or splitting blocks inside a run is then a
+weakening (`Weaker`). Two more rules are needed: the same-type unmerged randomized speedup, whose new
+n^0 block becomes the innermost block of the run below it (`rspeedS`), and a slowdown that removes
+the innermost block of a run of two or more blocks, so that the run stays (`slowIn`). -/
+
+/-- `StepW` plus `rspeedS` and `slowIn`. -/
+inductive XStep (c : ℝ) : MLine → MLine → Prop
+  | w {L L' : MLine} : StepW c L L' → XStep c L L'
+  | rspeedS (b : ℝ) (rest : List ℝ) (k : Bool) (a x b₁ b₂ b₃ a₂ : ℝ) (hx : 0 ≤ x) (hxa : x ≤ a)
+      (h₁ : 0 ≤ b₁) (h₂ : max b x ≤ b₂) (h₃ : 0 ≤ b₃) (ha : a - x ≤ a₂) :
+      XStep c (b :: rest, k, a) (b₃ :: b₂ :: b₁ :: rest, false, a₂)
+  | slowIn (b : ℝ) (rest : List ℝ) (k : Bool) (a b' e : ℝ) (h' : 0 ≤ b') (he : c * max b a ≤ e) :
+      XStep c (b :: rest, k, a) (b' :: rest, true, e)
+
+def XPath (c : ℝ) (M : ℕ → MLine) (n : ℕ) : Prop := ∀ i < n, XStep c (M i) (M (i + 1))
+
+/-- A non-strict refutation in `XStep`: BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}], a' ≤ a₀, in which some line
+has at least one block (so at least one step is not a weakening). -/
+def XRefutes (c : ℝ) (n : ℕ) (M : ℕ → MLine) : Prop :=
+  XPath c M n ∧ (∃ j ≤ n, (M j).1 ≠ []) ∧
+    ∃ a₀ a', 0 < a₀ ∧ M 0 = ([], true, a₀) ∧ M n = ([], true, a') ∧ a' ≤ a₀
+
+theorem nn_xstep {c : ℝ} (hc : 0 ≤ c) {L L' : MLine} (h : XStep c L L') (hL : NN L) : NN L' := by
+  obtain ⟨hb, ha⟩ := hL
+  cases h with
+  | w h => exact nn_stepw hc h ⟨hb, ha⟩
+  | rspeedS b rest k a x b₁ b₂ b₃ a₂ hx hxa h₁ h₂ h₃ hA =>
+    have hb0 : 0 ≤ b := hb b (by simp)
+    refine ⟨?_, by simp only at ha ⊢; linarith⟩
+    intro y hy; simp only [List.mem_cons] at hy
+    rcases hy with rfl | rfl | rfl | hy
+    · exact h₃
+    · exact le_trans (le_trans hb0 (le_max_left _ _)) h₂
+    · exact h₁
+    · exact hb y (by simp [hy])
+  | slowIn b rest k a b' e h' he =>
+    have hb0 : 0 ≤ b := hb b (by simp)
+    refine ⟨?_, ?_⟩
+    · intro y hy; simp only [List.mem_cons] at hy
+      rcases hy with rfl | hy
+      · exact h'
+      · exact hb y (by simp [hy])
+    · simp only at ha ⊢
+      have : 0 ≤ c * max b a := mul_nonneg hc (le_trans hb0 (le_max_left _ _))
+      linarith
+
+theorem phi_xstep {c g : ℝ} (F : Facts c g) {L L' : MLine} (h : XStep c L L') (hL : NN L) :
+    Φ c g L ≤ Φ c g L' := by
+  have hc0 : 0 ≤ c := by linarith [F.c1]
+  cases h with
+  | w h => exact phi_stepw F h hL
+  | rspeedS b rest k a x b₁ b₂ b₃ a₂ hx hxa h₁ h₂ h₃ hA =>
+    obtain ⟨hb, ha⟩ := hL
+    simp only at ha
+    simp only [Φ, up]
+    apply up_mono hc0
+    have hb0 : 0 ≤ b := hb b (by simp)
+    have hp : g * (a - x) ≤ pot g b₃ false a₂ :=
+      le_trans (mul_le_mul_of_nonneg_left hA F.g0) pot_d_ge
+    have hY : c * max x (g * (a - x)) ≤ c * max b₂ (pot g b₃ false a₂) :=
+      mul_le_mul_of_nonneg_left (max_le_max (le_trans (le_max_right _ _) h₂) hp) hc0
+    have hk := key_r F hx hxa
+    set Y := c * max b₂ (pot g b₃ false a₂) with hYdef
+    have hbY : b ≤ Y := by
+      have hb2 : b ≤ b₂ := le_trans (le_max_left _ _) h₂
+      have : b₂ ≤ max b₂ (pot g b₃ false a₂) := le_max_left _ _
+      nlinarith [F.c1]
+    have hY0 : 0 ≤ Y := le_trans hb0 hbY
+    have hZ : c * Y ≤ c * max b₁ Y := mul_le_mul_of_nonneg_left (le_max_right _ _) hc0
+    have hcY : Y ≤ c * Y := by nlinarith [F.c1]
+    refine le_trans (pot_le k F.g1 ha) (max_le ?_ ?_)
+    · linarith
+    · calc a ≤ c ^ 2 * max x (g * (a - x)) := hk
+        _ = c * (c * max x (g * (a - x))) := by ring
+        _ ≤ c * Y := mul_le_mul_of_nonneg_left hY hc0
+        _ ≤ c * max b₁ Y := hZ
+  | slowIn b rest k a b' e h' he =>
+    obtain ⟨hb, ha⟩ := hL
+    simp only at ha
+    simp only [Φ]
+    apply up_mono hc0
+    have hb0 : 0 ≤ b := hb b (by simp)
+    have hm0 : 0 ≤ max b a := le_trans hb0 (le_max_left _ _)
+    have hcm : max b a ≤ c * max b a := by nlinarith [F.c1]
+    simp only [pot, if_true]
+    exact le_trans (pot_le k F.g1 ha) (le_trans hcm (le_trans he (le_max_right _ _)))
+
+theorem xstep_nil {c : ℝ} {k : Bool} {a : ℝ} {L : MLine} (h : XStep c ([], k, a) L) :
+    StepW c ([], k, a) L := by
+  cases h with
+  | w h => exact h
+
+/-- **Limit theorem for `XStep`.** For c ≥ φ, if an `XStep` path from BPTS[n^{a₀}] to a
+quantifier-free BPTS[n^{a'}] passes through a line with at least one block, then a' ≥ c·a₀. -/
+theorem qf_ge_x {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) {M : ℕ → MLine} {n : ℕ}
+    (hp : XPath c M n) (hj : ∃ j ≤ n, (M j).1 ≠ []) {a₀ a' : ℝ} (ha₀ : 0 ≤ a₀)
+    (h0 : M 0 = ([], true, a₀)) (hN : M n = ([], true, a')) : c * a₀ ≤ a' := by
+  have F := facts_of_phi hc0 hphi
+  have hnn : ∀ i ≤ n, NN (M i) := by
+    intro i
+    induction i with
+    | zero => intro _; rw [h0]; exact ⟨by simp, ha₀⟩
+    | succ j ih => intro hj; exact nn_xstep hc0.le (hp j (by omega)) (ih (by omega))
+  have key : ∀ i ≤ n, c * a₀ ≤ Φ c (1 / (c ^ 2 - 1)) (M i) ∨
+      (a₀ ≤ (M i).2.2 ∧ ∀ j ≤ i, (M j).1 = []) := by
+    intro i
+    induction i with
+    | zero =>
+      intro _
+      right
+      rw [h0]
+      refine ⟨le_rfl, fun j hj => ?_⟩
+      rw [Nat.le_zero.mp hj, h0]
+    | succ i ih =>
+      intro hi
+      have hs := hp i (by omega)
+      rcases ih (by omega) with h | ⟨ha, hno⟩
+      · exact Or.inl (le_trans h (phi_xstep F hs (hnn i (by omega))))
+      · have hMi : M i = ([], (M i).2.1, (M i).2.2) := Prod.ext (hno i le_rfl) rfl
+        rw [hMi] at hs
+        cases xstep_nil hs with
+        | rule u =>
+          left
+          have h1 := first_ustep F u
+          have h2 : c * a₀ ≤ c * (M i).2.2 := mul_le_mul_of_nonneg_left ha hc0.le
+          linarith
+        | weaken w =>
+          right
+          obtain ⟨hbs, _, ha'⟩ := w
+          have hnil' : (M (i + 1)).1 = [] := List.forall₂_nil_left_iff.mp hbs
+          refine ⟨le_trans ha ha', fun j hj => ?_⟩
+          rcases Nat.lt_succ_iff_lt_or_eq.mp (Nat.lt_succ_of_le hj) with hj | rfl
+          · exact hno j (by omega)
+          · exact hnil'
+  rcases key n le_rfl with h | ⟨_, hno⟩
+  · rw [hN] at h
+    exact h
+  · obtain ⟨j, hj, hne⟩ := hj
+    exact absurd (hno j hj) hne
+
+theorem no_xrefutation {c : ℝ} (hc0 : 0 < c) (hphi : c + 1 ≤ c ^ 2) (n : ℕ) (M : ℕ → MLine) :
+    ¬ XRefutes c n M := by
+  rintro ⟨hp, hj, a₀, a', ha₀, h0, hN, hle⟩
+  have := qf_ge_x hc0 hphi hp hj ha₀.le h0 hN
   have hc1 : 1 < c := by nlinarith
   nlinarith
 

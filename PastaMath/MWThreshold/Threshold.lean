@@ -17,8 +17,9 @@ The literal calculus `MWL.Step` has threshold exactly φ = (1+√5)/2, both dire
   The inner phase (`inner`) is an induction on the number of deterministic speedups left, with the
   invariant "kernel = σ_j·t, pin ≤ c^j·t, t ≥ 1"; every max(·,1) floor is resolved by t ≥ 1.
 * `MWG.threshold_phi`: for c ≥ 1, (∃ refutation) ↔ c(c−1) < 1; `MWG.threshold_goldenRatio`:
-  ↔ c < (1+√5)/2. `MWG.threshold_phi_U` and `MWG.threshold_phi_W`: the same with the unmerged
-  orientation of rule 4, and with weakening as well.
+  ↔ c < (1+√5)/2. `MWG.threshold_phi_U`, `MWG.threshold_phi_W` and `MWG.threshold_phi_X`: the
+  same with the unmerged orientation of rule 4, with weakening as well, and with lines that need
+  not alternate (combining and splitting same-type blocks at any time).
 * `MWG.mw15_ok`: a 15-step refutation at c = 1467/1000, above the constant of the source paper's
   Theorem 5.3 (`MWG.mw21_root_lt`).
 -/
@@ -310,6 +311,24 @@ theorem threshold_phi_W {c : ℝ} (hc : 1 ≤ c) :
   · intro h
     obtain ⟨n, M, hn, hp, a₀, a', ha, h0, hN, hlt⟩ := refutes_of_lt_phi hc h
     exact ⟨n, M, fun i hi => StepW.rule (StepU.lit (hp i hi)), ⟨0, hn, StepU.lit (hp 0 hn)⟩,
+      a₀, a', ha, h0, hN, hlt.le⟩
+
+/-- With lines that need not alternate, combining and splitting adjacent same-type blocks anywhere
+in the prefix at any later time, Lemma 2.7 with Q = Q_k unmerged, both orientations of rule 4 and
+weakening, the threshold is unchanged. The left side asks only for a non-strict refutation in which
+some line has a quantifier block. -/
+theorem threshold_phi_X {c : ℝ} (hc : 1 ≤ c) :
+    ((∃ n M, RefutesX c n M) ↔ c * (c - 1) < 1) := by
+  constructor
+  · rintro ⟨n, M, h⟩
+    by_contra hn
+    push Not at hn
+    exact no_litX_refutation (by linarith) (by nlinarith) n M h
+  · intro h
+    obtain ⟨n, M, hn, hp, a₀, a', ha, h0, hN, hlt⟩ := refutes_of_lt_phi hc h
+    have h1 := hp 0 hn
+    rw [h0] at h1
+    exact ⟨n, M, fun i hi => step_stepX (hp i hi), ⟨1, hn, step_nil_ne h1⟩,
       a₀, a', ha, h0, hN, hlt.le⟩
 
 /-! ### A 15-step refutation at c = 1.467: M(3) M(3), then the final slowdown -/
