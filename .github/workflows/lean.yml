@@ -16,10 +16,13 @@ jobs:
           use-mathlib-cache: true
       - name: Check axioms of headline theorems
         run: |
-          lake env lean PastaMath/TautThreshold/Axioms.lean > axioms.out
-          cat axioms.out
-          test "$(grep -c 'depends on axioms: \[propext, Classical.choice, Quot.sound\]' axioms.out)" -eq "$(grep -c '^#print axioms' PastaMath/TautThreshold/Axioms.lean)"
-          test "$(grep -c 'depends on axioms' axioms.out)" -eq "$(grep -c '^#print axioms' PastaMath/TautThreshold/Axioms.lean)"
+          for f in PastaMath/TautThreshold/Axioms.lean PastaMath/MWThreshold/Axioms.lean; do
+            lake env lean "$f" > axioms.out
+            cat axioms.out
+            n="$(grep -c '^#print axioms' "$f")"
+            test "$(grep -c 'depends on axioms: \[propext, Classical.choice, Quot.sound\]' axioms.out)" -eq "$n"
+            test "$(grep -c 'depends on axioms' axioms.out)" -eq "$n"
+          done
       - name: Check for forbidden constructs
         run: |
           if grep -rnwE 'sorry|admit|native_decide|axiom|implemented_by' --include='*.lean' PastaMath PastaMath.lean | grep -v '#print axioms'; then
