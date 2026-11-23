@@ -1,6 +1,6 @@
 # Scripts
 
-`mw_check.py` is an exact checker for the calculus of A. S. Mudigonda and R. R. Williams for ∃·BPTIME[n] versus BPTS (arXiv 2012.00330, Definition 2.14 rules 2–5 with Lemma 5.1; numbering of the arXiv version), written from the paper's rules and independent of the Lean code. Python 3 standard library only; all arithmetic uses `fractions.Fraction`. Besides each rule's side condition 0 < x < d, it asserts that every line is orderly and alternates. The rules it implements are listed in the module docstring.
+`mw_check.py` is an exact checker for the calculus of A. S. Mudigonda and R. R. Williams for ∃·BPTIME[n] versus BPTS (arXiv 2012.00330, Definition 2.14 rules 2–5 with Lemma 5.1; numbering of the arXiv version), written from the paper's rules and independent of the Lean code. Python 3 standard library only; rule replays and parameter checks use `fractions.Fraction` and are exact (the one exception is the printed root of x³ − x² − 1, found by floating-point bisection for display; the Lean theorem `MWG.mw21_root_lt` is the exact statement). Besides each rule's side condition 0 < x < d, it asserts that every line is orderly and alternates. The rules it implements are listed in the module docstring.
 
 Run from this directory; each command takes well under a second.
 

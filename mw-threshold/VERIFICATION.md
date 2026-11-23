@@ -59,7 +59,7 @@ All names are in namespace `PastaMath.MWThreshold`. The calculus is defined in `
 | `MWG.threshold_phi` | `Threshold.lean` | For every real c ≥ 1: a refutation in the exact rules exists iff c(c − 1) < 1. |
 | `MWG.threshold_goldenRatio` | `Threshold.lean` | The same with the condition written as c < (1 + √5)/2 (Mathlib's `Real.goldenRatio`). |
 | `MWG.refutes_of_lt_phi` | `Threshold.lean` | Construction: if 1 ≤ c and c(c − 1) < 1, a strict refutation exists in the exact rules (a macro iterated under the outer (∃n⁰)¹ block, then one final slowdown). |
-| `MWL.no_lit_refutation` | `Literal.lean` | If c² ≥ c + 1 (c ≥ φ), there is no refutation in the exact rules (`Refutes` is strict; non-strict refutations are excluded by `no_litU_refutation`, since `Step ⊆ StepU`). |
+| `MWL.no_lit_refutation` | `Literal.lean` | If c > 0 and c² ≥ c + 1 (that is, c ≥ φ), there is no refutation in the exact rules (`Refutes` is strict; non-strict refutations are excluded by `no_litU_refutation`, since `Step ⊆ StepU`). |
 | `MW.no_mrefutation`, `MW.qf_ge` | `Limit.lean` | The same in the relaxed calculus; every quantifier-free line reached from BPTS[n^{a₀}] in ≥ 1 step has exponent ≥ c·a₀. |
 | `MWG.threshold_phi_U`, `MWL.no_litU_refutation`, `MW.no_urefutation` | `Threshold.lean`, `Literal.lean`, `Limit.lean` | The threshold and the limit are unchanged when the unmerged orientation of the randomized speedup is added; these exclude non-strict refutations (a' ≤ a₀). |
 | `MWG.threshold_phi_W`, `MWL.no_litW_refutation`, `MW.no_wrefutation`, `MW.qf_ge_w` | `Threshold.lean`, `Literal.lean`, `Limit.lean` | The same when weakening is added as well: if a path from BPTS[n^{a₀}] with at least one rule step ends at a quantifier-free line BPTS[n^{a'}], then a' ≥ c·a₀. |

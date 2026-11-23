@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Exact checker for the alternation-trading calculus of Mudigonda and Williams for
 E.BPTIME[n] versus BPTS (arXiv 2012.00330, Definition 2.14 rules 2-5 and Lemma 5.1; numbering of
-the arXiv version). Python standard library only; all arithmetic is exact (fractions.Fraction).
+the arXiv version). Python standard library only; rule replays and parameter checks are exact (fractions.Fraction);
+only the printed root of x^3 - x^2 - 1 is a floating-point bisection, for display.
 
 A line is a list of blocks (Q n^a)^b, outermost first, followed by a kernel TS[n^d] or BPTS[n^d].
 An x log n block is written with guess exponent 0. The input length in front of the first block
@@ -294,7 +295,7 @@ def cmd_thm53():
             print(f"  c = {cs}, k = {k:3d}: d - sum x_i = {float(kern):+.4f}, "
                   f"c x_i <= x_(i-1) for all i: {mono}")
     print("Corrected parameters x_i = c^(k-i) T, d = sigma_k T (the chain 1^k 0^(k+2) from")
-    print("BPTS[n^d], then the final slowdown), checked exactly with the rules above:")
+    print("BPTS[n^d], including the final slowdown), checked exactly with the rules above:")
     for cs in ("1.46", "1.465", "1.466", "1.47"):
         c = F(cs)
         best = None
