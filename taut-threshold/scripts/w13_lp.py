@@ -14,8 +14,10 @@ annotation is found by bisection.
 The pop cost of Lemma 6.2(1),(2) is c * max(a_k, a_{k+1}, b_{k+1}, b); the option --no-b drops the
 term b (the input constraint of the next outer block).
 
-Usage: python3 w13_lp.py [--lines 5,8,11] [--no-b] [--digits 4]
+Usage: python3 w13_lp.py [--lines 5,8,11] [--no-b] [--digits 4] [--at 1.43308,1.43310]
 Prints, for each number of lines, the valid annotations, the best c of each, and the maximum.
+With --at, it instead decides feasibility exactly at each given c (a decimal, read as an exact
+rational) and prints the annotations that are feasible there.
 """
 import argparse
 from fractions import Fraction as F
@@ -182,17 +184,29 @@ def main():
     ap.add_argument("--lines", default="5,8,11")
     ap.add_argument("--no-b", action="store_true")
     ap.add_argument("--digits", type=int, default=4)
+    ap.add_argument("--at", default=None)
     args = ap.parse_args()
     with_b = not args.no_b
     print("pop cost", "with" if with_b else "without", "the b term")
     for k in [int(s) for s in args.lines.split(",")]:
         n = k - 1
-        results = []
+        valid = []
         for mask in range(2 ** n):
             ann = [(mask >> (n - 1 - i)) & 1 for i in range(n)]
             rules = shapes(ann)
-            if rules is None:
-                continue
+            if rules is not None:
+                valid.append((ann, rules))
+        if args.at is not None:
+            print(f"\n{k} lines: {len(valid)} valid annotations")
+            for cs in args.at.split(","):
+                c = F(cs)
+                ok = [ann for ann, rules in valid if feasible(*lp_rows(rules, c, with_b))]
+                print(f"  c = {cs}: {len(ok)} feasible annotation(s)")
+                for ann in ok:
+                    print(f"    {ann}")
+            continue
+        results = []
+        for ann, rules in valid:
             bc = best_c(rules, with_b, args.digits)
             results.append((ann, bc))
         print(f"\n{k} lines: {len(results)} valid annotations")

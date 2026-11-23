@@ -11,9 +11,16 @@ Two exact-rational checks of numbers cited from Section 6.2 of Williams's paper 
 - `w13_lp.py`: for each valid proof annotation with the given numbers of lines, decides feasibility of Williams's linear program exactly (two-phase simplex over the rationals) and bisects for the best c. Use `--no-b` to drop the b term.
 
   ```sh
-  python3 w13_lp.py --lines 5,8,11          # about 20 s
+  python3 w13_lp.py --lines 5,8,11          # about a minute
   python3 w13_lp.py --lines 5,8,11 --no-b
-  python3 w13_lp.py --lines 14 --digits 3   # a few minutes
+  python3 w13_lp.py --lines 14 --digits 3   # several minutes
+  ```
+
+  With `--at`, it decides feasibility exactly at the given values of c instead of bisecting, and prints the feasible annotations:
+
+  ```sh
+  python3 w13_lp.py --lines 14 --at 1.43308,1.43310           # several minutes
+  python3 w13_lp.py --lines 14 --no-b --at 1.69261,1.69263
   ```
 
 These scripts are evidence about how Williams's table was computed. They are not part of the kernel-checked results.
