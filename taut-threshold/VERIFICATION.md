@@ -39,6 +39,7 @@ Every theorem must depend only on `propext`, `Classical.choice` and `Quot.sound`
 'PastaMath.TautThreshold.TW.wq_proof' depends on axioms: [propext, Classical.choice, Quot.sound]
 'PastaMath.TautThreshold.TW.w13_combine' depends on axioms: [propext, Classical.choice, Quot.sound]
 'PastaMath.TautThreshold.TW.a27_combine' depends on axioms: [propext, Classical.choice, Quot.sound]
+'PastaMath.TautThreshold.TW.a27_combine_indexed' depends on axioms: [propext, Classical.choice, Quot.sound]
 'PastaMath.TautThreshold.TL.tlv_refutes' depends on axioms: [propext, Classical.choice, Quot.sound]
 ```
 
@@ -62,7 +63,7 @@ All names are in namespace `PastaMath.TautThreshold`. The rule relations are def
 | `TDL.nf_exists` | `DvMWLiteral.lean` | For 1 ≤ c with c³ < 4, a normal-form proof exists using only the exact merging rules (the Diehl–van Melkebeek–Williams construction). |
 | `TDL.threshold_literal` | `DvMWLiteral.lean` | For c ≥ 1: a normal-form proof with the exact merging rules exists iff c³ < 4. |
 | `TW.w5_nf`, `TW.wq_proof`, `TL.tlv_refutes` | `Literal.lean`, `Limit.lean` | Non-vacuity: concrete proofs at c = 5/4 and c = 13/10 are accepted by the definitions. |
-| `TW.w13_combine`, `TW.a27_combine` | `Literal.lean` | Non-vacuity: the §2 identity (∃n)¹(∃n)¹ NTS[n] ⊆ (∃n)¹ NTS[n] is one `WStepXE` step, and the combining step on p. A:27 of Williams's paper is one `WStepX` step. |
+| `TW.w13_combine`, `TW.a27_combine`, `TW.a27_combine_indexed` | `Literal.lean` | Non-vacuity: the §2 identity (∃n)¹(∃n)¹ NTS[n] ⊆ (∃n)¹ NTS[n] is one `WStepXE` step. The combining step on p. A:27 of Williams's paper is one `WStepX` step if each omitted input constraint is read as its block's default max(g,1), and three `WStepX` steps if the omitted constraints are read positionally. |
 
 ## What the build does not check
 

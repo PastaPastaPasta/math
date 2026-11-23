@@ -24,4 +24,5 @@ open PastaMath.TautThreshold
 #print axioms TW.wq_proof
 #print axioms TW.w13_combine
 #print axioms TW.a27_combine
+#print axioms TW.a27_combine_indexed
 #print axioms TL.tlv_refutes

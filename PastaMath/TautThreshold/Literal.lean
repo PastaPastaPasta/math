@@ -1170,5 +1170,21 @@ theorem a27_combine {c y : ℝ} (hc : 1 ≤ c) (hy : 0 ≤ y) :
     ⟨false, c * y, max (c * y) 1⟩ false (c * y) (c * y) rfl rfl rfl rfl
     (max_le (by positivity) hyc) (max_le_max hyc le_rfl) le_rfl
 
+/-- The same step with the omitted input constraints read positionally (W13 §2 indexing): the
+constraint after the outer ∃ block is 1 before the step and x after it, and the inner ∀ block
+carries x. For 1 ≤ y ≤ x it is three steps: split the ∃ block, recombine it, combine the ∀ blocks. -/
+theorem a27_combine_indexed (c : ℝ) {y x : ℝ} (hy : 1 ≤ y) (hxy : y ≤ x) :
+    ∃ I J : WLine,
+      WStepX c ([⟨false, y, x⟩, ⟨false, 0, 1⟩, ⟨true, x, 1⟩], false, x) I ∧ WStepX c I J ∧
+      WStepX c J ([⟨false, x, x⟩, ⟨true, x, x⟩], false, x) := by
+  let p : List Blk := [⟨false, y, x⟩, ⟨false, 0, 1⟩]
+  let u : Blk := ⟨true, x, 1⟩
+  let w : Blk := ⟨true, x, x⟩
+  refine ⟨(p ++ [u, u], false, x), (p ++ [w], false, x), ?_, ?_, ?_⟩
+  · exact WStepX.split _ _ p [] u u u _ _ _ rfl rfl rfl rfl le_rfl le_rfl
+  · exact WStepX.combine _ _ p [] u u w _ _ _ rfl rfl rfl rfl (by simp [u, w]) (hy.trans hxy) le_rfl
+  · exact WStepX.combine _ _ [] [w] ⟨false, 0, 1⟩ ⟨false, y, x⟩ ⟨false, x, x⟩ _ _ _
+      rfl rfl rfl rfl (max_le (by linarith) hxy) le_rfl le_rfl
+
 end TW
 end PastaMath.TautThreshold
