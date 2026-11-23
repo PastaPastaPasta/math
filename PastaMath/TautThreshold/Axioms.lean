@@ -1,10 +1,16 @@
+-- SPDX-License-Identifier: Apache-2.0
 import PastaMath.TautThreshold
 
 /-! Axiom audit for the headline theorems of `PastaMath.TautThreshold`. -/
 
 open PastaMath.TautThreshold
 
+#print axioms TW.no_proofX
+#print axioms TW.no_proofXE
+#print axioms TW.no_nfX
+#print axioms TW.normal_formX
 #print axioms TL.no_trefutation
+#print axioms TL.return_bound
 #print axioms TW.normal_form
 #print axioms TW.normal_formE
 #print axioms TW.no_literal_proof

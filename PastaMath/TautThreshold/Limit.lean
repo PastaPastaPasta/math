@@ -1,3 +1,4 @@
+-- SPDX-License-Identifier: Apache-2.0
 import PastaMath.TautThreshold.Basic
 
 /-!
@@ -206,20 +207,22 @@ abbrev TLine := List ℝ × Bool × ℝ
 /-- Reduced TAUT-vs-NTS rules. `true` = kernel type matches the last block. `speedM` merges the
 guessed configurations into the last block and opens an index block of the other quantifier
 (W13 Lemma 6.1 when the kernel matches); `speedO` opens a configuration block and an index block
-(Lemma 6.1 when it does not); `flip` applies H to the kernel alone (Lemma 6.2(3),(4), and the
-converse direction, also sound); `pop` removes the last block with its matching kernel
-(Lemma 6.2(1),(2)); `weak` is weakening. With x = 0, `speedM`/`speedO` are dummy blocks. -/
+(Lemma 6.1 without merging, from either kernel type); `flip` applies H to the kernel alone
+(Lemma 6.2(3),(4), and the matching-kernel direction); `pop` removes the last block with its
+matching kernel (Lemma 6.2(1),(2)); the new innermost block may have either type, so the result
+may be matching or opposite; `weak` is weakening. With x = 0, `speedM`/`speedO` are dummy
+blocks. -/
 inductive TStep (c : ℝ) : TLine → TLine → Prop
   | init (a : ℝ) : TStep c ([], true, a) ([0], true, a)
   | speedM (bs : List ℝ) (b a x b₁ b₂ a₂ : ℝ) (hx : 0 ≤ x) (hxa : x ≤ a) (h₁ : max x b ≤ b₁)
       (h₂ : b ≤ b₂) (h₃ : a - x ≤ a₂) : TStep c (bs ++ [b], true, a) (bs ++ [b₁, b₂], false, a₂)
-  | speedO (bs : List ℝ) (b a x b₁ b₂ a₂ : ℝ) (hx : 0 ≤ x) (hxa : x ≤ a) (h₁ : max x b ≤ b₁)
-      (h₂ : b ≤ b₂) (h₃ : a - x ≤ a₂) :
-      TStep c (bs ++ [b], false, a) (bs ++ [b, b₁, b₂], false, a₂)
+  | speedO {t : Bool} (bs : List ℝ) (b a x b₁ b₂ a₂ : ℝ) (hx : 0 ≤ x) (hxa : x ≤ a)
+      (h₁ : max x b ≤ b₁) (h₂ : b ≤ b₂) (h₃ : a - x ≤ a₂) :
+      TStep c (bs ++ [b], t, a) (bs ++ [b, b₁, b₂], false, a₂)
   | flip (bs : List ℝ) (b a e : ℝ) (t : Bool) (h : c * max b a ≤ e) :
       TStep c (bs ++ [b], t, a) (bs ++ [b], !t, e)
-  | pop (bs : List ℝ) (b a e : ℝ) (h : c * max (top bs) (max b a) ≤ e) :
-      TStep c (bs ++ [b], true, a) (bs, true, e)
+  | pop {t : Bool} (bs : List ℝ) (b a e : ℝ) (h : c * max (top bs) (max b a) ≤ e) :
+      TStep c (bs ++ [b], true, a) (bs, t, e)
   | weak (bs bs' : List ℝ) (t : Bool) (a a' : ℝ) (hl : bs'.length = bs.length)
       (hle : ∀ i, bs.getD i 0 ≤ bs'.getD i 0) (ha : a ≤ a') : TStep c (bs, t, a) (bs', t, a')
 
@@ -240,11 +243,10 @@ theorem tstep_inv {c : ℝ} {L L' : TLine} (h : TStep c L L') :
       L.2.2 - x ≤ L'.2.2 ∧ L.1 = bs ++ [b] ∧ L.2.1 = true ∧ L'.1 = bs ++ [b₁, b₂] ∧
       L'.2.1 = false) ∨
     (∃ (bs : List ℝ) (b x b₁ b₂ : ℝ), 0 ≤ x ∧ x ≤ L.2.2 ∧ max x b ≤ b₁ ∧ b ≤ b₂ ∧
-      L.2.2 - x ≤ L'.2.2 ∧ L.1 = bs ++ [b] ∧ L.2.1 = false ∧ L'.1 = bs ++ [b, b₁, b₂] ∧
-      L'.2.1 = false) ∨
+      L.2.2 - x ≤ L'.2.2 ∧ L.1 = bs ++ [b] ∧ L'.1 = bs ++ [b, b₁, b₂] ∧ L'.2.1 = false) ∨
     (∃ (bs : List ℝ) (b : ℝ), L.1 = bs ++ [b] ∧ L'.1 = bs ++ [b] ∧ L'.2.1 = !L.2.1 ∧
       c * max b L.2.2 ≤ L'.2.2) ∨
-    (∃ (bs : List ℝ) (b : ℝ), L.1 = bs ++ [b] ∧ L.2.1 = true ∧ L'.1 = bs ∧ L'.2.1 = true ∧
+    (∃ (bs : List ℝ) (b : ℝ), L.1 = bs ++ [b] ∧ L.2.1 = true ∧ L'.1 = bs ∧
       c * max (top bs) (max b L.2.2) ≤ L'.2.2) ∨
     (L'.1.length = L.1.length ∧ (∀ i, L.1.getD i 0 ≤ L'.1.getD i 0) ∧ L'.2.1 = L.2.1 ∧
       L.2.2 ≤ L'.2.2) := by
@@ -253,9 +255,9 @@ theorem tstep_inv {c : ℝ} {L L' : TLine} (h : TStep c L L') :
   | speedM bs b a x b₁ b₂ a₂ hx hxa h₁ h₂ h₃ =>
     exact Or.inr (Or.inl ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, rfl, rfl, rfl, rfl⟩)
   | speedO bs b a x b₁ b₂ a₂ hx hxa h₁ h₂ h₃ =>
-    exact Or.inr (Or.inr (Or.inl ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, rfl, rfl, rfl, rfl⟩))
+    exact Or.inr (Or.inr (Or.inl ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, rfl, rfl, rfl⟩))
   | flip bs b a e t h => exact Or.inr (Or.inr (Or.inr (Or.inl ⟨bs, b, rfl, rfl, rfl, h⟩)))
-  | pop bs b a e h => exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨bs, b, rfl, rfl, rfl, rfl, h⟩))))
+  | pop bs b a e h => exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨bs, b, rfl, rfl, rfl, h⟩))))
   | weak bs bs' t a a' hl hle ha => exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨hl, hle, rfl, ha⟩))))
 
 theorem getD_snoc_len (bs : List ℝ) (b : ℝ) : (bs ++ [b]).getD bs.length 0 = b := by
@@ -291,8 +293,8 @@ theorem tstep_nonneg {c : ℝ} (hc : 0 ≤ c) {L L' : TLine} (h : TStep c L L') 
     NN L' := by
   obtain ⟨hL1, hL2⟩ := hL
   rcases tstep_inv h with ⟨-, e1, -, e2⟩ | ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, e0, -, e1, -⟩ |
-    ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, e0, -, e1, -⟩ | ⟨bs, b, e0, e1, -, hf⟩ |
-    ⟨bs, b, e0, -, e1, -, hf⟩ | ⟨hl, hle, -, ha⟩
+    ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, e0, e1, -⟩ | ⟨bs, b, e0, e1, -, hf⟩ |
+    ⟨bs, b, e0, -, e1, hf⟩ | ⟨hl, hle, -, ha⟩
   · refine ⟨?_, by rw [e2]; exact hL2⟩
     rw [e1]; exact getD1_nonneg le_rfl
   · rw [e0] at hL1
@@ -339,24 +341,24 @@ theorem tstep_restrict {c c₀ : ℝ} (hcc : c₀ ≤ c) {L L' : TLine} (h : TSt
 
 theorem tstep_len {c : ℝ} {L L' : TLine} (h : TStep c L L') : L.1.length ≤ L'.1.length + 1 := by
   rcases tstep_inv h with ⟨e0, e1, -⟩ | ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, -, e1, -⟩ |
-    ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, -, e1, -⟩ | ⟨bs, b, e0, e1, -, -⟩ |
-    ⟨bs, b, e0, -, e1, -, -⟩ | ⟨hl, -, -, -⟩
+    ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, e1, -⟩ | ⟨bs, b, e0, e1, -, -⟩ |
+    ⟨bs, b, e0, -, e1, -⟩ | ⟨hl, -, -, -⟩
   all_goals first
     | (rw [e0, e1]; simp)
     | omega
 
 theorem tstep_pop {c : ℝ} {L L' : TLine} (h : TStep c L L')
     (hd : L'.1.length + 1 = L.1.length) :
-    L.2.1 = true ∧ L'.2.1 = true ∧ L.1 = L'.1 ++ [top L.1] ∧
+    L.2.1 = true ∧ L.1 = L'.1 ++ [top L.1] ∧
       c * max (top L'.1) (max (top L.1) L.2.2) ≤ L'.2.2 := by
   rcases tstep_inv h with ⟨e0, e1, -⟩ | ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, -, e1, -⟩ |
-    ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, -, e1, -⟩ | ⟨bs, b, e0, e1, -, -⟩ |
-    ⟨bs, b, e0, t1, e1, t2, hf⟩ | ⟨hl, -, -, -⟩
+    ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, e1, -⟩ | ⟨bs, b, e0, e1, -, -⟩ |
+    ⟨bs, b, e0, t1, e1, hf⟩ | ⟨hl, -, -, -⟩
   · rw [e0, e1] at hd; simp at hd
   · rw [e0, e1] at hd; simp at hd
   · rw [e0, e1] at hd; simp at hd
   · rw [e0, e1] at hd; simp at hd
-  · refine ⟨t1, t2, ?_, ?_⟩
+  · refine ⟨t1, ?_, ?_⟩
     · rw [e0, e1, top_concat]
     · rw [e0, e1, top_concat]; exact hf
   · omega
@@ -364,8 +366,8 @@ theorem tstep_pop {c : ℝ} {L L' : TLine} (h : TStep c L L')
 theorem tstep_getD_mono {c : ℝ} {L L' : TLine} (h : TStep c L L') {k : ℕ}
     (hk : k + 2 ≤ L.1.length) : L.1.getD k 0 ≤ L'.1.getD k 0 := by
   rcases tstep_inv h with ⟨e0, -, -⟩ | ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, -, e1, -⟩ |
-    ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, -, e1, -⟩ | ⟨bs, b, e0, e1, -, -⟩ |
-    ⟨bs, b, e0, -, e1, -, -⟩ | ⟨-, hle, -, -⟩
+    ⟨bs, b, x, b₁, b₂, -, -, -, -, -, e0, e1, -⟩ | ⟨bs, b, e0, e1, -, -⟩ |
+    ⟨bs, b, e0, -, e1, -⟩ | ⟨-, hle, -, -⟩
   · rw [e0] at hk; simp at hk
   · rw [e0] at hk ⊢; rw [e1]
     simp only [List.length_append, List.length_singleton] at hk
@@ -385,6 +387,27 @@ theorem pot_true {c : ℝ} {L : TLine} (h : L.2.1 = true) : pot c L = Ps c (top 
 theorem pot_false {c : ℝ} {L : TLine} (h : L.2.1 = false) :
     pot c L = Ps c (top L.1) (c * Ps c (top L.1) L.2.2) := by
   unfold pot; rw [if_neg (by rw [h]; simp)]
+
+theorem ps_le_cps {c b a : ℝ} (hc0 : 0 ≤ c) (hc2 : c ≤ 2) (hcsq : 2 ≤ c ^ 2) (ha : 0 ≤ a) :
+    a ≤ c * Ps c b a := by
+  have h := mul_le_mul_of_nonneg_left (ps_ge_g (b := b) hc0 hc2 ha) hc0
+  nlinarith [mul_nonneg (by linarith : (0 : ℝ) ≤ c ^ 2 / 2 - 1) ha]
+
+/-- On a nonnegative line the potential is at least the matching value `Ps (top) a`. -/
+theorem ps_le_pot {c : ℝ} (hc0 : 0 ≤ c) (hc2 : c ≤ 2) (hcsq : 2 ≤ c ^ 2) {L : TLine} (hL : NN L) :
+    Ps c (top L.1) L.2.2 ≤ pot c L := by
+  unfold pot
+  split_ifs
+  · exact le_rfl
+  · exact ps_mono hc0 le_rfl (ps_le_cps hc0 hc2 hcsq hL.2)
+
+/-- On a nonnegative line the potential is at most the opposite value `Ps (top) (c · Ps (top) a)`. -/
+theorem pot_le_opp {c : ℝ} (hc0 : 0 ≤ c) (hc2 : c ≤ 2) (hcsq : 2 ≤ c ^ 2) {L : TLine} (hL : NN L) :
+    pot c L ≤ Ps c (top L.1) (c * Ps c (top L.1) L.2.2) := by
+  unfold pot
+  split_ifs
+  · exact ps_mono hc0 le_rfl (ps_le_cps hc0 hc2 hcsq hL.2)
+  · exact le_rfl
 
 /-- Entry k is nondecreasing along a stretch whose source lines all have depth ≥ k + 2. -/
 theorem entry_mono {c : ℝ} (L : ℕ → TLine) (k : ℕ) :
@@ -417,25 +440,25 @@ def SegStmt (c : ℝ) (L : ℕ → TLine) (len p k : ℕ) : Prop :=
     (∀ i, p ≤ i → i ≤ p + len → k + 1 ≤ (L i).1.length ∧ NN (L i)) →
     (L p).1.length = k + 1 → (L (p + len)).1.length = k + 1 → pot c (L p) ≤ pot c (L (p + len))
 
-/-- An excursion that starts at depth k+1 and first returns to depth k ends in a matching line
-whose kernel pays c·max(parent sup, potential at the start). -/
+/-- An excursion that starts at depth k+1 and first returns to depth k ends in a line whose
+kernel pays c·max(parent sup, potential at the start). -/
 theorem excursion {c : ℝ} (hc : 0 ≤ c) (L : ℕ → TLine) (N : ℕ)
     (hseg : ∀ len p k, len < N → SegStmt c L len p k) (p q k : ℕ) (hpq : p < q) (hN : q - 1 - p < N)
     (hs : ∀ i, p ≤ i → i < q → TStep c (L i) (L (i + 1)))
     (hd : ∀ i, p ≤ i → i < q → k + 1 ≤ (L i).1.length ∧ NN (L i))
     (hp : (L p).1.length = k + 1) (hq : (L q).1.length = k) :
-    (L q).2.1 = true ∧ c * max (top (L q).1) (pot c (L p)) ≤ (L q).2.2 := by
+    c * max (top (L q).1) (pot c (L p)) ≤ (L q).2.2 := by
   have hsq := hs (q - 1) (by omega) (by omega)
   rw [show q - 1 + 1 = q by omega] at hsq
   have hlq1 : (L (q - 1)).1.length = k + 1 := by
     have h1 := (hd (q - 1) (by omega) (by omega)).1
     have h2 := tstep_len hsq
     omega
-  obtain ⟨t1, t2, -, hf⟩ := tstep_pop hsq (by omega)
+  obtain ⟨t1, -, hf⟩ := tstep_pop hsq (by omega)
   have hS := hseg (q - 1 - p) (p := p) (k := k) hN (fun i h1 h2 => hs i h1 (by omega))
     (fun i h1 h2 => hd i h1 (by omega)) hp (by rw [show p + (q - 1 - p) = q - 1 by omega]; exact hlq1)
   rw [show p + (q - 1 - p) = q - 1 by omega, pot_true t1] at hS
-  refine ⟨t2, le_trans ?_ hf⟩
+  refine le_trans ?_ hf
   apply mul_le_mul_of_nonneg_left _ hc
   exact max_le_max le_rfl (le_trans hS ps_le_max)
 
@@ -446,6 +469,7 @@ theorem segment {c : ℝ} (hc3 : 4 ≤ c ^ 3) (hc2 : c ≤ 2) (L : ℕ → TLine
     ∀ len p k, SegStmt c L len p k := by
   obtain ⟨hc15, hcsq, -, -, hc34⟩ := cfacts hc3 hc2
   have hc0 : 0 ≤ c := by linarith
+  have hc2sq : 2 ≤ c ^ 2 := by linarith
   intro len
   induction len using Nat.strong_induction_on with
   | _ len ih =>
@@ -456,8 +480,8 @@ theorem segment {c : ℝ} (hc3 : 4 ≤ c ^ 3) (hc2 : c ≤ 2) (L : ℕ → TLine
   have hNNp := (hdep p le_rfl (by omega)).2
   have htopp : top (L p).1 = (L p).1.getD k 0 := top_of_len hp
   rcases tstep_inv hs0 with ⟨e0, -, -⟩ | ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, e0, t0, e1, t1⟩ |
-    ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, e0, t0, e1, t1⟩ | ⟨bs, b, e0, e1, t1, hf⟩ |
-    ⟨bs, b, e0, -, e1, -, -⟩ | ⟨hl, hle, t1, ha⟩
+    ⟨bs, b, x, b₁, b₂, hx, hxa, h₁, h₂, h₃, e0, e1, t1⟩ | ⟨bs, b, e0, e1, t1, hf⟩ |
+    ⟨bs, b, e0, -, e1, -⟩ | ⟨hl, hle, t1, ha⟩
   · rw [e0] at hp; simp at hp
   · -- speedM
     have hbs : bs.length = k := by
@@ -478,7 +502,7 @@ theorem segment {c : ℝ} (hc3 : 4 ≤ c ^ 3) (hc2 : c ≤ 2) (L : ℕ → TLine
           · rw [← h, hl1]
           · have := hm4 i h h2; omega,
         (hdep i (by omega) (by omega)).2⟩) hl1 hmk
-    obtain ⟨tm, hcost⟩ := hex
+    have hcost := hex
     have hpot1 : pot c (L (p + 1)) = Ps c b₂ (c * Ps c b₂ (L (p + 1)).2.2) := by
       rw [pot_false t1, e1, show bs ++ [b₁, b₂] = (bs ++ [b₁]) ++ [b₂] by simp, top_concat]
     have hW : Ps c b (c * Ps c b ((L p).2.2 - x)) ≤ pot c (L (p + 1)) := by
@@ -504,8 +528,7 @@ theorem segment {c : ℝ} (hc3 : 4 ≤ c ^ 3) (hc2 : c ≤ 2) (L : ℕ → TLine
     rw [show m + (p + len - m) = p + len by omega] at hrest
     have hbtop : top (L p).1 = b := by rw [e0, top_concat]
     rw [pot_true t0, hbtop]
-    rw [pot_true tm] at hrest
-    exact le_trans hkey hrest
+    exact le_trans hkey (le_trans (ps_le_pot hc0 hc2 hc2sq (hdep m (by omega) hm2).2) hrest)
   · -- speedO: a configuration block and an index block are opened at once
     have hbs : bs.length = k := by
       rw [e0] at hp; simp only [List.length_append, List.length_singleton] at hp; omega
@@ -531,7 +554,7 @@ theorem segment {c : ℝ} (hc3 : 4 ≤ c ^ 3) (hc2 : c ≤ 2) (L : ℕ → TLine
       rcases Nat.eq_or_lt_of_le h1 with h | h
       · rw [← h, hl1]
       · have := hm14 i h h2; omega
-    obtain ⟨tm1, hcost1⟩ := excursion hc0 L len (fun len' p' k' h' => ih len' h' p' k') (p + 1) m1
+    have hcost1 := excursion hc0 L len (fun len' p' k' h' => ih len' h' p' k') (p + 1) m1
       (k + 2) hm11 (by omega) (fun i h1 h2 => hstep i (by omega) (by omega))
       (fun i h1 h2 => ⟨hd1 i h1 h2, (hdep i (by omega) (by omega)).2⟩) hl1 hm1k
     have hpot1 : pot c (L (p + 1)) = Ps c b₂ (c * Ps c b₂ (L (p + 1)).2.2) := by
@@ -549,7 +572,7 @@ theorem segment {c : ℝ} (hc3 : 4 ≤ c ^ 3) (hc2 : c ≤ 2) (L : ℕ → TLine
     have hkey := key (b := b) (a := (L p).2.2) (x := x) (T := top (L m1).1) (E := (L m1).2.2)
       hc3 hc2 hb0 hx hxa (le_trans (le_max_left _ _) hTm) (le_trans (le_max_right _ _) hTm)
       (le_trans (mul_le_mul_of_nonneg_left (max_le_max le_rfl hW) hc0) hcost1)
-    rw [← pot_true tm1] at hkey
+    have hkey' := le_trans hkey (ps_le_pot hc0 hc2 hc2sq (hdep m1 (by omega) (by omega)).2)
     have hlen3 : m1 < p + len := by
       by_contra hc'; have : m1 = p + len := by omega
       rw [this, hq] at hm1k; omega
@@ -561,7 +584,7 @@ theorem segment {c : ℝ} (hc3 : 4 ≤ c ^ 3) (hc2 : c ≤ 2) (L : ℕ → TLine
       rcases Nat.eq_or_lt_of_le h1 with h | h
       · rw [← h, hm1k]
       · have := hm04 i h h2; omega
-    obtain ⟨tm0, hcost0⟩ := excursion hc0 L len (fun len' p' k' h' => ih len' h' p' k') m1 m0
+    have hcost0 := excursion hc0 L len (fun len' p' k' h' => ih len' h' p' k') m1 m0
       (k + 1) hm01 (by omega) (fun i h1 h2 => hstep i (by omega) (by omega))
       (fun i h1 h2 => ⟨hd0 i h1 h2, (hdep i (by omega) (by omega)).2⟩) hm1k hm0k
     have hent0 := entry_mono L k (m0 - (p + 1)) (p + 1)
@@ -579,11 +602,10 @@ theorem segment {c : ℝ} (hc3 : 4 ≤ c ^ 3) (hc2 : c ≤ 2) (L : ℕ → TLine
       (by rw [show m0 + (p + len - m0) = p + len by omega]; exact hq)
     rw [show m0 + (p + len - m0) = p + len by omega] at hrest
     have hbtop : top (L p).1 = b := by rw [e0, top_concat]
-    refine le_trans ?_ hrest
-    rw [pot_false t0, hbtop, pot_true tm0]
-    apply ps_mono hc0 hent0
+    refine le_trans ?_ (le_trans (ps_le_pot hc0 hc2 hc2sq (hdep m0 (by omega) hm02).2) hrest)
+    refine le_trans (hbtop ▸ pot_le_opp hc0 hc2 hc2sq hNNp) (ps_mono hc0 hent0 ?_)
     refine le_trans ?_ hcost0
-    exact mul_le_mul_of_nonneg_left (le_trans hkey (le_max_right _ _)) hc0
+    exact mul_le_mul_of_nonneg_left (le_trans hkey' (le_max_right _ _)) hc0
   · -- flip
     have hl1 : (L (p + 1)).1.length = k + 1 := by rw [e1, ← e0]; exact hp
     have hrest := ih (len - 1) (by omega) (p + 1) k (fun i h1 h2 => hstep i (by omega) (by omega))
@@ -634,11 +656,18 @@ theorem segment {c : ℝ} (hc3 : 4 ≤ c ^ 3) (hc2 : c ≤ 2) (L : ℕ → TLine
     · exact ps_mono hc0 htop ha
     · exact ps_mono hc0 htop (mul_le_mul_of_nonneg_left (ps_mono hc0 htop ha) hc0)
 
-/-- **Limit of the reduced calculus.** For every c with c³ ≥ 4 there is no normal-form
-refutation in `TStep c`, strict (a' < a) or non-strict (a' = a). (The proof shows that the
-final exponent is at least (min(c,2)²/2)·a; that bound is not stated as a separate theorem.) -/
-theorem no_trefutation {c : ℝ} (hc3 : 4 ≤ c ^ 3) (n : ℕ) (L : ℕ → TLine) : ¬ TRefutes c n L := by
-  rintro ⟨hn, h0, hN, ha0, hle, hstep, hmid⟩
+theorem cube_min {c : ℝ} (hc3 : 4 ≤ c ^ 3) : 4 ≤ min c 2 ^ 3 := by
+  rcases le_total c 2 with h | h
+  · rw [min_eq_left h]; exact hc3
+  · rw [min_eq_right h]; norm_num
+
+/-- **Return bound.** Let c³ ≥ 4. A `TStep c` path of at least two steps from a depth-0 line with
+exponent a₀ ≥ 0 back to depth 0, with every interior line at positive depth, ends with exponent
+at least (min(c,2)²/2)·a₀ (which is ≥ 2^{1/3}·a₀). -/
+theorem return_bound {c : ℝ} (hc3 : 4 ≤ c ^ 3) (n : ℕ) (L : ℕ → TLine) (hn : 2 ≤ n)
+    (h0 : (L 0).1 = []) (hN : (L n).1 = []) (ha0 : 0 ≤ (L 0).2.2)
+    (hstep : ∀ i < n, TStep c (L i) (L (i + 1))) (hmid : ∀ i, 0 < i → i < n → (L i).1 ≠ []) :
+    min c 2 ^ 2 / 2 * (L 0).2.2 ≤ (L n).2.2 := by
   have hc0 : 0 ≤ c := by
     by_contra h; push Not at h
     have : c ^ 3 < 0 := by
@@ -648,16 +677,13 @@ theorem no_trefutation {c : ℝ} (hc3 : 4 ≤ c ^ 3) (n : ℕ) (L : ℕ → TLin
     linarith
   set c₀ := min c 2 with hc₀
   have hc₀2 : c₀ ≤ 2 := min_le_right _ _
-  have hc₀3 : 4 ≤ c₀ ^ 3 := by
-    rcases le_total c 2 with h | h
-    · rw [hc₀, min_eq_left h]; exact hc3
-    · rw [hc₀, min_eq_right h]; norm_num
-  obtain ⟨hc15, hcsq, -, -, -⟩ := cfacts hc₀3 hc₀2
+  have hc₀3 : 4 ≤ c₀ ^ 3 := cube_min hc3
+  obtain ⟨hc15, -, -, -, -⟩ := cfacts hc₀3 hc₀2
   have hc₀0 : 0 ≤ c₀ := by linarith
   have hNN : ∀ i, i ≤ n → NN (L i) := by
     intro i
     induction i with
-    | zero => intro _; exact ⟨fun i => by rw [h0]; simp, ha0.le⟩
+    | zero => intro _; exact ⟨fun i => by rw [h0]; simp, ha0⟩
     | succ i ih => intro hi; exact tstep_nonneg hc0 (hstep i (by omega)) (ih (by omega))
   have hs : ∀ i < n, TStep c₀ (L i) (L (i + 1)) := fun i hi =>
     tstep_restrict (min_le_left _ _) (hstep i hi) (hNN i hi.le)
@@ -672,22 +698,27 @@ theorem no_trefutation {c : ℝ} (hc3 : 4 ≤ c ^ 3) (n : ℕ) (L : ℕ → TLin
   obtain ⟨e1, t1, e2⟩ := hL1
   have hseg : ∀ len p k, len < n + 1 → SegStmt c₀ L len p k :=
     fun len p k _ => segment hc₀3 hc₀2 L len p k
-  have hex := excursion hc₀0 L (n + 1) hseg 1 n 0 (by omega) (by omega)
+  have hcost := excursion hc₀0 L (n + 1) hseg 1 n 0 (by omega) (by omega)
     (fun i h1 h2 => hs i h2)
     (fun i h1 h2 => ⟨Nat.one_le_iff_ne_zero.mpr (fun h => hmid i (by omega) h2
       (List.length_eq_zero_iff.mp h)), hNN i h2.le⟩)
     (by rw [e1]; rfl) (by rw [hN]; rfl)
-  obtain ⟨-, hcost⟩ := hex
   have hpot : pot c₀ (L 1) = Ps c₀ 0 (L 0).2.2 := by
     rw [pot_true t1, e1, e2]; rfl
   have hg : c₀ / 2 * (L 0).2.2 ≤ pot c₀ (L 1) := by
-    rw [hpot]; exact ps_ge_g hc₀0 hc₀2 ha0.le
+    rw [hpot]; exact ps_ge_g hc₀0 hc₀2 ha0
   have h1 : c₀ * (c₀ / 2 * (L 0).2.2) ≤ (L n).2.2 :=
     le_trans (mul_le_mul_of_nonneg_left (le_trans hg (le_max_right _ _)) hc₀0) hcost
   have h2 : c₀ * (c₀ / 2 * (L 0).2.2) = c₀ ^ 2 / 2 * (L 0).2.2 := by ring
-  have h3 : 5 / 4 * (L 0).2.2 ≤ c₀ ^ 2 / 2 * (L 0).2.2 :=
-    mul_le_mul_of_nonneg_right (by linarith) ha0.le
   linarith
+
+/-- **Limit of the reduced calculus.** For every c with c³ ≥ 4 there is no normal-form
+refutation in `TStep c`, strict (a' < a) or non-strict (a' = a). -/
+theorem no_trefutation {c : ℝ} (hc3 : 4 ≤ c ^ 3) (n : ℕ) (L : ℕ → TLine) : ¬ TRefutes c n L := by
+  rintro ⟨hn, h0, hN, ha0, hle, hstep, hmid⟩
+  have hb := return_bound hc3 n L hn h0 hN ha0.le hstep hmid
+  have hcsq := (cfacts (cube_min hc3) (min_le_right c 2)).2.1
+  nlinarith
 
 /-- Non-vacuity: W13's 5-line example (annotation 1000) refutes at c = 13/10. -/
 noncomputable def tlv : ℕ → TLine

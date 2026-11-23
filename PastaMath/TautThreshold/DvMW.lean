@@ -1,3 +1,4 @@
+-- SPDX-License-Identifier: Apache-2.0
 import PastaMath.TautThreshold.Limit
 
 /-!
@@ -120,7 +121,7 @@ theorem mac_of_inner {c s : ℝ} (hs : 1 ≤ s) (hI : Inner c s) : Mac c s := by
   intro P l hl
   have hxa : l ≤ s * l := by nlinarith
   constructor
-  · have h1 := TStep.speedO (c := c) P 0 (s * l) l l 0 (s * l - l) hl hxa
+  · have h1 := TStep.speedO (c := c) (t := false) P 0 (s * l) l l 0 (s * l - l) hl hxa
       (by rw [max_eq_left hl]) le_rfl le_rfl
     have h1' : TStep c (P ++ [0], false, s * l) ((P ++ [0]) ++ [l, 0], false, s * l - l) :=
       ts h1 rfl (by simp)
@@ -159,12 +160,12 @@ theorem inner_step {c s : ℝ} (hc : 1 ≤ c) (hs : 1 ≤ s) (hM : Mac c s) :
   have d1 := (hM (Q ++ [l]) μ hμ0).1
   simp only [List.append_assoc, List.cons_append, List.nil_append] at d1
   -- pop the index block, then the configuration block
-  have p1 := TStep.pop (c := c) (Q ++ [l, 0, μ]) μ μ (c * μ)
+  have p1 := TStep.pop (c := c) (t := true) (Q ++ [l, 0, μ]) μ μ (c * μ)
     (by rw [show Q ++ [l, 0, μ] = (Q ++ [l, 0]) ++ [μ] by simp, top_concat, max_self, max_self])
   have p1' : TStep c (Q ++ [l, 0, μ, μ], true, μ) (Q ++ [l, 0, μ], true, c * μ) :=
     ts p1 (by simp) rfl
   have hcμ : μ ≤ c * μ := by nlinarith
-  have p2 := TStep.pop (c := c) (Q ++ [l, 0]) μ (c * μ) (c * (c * μ))
+  have p2 := TStep.pop (c := c) (t := true) (Q ++ [l, 0]) μ (c * μ) (c * (c * μ))
     (by rw [show Q ++ [l, 0] = (Q ++ [l]) ++ [0] by simp, top_concat, max_eq_right hcμ,
           max_eq_right (by linarith)])
   have p2' : TStep c (Q ++ [l, 0, μ], true, c * μ) (Q ++ [l, 0], true, s * ν) := by
@@ -172,7 +173,7 @@ theorem inner_step {c s : ℝ} (hc : 1 ≤ c) (hs : 1 ≤ s) (hM : Mac c s) :
   -- second use of the previous stage (kernel matches the index block: merged)
   have d2 := (hM (Q ++ [l]) ν hν0).2
   simp only [List.append_assoc, List.cons_append, List.nil_append] at d2
-  have p3 := TStep.pop (c := c) (Q ++ [l, ν]) ν ν l
+  have p3 := TStep.pop (c := c) (t := true) (Q ++ [l, ν]) ν ν l
     (by rw [show Q ++ [l, ν] = (Q ++ [l]) ++ [ν] by simp, top_concat, max_self, max_self, hcν])
   have p3' : TStep c (Q ++ [l, ν, ν], true, ν) (Q ++ [l, ν], true, l) := ts p3 (by simp) rfl
   have w := weak_last (c := c) (Q ++ [l]) ν l l l true hνl le_rfl
@@ -221,9 +222,9 @@ theorem dvmw {c : ℝ} (hc : 1 ≤ c) (hc3 : c ^ 3 < 4) : ∃ n L, TRefutes c n 
     linarith
   have hd := (mac_all hc k [] 1 zero_le_one).2
   simp only [List.nil_append, mul_one] at hd
-  have p1 := TStep.pop (c := c) [1] 1 1 c (by simp [top])
+  have p1 := TStep.pop (c := c) (t := true) [1] 1 1 c (by simp [top])
   have p1' : TStep c ([1, 1], true, 1) ([1], true, c) := ts p1 (by simp) rfl
-  have p2 := TStep.pop (c := c) [] 1 c (c * c)
+  have p2 := TStep.pop (c := c) (t := true) [] 1 c (c * c)
     (by rw [show top ([] : List ℝ) = 0 from rfl, max_eq_right hc, max_eq_right (by linarith)])
   have p2' : TStep c ([1], true, c) ([], true, c * c) := ts p2 (by simp) rfl
   exact trefutes_of (lt_of_le_of_lt (sq_nonneg c) hs) (hd.trans (DNE.single p1' (by simp))) p2'
