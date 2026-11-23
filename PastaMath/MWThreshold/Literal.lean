@@ -21,7 +21,8 @@ A line is `(Q₁ n^{g₁})^{o₁} ⋯ K[n^a]`, blocks innermost first, `q = true
 A refutation (`Refutes`; Definition 2.14 and Lemma 5.2) is strict: BPTS[n^{a₀}] ⊆ … ⊆ BPTS[n^{a'}],
 a' < a₀, with at least one step.
 
-`lit_m` maps every literal step to a step of the relaxed calculus `MW.MStep`, so
+For c ≥ 0, `lit_m` maps every literal step from a line satisfying `Inv` to a step of the relaxed
+calculus `MW.MStep`, so
 `MW.no_mrefutation` applies (`no_lit_refutation`). `StepU` adds the unmerged orientation of rule 4
 and `StepW` adds weakening of an existing line; both are covered as well (`no_litU_refutation`,
 `no_litW_refutation`). `StepX` lets lines stop alternating: it adds Lemma 2.7 with Q = Q_k before
@@ -551,7 +552,8 @@ theorem weaker_of_f2 {c : ℝ} {l l' : List ℝ} (h : List.Forall₂ (· ≤ ·)
     (hk : k = k' ∨ k' = true) (ha : a ≤ a') : MW.XStep c (l, k, a) (l', k', a') :=
   MW.XStep.w (MW.StepW.weaken ⟨h, hk, ha⟩)
 
-/-- Every `StepX` step is an `MW.XStep` step of the run encodings. -/
+/-- For c ≥ 0, every `StepX` step from a line satisfying `InvX` is an `MW.XStep` step of the run
+encodings, and `InvX` is preserved. -/
 theorem lit_x {c : ℝ} (hc : 0 ≤ c) {L L' : Line} (h : StepX c L L') (hI : InvX L) :
     MW.XStep c (encR L) (encR L') ∧ InvX L' := by
   cases h with

@@ -109,7 +109,7 @@ A Lean line is a triple $`(\mathit{bl},k,a)`$: the block list $`\mathit{bl}`$, s
 
 The following choices are ours; each is either forced by the text of \[MW21\] or affects only the limit side, where it is covered anyway (Section 6).
 
-1.  *Rule 3’s last block.* \[MW21\] do not print the output exponent of the $`(\exists\,x\log n)`$ block of rule 3. We use $`1`$, the value $`b_k`$ that Corollary 2.11 gives for $`k=0`$ (the input). The relaxed calculus allows any value.
+1.  *Rule 3’s last block.* \[MW21\] do not print the output exponent of the $`(\exists\,x\log n)`$ block of rule 3. We use $`1`$, the value $`b_k`$ that Corollary 2.11 gives for $`k=0`$ (the input). The relaxed calculus allows any nonnegative value.
 
 2.  *Orientation of rule 4.* We use the merged orientation prescribed by the footnote to Corollary 2.11. The construction uses only it; the limit also covers the other one.
 
@@ -214,7 +214,7 @@ The sequence $`M(3)\,M(3)`$ followed by the final slowdown is a refutation at $`
 
 In lines 2, 3, 9 and 10, “$`\cdots`$” stands for the blocks of the previous line outside the ones shown. At line 8 the leading $`n^0`$ block of Theorem 2.10 is absorbed into $`(\exists\,n^0)^1`$, as the footnote to Corollary 2.11 prescribes; line 8 is the first use of rule 4. The final exponent is exactly $`27410261545753261542320966055909/2750140100000000000000000000\approx9966.86<10^4`$, so Lemma 5.2 applies.
 
-A longer certificate at $`c=8/5`$ (2687 steps: $`M(8)`$ repeated 158 times, then the final slowdown) is also kernel-checked (`MWL.mwcert_ok`). The general theorem makes it redundant.
+A longer certificate at $`c=8/5`$ (2687 steps: the rule sequence of $`M(8)`$ repeated 158 times, each time with $`T`$ equal to $`e/\sigma_8`$ rounded up to six decimals instead of the exact value of Lemma 7, then the final slowdown) is also kernel-checked (`MWL.mwcert_ok`). The general theorem makes it redundant.
 
 ## 5. The limit for $`c\ge\varphi`$
 
@@ -258,7 +258,7 @@ So $`\Phi(s_1,\dots,s_m;k;a)=c\max(0,c\max(s_1,\dots c\max(s_{m-1},\mathrm{pot}(
 
 **Lemma 11** (the potential never decreases; `MW.phi_step`, `MW.phi_ustep`, `MW.phi_mono`). Let $`c>0`$ with $`c^2\ge c+1`$, and let $`L\vdash L'`$ be a `MW.StepW` step from a line with nonnegative entries. Then $`\Phi(L)\le\Phi(L')`$.
 
-*Proof.* In each case the outer blocks $`s`$ are unchanged, so by monotonicity of $`U`$ it suffices to compare the values passed to $`U(s;\cdot)`$.
+*Proof.* In each case except weakening the outer blocks $`s`$ are unchanged, so by monotonicity of $`U`$ it suffices to compare the values passed to $`U(s;\cdot)`$.
 
 - `dspeed` from $`(s\cdot b;\mathsf{TS};a)`$: we need $`\max(b,ga)\le c\max(t_2,b_3,ga_2)`$. Now $`b\le cb\le ct_2`$, and $`ga\le c\mu\le c\max(t_2,ga_2)`$ by Lemma 10, since $`t_2\ge x`$ and $`a_2\ge a-x`$.
 
@@ -270,7 +270,7 @@ So $`\Phi(s_1,\dots,s_m;k;a)=c\max(0,c\max(s_1,\dots c\max(s_{m-1},\mathrm{pot}(
 
 - `rspeedU`: the same with one more lift $`c\max(b_1,\cdot)`$ inserted, which only increases the value because $`c\ge1`$.
 
-- `slow` from $`(s\cdot b'\cdot b;k;a)`$ to $`(s\cdot b';\mathsf{BPTS};e)`$: before the step the value is $`c\max(b',\mathrm{pot}(b,k,a))\le c\max(b',b,a)\le e`$, and after it the value is $`\mathrm{pot}(b',\mathsf{BPTS},e)=\max(b',e)\ge e`$. If $`s\cdot b'`$ is empty, $`\Phi(L)=c\max(0,\mathrm{pot}(b,k,a))\le c\max(0,b,a)\le e=\Phi(L')`$.
+- `slow` from $`(s\cdot b'\cdot b;k;a)`$ to $`(s\cdot b';\mathsf{BPTS};e)`$: before the step the value is $`c\max(b',\mathrm{pot}(b,k,a))\le c\max(b',b,a)\le e`$, and after it the value is $`\mathrm{pot}(b',\mathsf{BPTS},e)=\max(b',e)\ge e`$. If the removed block is the only block, $`\Phi(L)=c\max(0,\mathrm{pot}(b,k,a))\le c\max(0,b,a)\le e=\Phi(L')`$.
 
 - `rspeed0` from a quantifier-free line: $`\Phi(L')\ge c\cdot c\cdot c\mu\ge c\,a=c\,\Phi(L)\ge\Phi(L)`$ (`MW.first_step`).
 

@@ -142,7 +142,7 @@ $\langle q,g_1,o_1\rangle$ and $\langle q,g_2,o_2\rangle$ adjacent ($o_2$ inner)
 \paragraph{Reading points.}
 The following choices are ours; each is either forced by the text of \cite{MW21} or affects only the limit side, where it is covered anyway (Section~\ref{sec:coverage}).
 \begin{enumerate}
-\item \emph{Rule~3's last block.} \cite{MW21} do not print the output exponent of the $(\exists\,x\log n)$ block of rule~3. We use $1$, the value $b_k$ that Corollary~2.11 gives for $k=0$ (the input). The relaxed calculus allows any value.
+\item \emph{Rule~3's last block.} \cite{MW21} do not print the output exponent of the $(\exists\,x\log n)$ block of rule~3. We use $1$, the value $b_k$ that Corollary~2.11 gives for $k=0$ (the input). The relaxed calculus allows any nonnegative value.
 \item \emph{Orientation of rule~4.} We use the merged orientation prescribed by the footnote to Corollary~2.11. The construction uses only it; the limit also covers the other one.
 \item \emph{Theorem~2.10's orientation.} Theorem~2.10 is printed as $\BPTS\subseteq(\forall\,n^0)^1(\exists\,n^x)(\forall\,x\log n)\TS$, rule~3 of Definition~2.14 as $(\exists\,n^0)^1(\forall\,n^x)(\exists\,x\log n)\TS$; they are equivalent because $\BPTS$ is closed under complement.
 \item \emph{Slowdown of a $\TS$ kernel.} Lemma~5.1 is stated for $\BPTS$ kernels; rule~5 of Definition~2.14 is stated for $(\mathsf{BP})\TS$ kernels, and \cite[Theorem~5.3]{MW21} applies it to a $\TS$ kernel. We use $\TS\subseteq\BPTS$, which holds under the arXiv version's Definition~2.4 (both machines use $n^{o(1)}$ space).
@@ -253,7 +253,7 @@ The sequence $M(3)\,M(3)$ followed by the final slowdown is a refutation at $c=1
 
 In lines 2, 3, 9 and 10, ``$\cdots$'' stands for the blocks of the previous line outside the ones shown. At line~8 the leading $n^0$ block of Theorem~2.10 is absorbed into $(\exists\,n^0)^1$, as the footnote to Corollary~2.11 prescribes; line~8 is the first use of rule~4. The final exponent is exactly $27410261545753261542320966055909/2750140100000000000000000000\approx9966.86<10^4$, so Lemma~5.2 applies.
 
-A longer certificate at $c=8/5$ (2687 steps: $M(8)$ repeated 158 times, then the final slowdown) is also kernel-checked (\lean{MWL.mwcert\_ok}). The general theorem makes it redundant.
+A longer certificate at $c=8/5$ (2687 steps: the rule sequence of $M(8)$ repeated 158 times, each time with $T$ equal to $e/\sigma_8$ rounded up to six decimals instead of the exact value of Lemma~\ref{lem:mac}, then the final slowdown) is also kernel-checked (\lean{MWL.mwcert\_ok}). The general theorem makes it redundant.
 
 \section{The limit for \texorpdfstring{$c\ge\varphi$}{c >= phi}}\label{sec:limit}
 
@@ -298,14 +298,14 @@ $(1+g)\mu=\mu+g\mu\ge g(a-x)+gx=ga$. Then $ga\le(1+g)\mu\le c\mu$; and $(1+g)a=c
 Let $c>0$ with $c^2\ge c+1$, and let $L\vdash L'$ be a \lean{MW.StepW} step from a line with nonnegative entries. Then $\Phi(L)\le\Phi(L')$.
 \end{lemma}
 \begin{proof}
-In each case the outer blocks $s$ are unchanged, so by monotonicity of $\up$ it suffices to compare the values passed to $\up(s;\cdot)$.
+In each case except weakening the outer blocks $s$ are unchanged, so by monotonicity of $\up$ it suffices to compare the values passed to $\up(s;\cdot)$.
 \begin{itemize}
 \item \lean{dspeed} from $(s\cdot b;\TS;a)$: we need $\max(b,ga)\le c\max(t_2,b_3,ga_2)$. Now $b\le cb\le ct_2$, and $ga\le c\mu\le c\max(t_2,ga_2)$ by Lemma~\ref{lem:key}, since $t_2\ge x$ and $a_2\ge a-x$.
 \item \lean{rspeed} from $(s\cdot b;k;a)$: since $\pot(b,k,a)\le\max(b,a)$, we need
 \[ \max(b,a)\le c\max\bigl(b,\ c\max(b_2,b_3,ga_2)\bigr). \]
 Now $b\le cb$, and $a\le c^2\mu\le c\cdot c\max(b_2,ga_2)$ by Lemma~\ref{lem:key}.
 \item \lean{rspeedU}: the same with one more lift $c\max(b_1,\cdot)$ inserted, which only increases the value because $c\ge1$.
-\item \lean{slow} from $(s\cdot b'\cdot b;k;a)$ to $(s\cdot b';\BPTS;e)$: before the step the value is $c\max(b',\pot(b,k,a))\le c\max(b',b,a)\le e$, and after it the value is $\pot(b',\BPTS,e)=\max(b',e)\ge e$. If $s\cdot b'$ is empty, $\Phi(L)=c\max(0,\pot(b,k,a))\le c\max(0,b,a)\le e=\Phi(L')$.
+\item \lean{slow} from $(s\cdot b'\cdot b;k;a)$ to $(s\cdot b';\BPTS;e)$: before the step the value is $c\max(b',\pot(b,k,a))\le c\max(b',b,a)\le e$, and after it the value is $\pot(b',\BPTS,e)=\max(b',e)\ge e$. If the removed block is the only block, $\Phi(L)=c\max(0,\pot(b,k,a))\le c\max(0,b,a)\le e=\Phi(L')$.
 \item \lean{rspeed0} from a quantifier-free line: $\Phi(L')\ge c\cdot c\cdot c\mu\ge c\,a=c\,\Phi(L)\ge\Phi(L)$ (\lean{MW.first\_step}).
 \item weakening: monotonicity of $\up$ and $\pot$, together with $\pot(b,\TS,a)\le\pot(b,\BPTS,a)$ for $a\ge0$, $g\le1$.\qedhere
 \end{itemize}

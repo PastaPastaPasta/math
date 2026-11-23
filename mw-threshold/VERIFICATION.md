@@ -65,8 +65,8 @@ All names are in namespace `PastaMath.MWThreshold`. The calculus is defined in `
 | `MWG.threshold_phi_W`, `MWL.no_litW_refutation`, `MW.no_wrefutation`, `MW.qf_ge_w` | `Threshold.lean`, `Literal.lean`, `Limit.lean` | The same when weakening is added as well: if a path from BPTS[n^{a₀}] with at least one rule step ends at a quantifier-free line BPTS[n^{a'}], then a' ≥ c·a₀. |
 | `MW.phi_mono` | `Limit.lean` | The potential Φ of the limit proof is monotone under weakening (raising exponents, TS → BPTS). |
 | `MWG.threshold_phi_X`, `MWL.no_litX_refutation`, `MW.no_xrefutation`, `MW.qf_ge_x` | `Threshold.lean`, `Literal.lean`, `Limit.lean` | The threshold and the limit are unchanged when lines need not alternate and same-type blocks may be combined or split at any step: if a `StepX` path from BPTS[n^{a₀}] that passes through a line with a quantifier block ends at a quantifier-free line BPTS[n^{a'}], then a' ≥ c·a₀. |
-| `MWL.lit_x` | `Literal.lean` | Every `StepX` step is an `MW.XStep` step of the run encodings (on lines with nonnegative output and kernel exponents). |
-| `MWL.lit_m` | `Literal.lean` | Every step of the exact rules is a step of the relaxed calculus (on orderly lines with nonnegative exponents). |
+| `MWL.lit_x` | `Literal.lean` | For c ≥ 0: every `StepX` step from a line with nonnegative output and kernel exponents is an `MW.XStep` step of the run encodings, and the resulting line again has nonnegative exponents. |
+| `MWL.lit_m` | `Literal.lean` | For c ≥ 0: every step of the exact rules from an orderly line with nonnegative exponents is a step of the relaxed calculus, and the resulting line again satisfies that invariant. |
 | `MWL.checkQ_sound` | `Literal.lean` | A tag list accepted by the executable rational checker `MWL.checkQ` is a refutation. |
 | `MWG.mw15_ok`, `MWG.mw15_refutes` | `Threshold.lean` | A 15-step refutation at c = 1467/1000 from a₀ = 10⁴ (checked with `decide +kernel`). |
 | `MWG.mw21_root_lt` | `Threshold.lean` | Every real root of x³ − x² − 1 (the source paper's Theorem 5.3) is below 1467/1000. |
