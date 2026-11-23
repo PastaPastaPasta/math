@@ -26,8 +26,8 @@ The source rules, with the paper's exact outputs:
 * Corollary 2.8 (rule 2): ⋯(Q n^{a_k})^{b} TS[n^a] ⊆
   ⋯(Q n^{max(a_k,x)})^{max(b,x)} (Q' x log n)^{b} TS[n^{a−x}];
 * Lemma 5.1 (rule 5, α = 1): ⋯^{b'} (Q n^{a_k})^{b} K[n^a] ⊆ ⋯^{b'} BPTS[n^{c·max(a, b, a_k, b')}].
-`MStep` relaxes them: every rule needs 0 ≤ x ≤ a and gives a new kernel exponent a₂ ≥ a − x, and
-the new outputs are only bounded below.
+`MStep` relaxes them: every speedup needs 0 ≤ x ≤ a and gives a new kernel exponent a₂ ≥ a − x, and
+the new outputs are only bounded below; the slowdown has no parameter x.
 * `rspeed0`, from a quantifier-free line of either kernel: new outputs b₁ ≥ 0, b₂ ≥ max(x, 0),
   b₃ ≥ 0 (outermost first), TS kernel;
 * `rspeed`, on either kernel (TS ⊆ BPTS): the innermost output b is kept, new outputs

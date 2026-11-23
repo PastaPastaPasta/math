@@ -184,7 +184,8 @@ def macro_tags(c, j, e, round_up=None):
 def construct(c, j=None, a0=None, exhaust=False, round_up=None, max_macros=100000):
     """Iterate M(j+1) under the (E n^0)^1 block, then pop the block. By default the block is
     popped as soon as c*max(e,1) < a0; with exhaust=True the macro is repeated while
-    e >= sigma_{j+1} (that is, T >= 1), as in the Lean proof of refutes_of_lt_phi.
+    e >= sigma_{j+1} (that is, T >= 1), the continuation test of the Lean proof of
+    refutes_of_lt_phi (whose `iter` additionally stops after its allotted m macros).
     Default j: least j with c^(j+2) < sigma_{j+1}; default a0 = c*sigma_{j+1} + 1."""
     if j is None:
         j = 0
