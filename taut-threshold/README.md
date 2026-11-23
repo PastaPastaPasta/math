@@ -7,6 +7,6 @@ For a Lean formalisation of the alternation-trading proof calculus of R. William
 
 Both directions are kernel-checked in Lean. That the formal rules coincide with the published calculus is a modelling claim checked on paper, and soundness of the calculus is published, not formalised. This is a limit on one proof calculus, not a statement about TAUTOLOGY lower bounds by other methods.
 
-- Paper: [`paper/paper.tex`](paper/paper.tex) (reference version) and [`paper/paper.md`](paper/paper.md). No PDF is checked in; build one with `pdflatex paper.tex` (run twice).
+- Paper: [`paper/paper.tex`](paper/paper.tex) (reference version), the compiled [`paper/paper.pdf`](paper/paper.pdf), and [`paper/paper.md`](paper/paper.md). Rebuild the PDF with `tectonic paper.tex` or `pdflatex paper.tex` (run twice).
 - Lean code: [`../PastaMath/TautThreshold/`](../PastaMath/TautThreshold/)
 - Reproducing the check: [`VERIFICATION.md`](VERIFICATION.md)
