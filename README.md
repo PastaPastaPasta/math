@@ -20,7 +20,7 @@ lake exe cache get
 lake build
 ```
 
-CI (`.github/workflows/lean.yml`) runs the same build on every push and checks the axioms of the headline theorems.
+CI (`.github/workflows/lean.yml`) runs the same build on every push to `main` and on pull requests, and checks the axioms of the headline theorems.
 
 ## AI assistance
 

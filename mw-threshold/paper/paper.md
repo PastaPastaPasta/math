@@ -256,7 +256,7 @@ So $`\Phi(s_1,\dots,s_m;k;a)=c\max(0,c\max(s_1,\dots c\max(s_{m-1},\mathrm{pot}(
 
 *Proof.* $`(1+g)\mu=\mu+g\mu\ge g(a-x)+gx=ga`$. Then $`ga\le(1+g)\mu\le c\mu`$; and $`(1+g)a=c^2ga\le c^2(1+g)\mu`$, so $`a\le c^2\mu`$. ∎
 
-**Lemma 11** (the potential never decreases; `MW.phi_step`, `MW.phi_ustep`, `MW.phi_mono`). Let $`c^2\ge c+1`$, and let $`L\vdash L'`$ be a `MW.StepW` step from a line with nonnegative entries. Then $`\Phi(L)\le\Phi(L')`$.
+**Lemma 11** (the potential never decreases; `MW.phi_step`, `MW.phi_ustep`, `MW.phi_mono`). Let $`c>0`$ with $`c^2\ge c+1`$, and let $`L\vdash L'`$ be a `MW.StepW` step from a line with nonnegative entries. Then $`\Phi(L)\le\Phi(L')`$.
 
 *Proof.* In each case the outer blocks $`s`$ are unchanged, so by monotonicity of $`U`$ it suffices to compare the values passed to $`U(s;\cdot)`$.
 
@@ -312,7 +312,7 @@ With one entry per block, combining removes an entry and can lower $`\Phi`$ by a
 
 *Proof.* By cases on the rule and on the type of the blocks next to the ones it changes. `rspeed` and the alternating case of `rspeedU` give `MW.MStep.rspeed` and `MW.UStep.rspeedU`, and the same-type case of `rspeedU` gives `rspeedS`. `dspeed` and `dspeedU` both give `MW.MStep.dspeed`, because the new block of type $`q`$ belongs to $`u`$’s run. A slowdown gives `MW.MStep.slow` when the next block has the other type or there is none (if there is a next run, its entry is the output exponent $`\mathrm{pin}(\mathit{rest})`$ that the literal cost contains; if there is none, the relaxed input exponent is $`0\le1=\mathrm{pin}([\,])`$), and `slowIn` when it has the same type. `combine`, `split` and `weaken` give weakenings. ∎
 
-**Lemma 13** (`MW.phi_xstep`). Let $`c^2\ge c+1`$, and let $`L\vdash L'`$ be an `MW.XStep` step from a line with nonnegative entries. Then $`\Phi(L)\le\Phi(L')`$.
+**Lemma 13** (`MW.phi_xstep`). Let $`c>0`$ with $`c^2\ge c+1`$, and let $`L\vdash L'`$ be an `MW.XStep` step from a line with nonnegative entries. Then $`\Phi(L)\le\Phi(L')`$.
 
 *Proof.* For `MW.StepW` steps this is Lemma 11. For `rspeedS`, let $`Y=c\max(b_2,\mathrm{pot}(b_3,\mathsf{TS},a_2))`$; we need $`\mathrm{pot}(b,k,a)\le c\max(b_1,Y)`$. Now $`\mathrm{pot}(b,k,a)\le\max(b,a)`$, $`b\le b_2\le Y\le cY`$, and $`a\le c^2\mu\le cY`$ by Lemma 10. For `slowIn`, $`\mathrm{pot}(b,k,a)\le\max(b,a)\le c\max(b,a)\le e\le\mathrm{pot}(b',\mathsf{BPTS},e)`$. ∎
 
@@ -364,7 +364,7 @@ We report two points in \[MW21\] that we checked against the arXiv text. Neither
 
 **The parameters in the proof of Theorem 5.3.**
 
-The proof sets $`x_1=d/c^3`$ and $`x_i=(c(1-\varepsilon))^{1-i}x_1`$ with $`\varepsilon=1/k`$. With these values the displayed chain does not hold as written. Consecutive parameters have ratio $`x_{i-1}/x_i=c(1-\varepsilon)<c`$. The chain removes the block of guess $`x_i`$ from a kernel $`cx_i`$ and then uses $`\mathsf{BPTS}[n^{c^2x_i}]\subseteq\mathsf{BPTS}[n^{cx_{i-1}}]`$; together these need $`cx_i\le x_{i-1}`$, which fails. Moreover, if $`c^2(c-1)<1`$ (the range of the theorem), then $`\sum_ix_i>d`$ for all large $`k`$, so the kernel exponent $`d-\sum_ix_i`$ of the first line is negative. With $`x_i=c^{k-i}T`$ and $`d=\sigma_kT`$ (the macro $`M(k)`$ of Lemma 7) the chain holds and gives exactly the stated condition in the limit. The script `scripts/mw_check.py thm53` checks both claims exactly: with the printed parameters, $`cx_i\le x_{i-1}`$ fails for every $`k`$ tried and the kernel is negative for $`c\in\{1.40,1.44,1.46\}`$ and $`k\ge5`$; with the corrected ones, the best ratio of final to initial exponent over $`k\le60`$ is $`0.998`$ at $`c=1.465`$ and $`1.0015`$ at $`c=1.466`$.
+The proof sets $`x_1=d/c^3`$ and $`x_i=(c(1-\varepsilon))^{1-i}x_1`$ with $`\varepsilon=1/k`$. With these values the displayed chain does not hold as written. Consecutive parameters have ratio $`x_{i-1}/x_i=c(1-\varepsilon)<c`$. The chain removes the block of guess $`x_i`$ from a kernel $`cx_i`$ and then uses $`\mathsf{BPTS}[n^{c^2x_i}]\subseteq\mathsf{BPTS}[n^{cx_{i-1}}]`$; together these need $`cx_i\le x_{i-1}`$, which fails. Moreover, if $`c^2(c-1)<1`$ (the range of the theorem), then $`\sum_ix_i>d`$ for all large $`k`$, so the kernel exponent $`d-\sum_ix_i`$ of the first line is negative. With $`x_i=c^{k-i}T`$ and $`d=\sigma_kT`$ (the macro $`M(k)`$ of Lemma 7) the chain holds and gives exactly the stated condition in the limit. The script `scripts/mw_check.py thm53` checks both claims exactly: with the printed parameters, $`cx_i\le x_{i-1}`$ fails for every $`k`$ tried and the kernel is negative for $`c\in\{1.40,1.44,1.46\}`$ and every tested $`k\ge5`$ ($`k=5,10,20,50,100`$); with the corrected ones, the best ratio of final to initial exponent over $`k\le60`$ is $`0.998`$ at $`c=1.465`$ and $`1.0015`$ at $`c=1.466`$.
 
 **The speedup parameter $`x'`$ in the proof of Lemma 5.2.**
 

@@ -33,7 +33,7 @@ a TS kernel by BPTS). `XStep` adds two rules that are needed when the entries ar
 runs of adjacent same-type blocks (`rspeedS`, `slowIn`); under that reading combining or splitting
 blocks is a weakening (see `MWL.StepX` and `MWL.lit_x`).
 
-Main results: if c² ≥ c + 1 (c ≥ φ), every quantifier-free line BPTS[n^{a'}] reached from
+Main results: if c > 0 and c² ≥ c + 1 (that is, c ≥ φ), every quantifier-free line BPTS[n^{a'}] reached from
 BPTS[n^{a₀}] after at least one step has a' ≥ c·a₀ (`qf_ge`, `qf_ge_u`, and `qf_ge_w` when at least
 one step is a rule step), so there is no refutation, strict or not (`no_mrefutation`,
 `no_urefutation`, `no_wrefutation`); the same holds for `XStep` when some line has a block

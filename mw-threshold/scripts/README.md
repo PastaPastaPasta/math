@@ -20,7 +20,7 @@ Expected results:
 - `mw15`: final exponent 27410261545753261542320966055909/2750140100000000000000000000 ≈ 9966.86 < 10000.
 - `construct`: at c = 3/2, macro M(2), ρ = 27/28, 12 macros, 61 steps, a₀ = 6.25 → 6.0595; at c = 8/5, macro M(5), ρ = 131072/131325 ≈ 0.99807, 244 macros, 2685 steps, a₀ ≈ 27.8954 → 27.8809.
 - `cert`: the regenerated list (M(8), a₀ = 10000, T rounded up to six decimals, macro repeated while T ≥ 1; 158 macros, 2687 steps) is identical to the Lean certificate, and its replay ends at ≈ 110.93 < 10000.
-- `thm53`: with the printed parameters x₁ = d/c³, x_i = (c(1 − ε))^{1−i} x₁, ε = 1/k, the condition c·x_i ≤ x_{i−1} fails for every k tried and d − Σx_i < 0 for k ≥ 5 (c = 1.40, 1.44, 1.46); with x_i = c^{k−i}T and d = σ_k T the best final/initial ratio over k ≤ 60 is 0.98054 at c = 1.46, 0.99799 at c = 1.465, 1.00151 at c = 1.466 and 1.01562 at c = 1.47.
+- `thm53`: with the printed parameters x₁ = d/c³, x_i = (c(1 − ε))^{1−i} x₁, ε = 1/k, the condition c·x_i ≤ x_{i−1} fails for every k tried and d − Σx_i < 0 for every tested k ≥ 5 (k = 5, 10, 20, 50, 100; c = 1.40, 1.44, 1.46); with x_i = c^{k−i}T and d = σ_k T the best final/initial ratio over k ≤ 60 is 0.98054 at c = 1.46, 0.99799 at c = 1.465, 1.00151 at c = 1.466 and 1.01562 at c = 1.47.
 
 These checks are evidence about the calculus as transcribed from the paper. They are not part of the kernel-checked results.
 
