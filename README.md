@@ -6,7 +6,7 @@ Mathematical results by PastaPastaPasta, each with a written proof and, where av
 
 | Directory | Result | Lean |
 |---|---|---|
-| [`taut-threshold/`](taut-threshold/) | The alternation-trading calculus of Williams (TOCT 2013, §6) for TAUTOLOGY versus NTS, as formalised, has threshold exactly ∛4: for c³ ≥ 4 there is no proof of A ⊆ ¬A (nor of A ⊆ B for any B componentwise below ¬A) and no normal-form proof, and for 1 ≤ c < ∛4 normal-form proofs exist. The formal rules include merged and non-merged same-type blocks, matching-kernel and quantifier-free flips; the remaining modelling choices (e.g. n^{o(1)} terms dropped) are listed in the paper. | [`PastaMath/TautThreshold/`](PastaMath/TautThreshold/) |
+| [`taut-threshold/`](taut-threshold/) | The alternation-trading calculus of Williams (TOCT 2013, §6) for TAUTOLOGY versus NTS, as formalised, has threshold exactly ∛4: for c³ ≥ 4 there is no proof of A ⊆ ¬A (nor of A ⊆ B for any B componentwise below ¬A) and no normal-form proof, and for 1 ≤ c < ∛4 normal-form proofs exist. The formal rules include merged and non-merged same-type blocks, combining and splitting of adjacent same-type blocks anywhere in a line, and matching-kernel and quantifier-free flips; the remaining modelling choices (e.g. n^{o(1)} terms dropped) are listed in the paper. | [`PastaMath/TautThreshold/`](PastaMath/TautThreshold/) |
 
 Each result directory has its own README, the paper (LaTeX source, compiled PDF and a Markdown rendering), and a `VERIFICATION.md` saying what is machine-checked and how to reproduce it.
 
