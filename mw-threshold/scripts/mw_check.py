@@ -280,7 +280,7 @@ def cmd_cert(path):
 
 def cmd_thm53():
     print("Proof of Theorem 5.3 as printed: x1 = d/c^3, x_i = (c(1-eps))^(1-i) x1, eps = 1/k, d = 1.")
-    print("Its chain needs d - sum(x_i) > 0 (rule 2 / Cor 2.11 side condition) and, for the steps")
+    print("Its chain needs d - sum(x_i) > 0 (rule 2 / Cor 2.8 side condition) and, for the steps")
     print("BPTS[n^(c^2 x_i)] ⊆ BPTS[n^(c x_(i-1))], c x_i <= x_(i-1).")
     for cs in ("1.40", "1.44", "1.46"):
         c = F(cs)
