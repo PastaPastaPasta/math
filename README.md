@@ -6,9 +6,9 @@ Mathematical results by PastaPastaPasta, each with a written proof and, where av
 
 | Directory | Result | Lean |
 |---|---|---|
-| [`taut-threshold/`](taut-threshold/) | The alternation-trading calculus of Williams (TOCT 2013, §6) for TAUTOLOGY versus NTS has threshold exactly ∛4: no proof for c³ ≥ 4, normal-form proofs for all 1 ≤ c < ∛4. | [`PastaMath/TautThreshold/`](PastaMath/TautThreshold/) |
+| [`taut-threshold/`](taut-threshold/) | The alternation-trading calculus of Williams (TOCT 2013, §6) for TAUTOLOGY versus NTS, as formalised, has threshold exactly ∛4: for c³ ≥ 4 there is no proof of A ⊆ ¬A (nor of A ⊆ B for any B componentwise below ¬A) and no normal-form proof, and for 1 ≤ c < ∛4 normal-form proofs exist. The formal rules include merged and non-merged same-type blocks, matching-kernel and quantifier-free flips; the remaining modelling choices (e.g. n^{o(1)} terms dropped) are listed in the paper. | [`PastaMath/TautThreshold/`](PastaMath/TautThreshold/) |
 
-Each result directory has its own README, the paper (LaTeX and Markdown), and a `VERIFICATION.md` saying what is machine-checked and how to reproduce it.
+Each result directory has its own README, the paper (LaTeX source, compiled PDF and a Markdown rendering), and a `VERIFICATION.md` saying what is machine-checked and how to reproduce it.
 
 ## Building the Lean code
 
@@ -27,7 +27,7 @@ The proofs and formalisations in this repository were produced with Anthropic's 
 
 ## Licence
 
-- Lean code (`PastaMath/`, `PastaMath.lean`, the Lake configuration and CI files): Apache License 2.0, see [`LICENSE-APACHE`](LICENSE-APACHE).
+- Code (`PastaMath/`, `PastaMath.lean`, `*/scripts/*.py`, the Lake configuration and CI files): Apache License 2.0, see [`LICENSE-APACHE`](LICENSE-APACHE).
 - Papers and other text (`*/paper/`, README and Markdown files): Creative Commons Attribution 4.0 International (CC BY 4.0), see [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0).
 
 Both licences permit reuse with attribution. Copyright PastaPastaPasta.
