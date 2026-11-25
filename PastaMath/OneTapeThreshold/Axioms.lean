@@ -41,3 +41,6 @@ open PastaMath.OneTapeThreshold
 #print axioms HLM.no_nf_of
 #print axioms HLM.no_nf_le_of
 #print axioms HLM.rstep_mono
+#print axioms HY.slow_convMerge_A34
+#print axioms HY.slow_convMerge_A34O
+#print axioms HY.path_S_ne_nil

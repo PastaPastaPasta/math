@@ -6,6 +6,7 @@ import PastaMath.OneTapeThreshold.Potential
 import PastaMath.OneTapeThreshold.AbsCheck
 import PastaMath.OneTapeThreshold.Ceiling
 import PastaMath.OneTapeThreshold.Variants
+import PastaMath.OneTapeThreshold.Displays
 import PastaMath.OneTapeThreshold.Dag
 import PastaMath.OneTapeThreshold.DagStrict
 import PastaMath.OneTapeThreshold.StairD1
