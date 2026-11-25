@@ -25,8 +25,9 @@ then an S-claim for the new inner level, then a T-claim for the level left after
 step). When the actual line is below the planned one, `SC_speed` clips the speedup to
 x = min(x_plan, a − max(e, 1)) and closes the level at once when e > a; `TC_of_SC` chooses
 s = min(a, ε·β/d) or s = a − β. So no weakening rule is used. `nf_of_SC`: an S-claim with
-1 < κ, d·(κ − 1) ≤ ε, 1 ≤ V and c·V < κ (and 1 ≤ c, 0 ≤ B0, 0 ≤ d) gives an `HY.NF` proof
-(`convNew` from DTIME_d[n^{κβ}], β = max(B0, 1), with s = κβ − β, then the claim).
+1 < κ, d·(κ − 1) ≤ ε, 1 ≤ V and c·V < κ (and 1 ≤ c, 0 ≤ B0, 0 ≤ d) gives a strict normal-form proof
+`HY.NFO ℓ c d M n` (`convNew` from DTIME_d[n^{κβ}], β = max(B0, 1), with s = κβ − β, then the claim);
+for ℓ = max this is `HY.NF` (`HY.nf_of_nfO_max`).
 
 The checker works over ℚ with a grid M. A `Node` claims an S-claim at κ = t/M, ε = d·(t − M)/M with
 value V = φ·κ, φ = `phi`/2^SH; its `steps` list a chain of Lemma 3.3 steps, each with a new top
@@ -36,7 +37,8 @@ required α), and a claimed value w/2^SH. `chain` evaluates the chain from the k
 (each step moves the position from j to j + d·(t − M) − ku, which must stay ≥ 1) and checks every
 claimed value; `procNodes` checks the nodes in order (M < t, d·(t − M) ≤ M, chain value / κ ≤ φ,
 φ·κ ≥ 1) and builds the table of proved claims (`TabOK`). `dagCheck c d M SH nodes root` also needs
-1 ≤ c, 1 ≤ d, 1 ≤ M and c·φ_root < 1. `dagCheck_sound`: acceptance gives `∃ Mp n, HY.NF c d Mp n`.
+1 ≤ c, 1 ≤ d, 1 ≤ M and c·φ_root < 1. `dagCheck_soundO`: for every ℓ with `HY.LogOK ℓ`, acceptance gives
+`∃ Mp n, HY.NFO ℓ c d Mp n`; `dagCheck_sound`: acceptance gives `∃ Mp n, HY.NF c d Mp n`.
 
 The derivations are built in `HY.StepO ℓ c d`, `HY.Step` with output `ℓ o e` for the new log n block of
 Lemma 3.3, for any ℓ with `HY.LogOK ℓ` (1 ≤ ℓ o e ≤ max o e when 1 ≤ o and 0 ≤ e): the proofs only use
@@ -215,7 +217,7 @@ theorem TC_of_SC {B0 κ ε Ω : ℝ} (hB0 : 0 ≤ B0) (hd : 0 < d) (hκ : 1 ≤ 
   have : Ω * β = Ω / κ * α * B := by rw [hβ]; field_simp
   rw [this] at h2; exact h2
 
-/-- Lemma 3.3, merged: for c ≥ 1 and B0 ≥ 0, from an inner S-claim `SC ℓ c d B0 κ' ε W` and an
+/-- Lemma 3.3, merged: for ℓ with `LogOK ℓ`, c ≥ 1 and B0 ≥ 0, from an inner S-claim `SC ℓ c d B0 κ' ε W` and an
 outer T-claim `TC ℓ c d B0 α VT`, with 1 ≤ u, ε ≤ u, κ' = κ + ε − u, ε ≤ κ', ε ≤ 1, 0 ≤ ε,
 1 ≤ κ'·B0, c·max(u, W) ≤ α·u and 1 ≤ u·VT, follows `SC ℓ c d B0 κ ε (u·VT)`. -/
 theorem SC_speed (hℓ : LogOK ℓ) (hc : 1 ≤ c) {B0 κ κ' ε u W α VT : ℝ} (hB0 : 0 ≤ B0)
@@ -470,7 +472,7 @@ theorem tval_sound (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) {tab : 
         push_cast; field_simp
       rw [e] at this; exact this
 
-/-- For c ≥ 1, d ≥ 1, M ≥ 1, a table with `TabOK` and i ≤ M: if `chain` returns W from
+/-- For ℓ with `LogOK ℓ`, c ≥ 1, d ≥ 1, M ≥ 1, a table with `TabOK` and i ≤ M: if `chain` returns W from
 position j, then W ≥ 1 and `SC ℓ c d M (j/M) (i/M) W`. -/
 theorem chain_sound (hℓ : LogOK ℓ) (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) {tab : List (ℕ × ℚ)}
     (htab : TabOK ℓ cq d M tab) {i p : ℕ} (hi : i ≤ M) :
@@ -531,7 +533,7 @@ theorem chain_sound (hℓ : LogOK ℓ) (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (h
     push_cast at h1' h2' ⊢
     refine ⟨by linarith, SC_mono hM0.le (by linarith) h2' hSC⟩
 
-/-- For c ≥ 1, d ≥ 1 and M ≥ 1, `procNodes` preserves `TabOK`. -/
+/-- For ℓ with `LogOK ℓ`, c ≥ 1, d ≥ 1 and M ≥ 1, `procNodes` preserves `TabOK`. -/
 theorem procNodes_sound (hℓ : LogOK ℓ) (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) :
     ∀ (nodes : List Node) (tab tab' : List (ℕ × ℚ)), TabOK ℓ cq d M tab →
       procNodes cq d M SH tab nodes = some tab' → TabOK ℓ cq d M tab' := by

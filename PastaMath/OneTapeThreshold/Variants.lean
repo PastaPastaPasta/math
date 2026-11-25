@@ -10,8 +10,9 @@ import PastaMath.OneTapeThreshold.Ceiling
   `HL.Widen`: from `(bl, T a)` to `(bl, S a₂ e₂)` with a ≤ a₂ and a ≤ e₂, which also covers
   Lemma 3.4 with time exponent c' ≥ c and space exponent e ≥ c (below).
 * `HY.SpeedLog`: Lemma 3.3 in a prefix as in `HY.Step.speedMerge` and `HY.Step.speedNew`, except
-  that the new log n block gets an arbitrary output superscript ℓ ≥ 0 (for example 1, as displayed
-  in Williams's sketch of Theorem 7.9, instead of max(b, e)). Its relaxed form is `HL.Loose`.
+  that the new log n block gets an arbitrary output superscript ℓ ≥ 0 (for example 1 or max(b, 1), as
+  displayed in Williams's sketch of Theorem 7.9, instead of max(b, e)). It keeps the guess exponent of
+  Lemma 3.3. Its relaxed form is `HL.Loose` (relaxed lines have no guess exponents).
 
 `HL.widen_dec`: for c ≥ 0 and d ≥ 1, a `Widen` step from `(bl, T a)` with a ≥ 0 followed by an
 `RStep` from the `S` line can be replaced by Lemma 7.1 with s = a/d (`convM` or `convN`) followed by an
@@ -24,9 +25,13 @@ endpoints of a path transfers to `RPathX`; a statement about the intermediate li
 `([], T 1)` a `Widen` step reaches `([], S 1 1)`, which lowers the one-level potential from 1 to 0.
 
 Lemma 3.4 needs NTIME[n] ⊆ DTISP[n^{c'}, n^e]. From NTIME[n] ⊆ DTIME_d[n^c] this follows for every
-c' ≥ c and e ≥ c (the best case being c' = e = c), and for no e < c by any argument we know. Each such
-application of Lemma 3.4 gives the line of `HY.Step.slow` followed by a `Widen` step (time and space
-c'·m, e·m ≥ c·m, where c·m is the time exponent `slow` gives); `HY.Incl` is the case c' = e = c.
+c' ≥ c and e ≥ c (the best case being c' = e = c), and for no e < c by any argument we know. Lemma 3.4
+is read here inside a prefix, with the maximum m of the Slowdown Rule of Williams's §4 (Definition 4.1)
+and of Lemma 7.2, which includes the output b_k of the remaining prefix; the statement of §3 alone is for
+one block over a DTIME kernel and has the three-term maximum max{a, a', b}. Read so, each application of
+Lemma 3.4 gives the line of `HY.Step.slow` followed by a `Widen` step (time and space c'·m, e·m ≥ c·m,
+where c·m is the time exponent `slow` gives); `HY.Incl` is the case c' = e = c. A slowdown whose maximum
+omits b_k (as one display of Williams's sketch of Theorem 7.9 prints it, p. A:36) is not covered.
 
 * `HLM.ceilingX_d1`, `ceilingX_d2`, `ceilingX_d3`: for every real c ≥ 6547/5000, 149/125, 712/625
   respectively, (1) there is no path of `RStep c d` and `Widen` steps (`HL.RPathX`) with n ≥ 1 from
@@ -159,8 +164,9 @@ theorem widen_dec {c d : ℝ} (hc : 0 ≤ c) (hd : 1 ≤ d) {bl : List ℝ} {a a
     linarith
 
 /-- `widen_dec` with `Loose` steps allowed: for c ≥ 0 and d ≥ 1, if a ≥ 0, a ≤ a₂, a ≤ e₂ and
-`(bl, S a₂ e₂)` steps to `L₃` by `RStep c d` or `Loose`, then `(bl, T a)` steps by `RStep c d` to some
-`L'` that steps to `L₃` by `RStep c d` or `Loose`. -/
+`(bl, S a₂ e₂)` steps to `L₃` by `RStep c d` or `Loose`, then `(bl, T a)` steps by `RStep c d` or `Loose`
+to some `L'` that steps to `L₃` by `RStep c d` or `Loose`. (The proof always takes the first step to be
+an `RStep`, Lemma 7.1 with s = a/d; the statement records only the disjunction.) -/
 theorem widen_dec_W {c d : ℝ} (hc : 0 ≤ c) (hd : 1 ≤ d) {bl : List ℝ} {a a₂ e₂ : ℝ} {L₃ : RLine}
     (ha0 : 0 ≤ a) (ha : a ≤ a₂) (he : a ≤ e₂)
     (h : RStep c d (bl, .S a₂ e₂) L₃ ∨ Loose (bl, .S a₂ e₂) L₃) :

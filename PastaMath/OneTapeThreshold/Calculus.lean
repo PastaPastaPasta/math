@@ -114,7 +114,8 @@ def NF (c d : ℝ) (M : ℕ → Line) (n : ℕ) : Prop :=
 /-- `Step` with the output superscript of the new log n block of Lemma 3.3 given by `ℓ`: it is
 `ℓ u.o e` for `speedMerge` and `ℓ (pin bl) e` for `speedNew`; every other output is the one of
 `Step`. `StepO max` is `Step` (`step_of_stepO_max`), and `StepO (fun _ _ => 1)` is the calculus in
-which that block has output exactly 1. -/
+which that block has output exactly 1; `StepO (fun o _ => max o 1)` gives it the input superscript and
+`StepO (fun _ e => max 1 e)` the output max(1, e). -/
 inductive StepO (ℓ : ℝ → ℝ → ℝ) (c d : ℝ) : Line → Line → Prop
   | convMerge (u : Blk) (rest : List Blk) (a s : ℝ) (hs : 0 < s) (hsa : s ≤ a) (hb : 1 ≤ u.o) :
       StepO ℓ c d (u :: rest, .T a) (⟨u.q, max u.g (a - s), max (a - s) u.o⟩ :: rest, .S a (d * s))
@@ -147,6 +148,15 @@ def LogOK (ℓ : ℝ → ℝ → ℝ) : Prop := ∀ o e : ℝ, 1 ≤ o → 0 ≤
 theorem logOK_max : LogOK max := fun _ _ ho _ => ⟨le_trans ho (le_max_left _ _), le_rfl⟩
 
 theorem logOK_one : LogOK (fun _ _ => 1) := fun _ _ ho _ => ⟨le_rfl, le_trans ho (le_max_left _ _)⟩
+
+/-- The output max(o, 1) (that is, o, since o ≥ 1): the input superscript of the kernel, as displayed in
+Case 1 of Williams's sketch of Theorem 7.9 (p. A:37). -/
+theorem logOK_in : LogOK (fun o _ => max o 1) :=
+  fun _ _ ho _ => ⟨le_max_right _ _, max_le (le_max_left _ _) (le_trans ho (le_max_left _ _))⟩
+
+/-- The output max(1, e): the output that Lemma 3.3 states for a quantifier-free DTISP class. -/
+theorem logOK_sp : LogOK (fun _ e => max 1 e) :=
+  fun _ _ ho _ => ⟨le_max_left _ _, max_le (le_trans ho (le_max_left _ _)) (le_max_right _ _)⟩
 
 /-- `StepO max` is `Step`. -/
 theorem step_of_stepO_max {c d : ℝ} {L L' : Line} (h : StepO max c d L L') : Step c d L L' := by

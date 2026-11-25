@@ -19,7 +19,8 @@ The claims, moves and checker are those of `Dag.lean` with these changes: `Der` 
 kernels) e ≤ a on their first line and guarantee pin rest ≤ a'; a speedup is clipped at
 x ≤ a − max(e, u.o, 1); chain positions must stay ≥ M (κ' ≥ 1); Lemma 7.1 picks s ≤ a/d.
 `dagCheck_sound`: acceptance gives `∃ Mp n, HY.NF c d Mp n ∧ ∀ i ≤ n, pin ≤ time ∧ SpOK` on
-`Mp i`. As in `Dag.lean`, everything is proved for `HY.StepO ℓ` with `HY.LogOK ℓ` (here the output ℓ of
+`Mp i`. `nf_of_SC` gives `HY.NFO ℓ c d M n` with these properties (`HY.NF` for ℓ = max, via
+`HY.nf_of_nfO_max`). As in `Dag.lean`, everything is proved for `HY.StepO ℓ` with `HY.LogOK ℓ` (here the output ℓ of
 the new log n block is also at most the new kernel time, since it is at most max(u.o, e)):
 `dagCheck_soundO` gives `HY.NFO ℓ`, `dagCheck_sound` is ℓ = max and `dagCheck_sound1` is ℓ = 1.
 -/
@@ -215,7 +216,7 @@ theorem TC_of_SC {B0 κ ε Ω : ℝ} (hB0 : 0 ≤ B0) (hd1 : 1 ≤ d) (hκ : 1 �
   have : Ω * β = Ω / κ * α * B := by rw [hβ]; field_simp
   rw [this] at h2; exact h2
 
-/-- Lemma 3.3, merged: for c ≥ 1 and B0 ≥ 0, from an inner S-claim `SC ℓ c d B0 κ' ε W` and an
+/-- Lemma 3.3, merged: for ℓ with `LogOK ℓ`, c ≥ 1 and B0 ≥ 0, from an inner S-claim `SC ℓ c d B0 κ' ε W` and an
 outer T-claim `TC ℓ c d B0 α VT`, with 1 ≤ u, ε ≤ u, κ' = κ + ε − u, ε ≤ κ', 1 ≤ κ', ε ≤ 1, 0 ≤ ε,
 1 ≤ κ'·B0, c·max(u, W) ≤ α·u and 1 ≤ u·VT, follows `SC ℓ c d B0 κ ε (u·VT)`. -/
 theorem SC_speed (hℓ : LogOK ℓ) (hc : 1 ≤ c) {B0 κ κ' ε u W α VT : ℝ} (hB0 : 0 ≤ B0)
@@ -494,7 +495,7 @@ theorem tval_sound (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) {tab : 
         push_cast; field_simp
       rw [e] at this; exact this
 
-/-- For c ≥ 1, d ≥ 1, M ≥ 1, a table with `TabOK` and i ≤ M: if `chain` returns W from
+/-- For ℓ with `LogOK ℓ`, c ≥ 1, d ≥ 1, M ≥ 1, a table with `TabOK` and i ≤ M: if `chain` returns W from
 position j, then W ≥ 1 and `SC ℓ c d M (j/M) (i/M) W`. -/
 theorem chain_sound (hℓ : LogOK ℓ) (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) {tab : List (ℕ × ℚ)}
     (htab : TabOK ℓ cq d M tab) {i p : ℕ} (hi : i ≤ M) :
@@ -560,7 +561,7 @@ theorem chain_sound (hℓ : LogOK ℓ) (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (h
     push_cast at h1' h2' ⊢
     refine ⟨by linarith, SC_mono hM0.le (by linarith) h2' hSC⟩
 
-/-- For c ≥ 1, d ≥ 1 and M ≥ 1, `procNodes` preserves `TabOK`. -/
+/-- For ℓ with `LogOK ℓ`, c ≥ 1, d ≥ 1 and M ≥ 1, `procNodes` preserves `TabOK`. -/
 theorem procNodes_sound (hℓ : LogOK ℓ) (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) :
     ∀ (nodes : List Node) (tab tab' : List (ℕ × ℚ)), TabOK ℓ cq d M tab →
       procNodes cq d M SH tab nodes = some tab' → TabOK ℓ cq d M tab' := by
