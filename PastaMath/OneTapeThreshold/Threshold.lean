@@ -71,7 +71,7 @@ theorem threshold_bounds :
     ⟨HStair.stairD3_nf, fun _ hc => (HLM.ceiling_d3 hc).1⟩⟩
 
 /-- The threshold of the calculus `HY.Step` in dimension d: the supremum of the c with a strict
-normal-form proof (Mathlib's `sSup` on ℝ; `cstar_bounds` supplies nonemptiness and an upper bound). -/
+normal-form proof (Mathlib's `sSup` on ℝ; `sSup_bounds` turns nonemptiness and an upper bound into bounds on it). -/
 noncomputable def cstar (d : ℝ) : ℝ := sSup {c : ℝ | ∃ M n, NF c d M n}
 
 /-- The same for `HY.Step` with the inclusion `HY.Incl` added (`HY.NFX`). -/

@@ -56,8 +56,10 @@ the scope table at the end of Section 2.4 is the full statement (not claimed exh
   `HY.StepO ℓ` step is a `HY.Step` or `HY.SpeedLog` step, so for d ≥ 1, c ≥ 1 and c² ≥ 1 + 1/d there is
   no `HY.NFO ℓ c d M n`.
 * `HL.rpathW_last_T`: for c ≥ 0, an `RPathW c d` path of length ≥ 1 ending at `(P, T a')` has
-  c · pin P ≤ a' (only `RStep.slow` produces a `T` kernel). So a slowdown to a time below c · pin P under
-  the retained prefix P is not reached by any derivation in these rule sets.
+  c · `HL.pin` P ≤ a' (only `RStep.slow` produces a `T` kernel; `HL.pin` is 0 on the empty prefix). So a
+  slowdown to a time below c · `HL.pin` P under the retained prefix P is not reached by any path of these
+  steps, nor by any path of `HY.Step` (c ≥ 0, `HL.sim`), `HY.StepO ℓ` (ℓ ≥ 0, `HL.stepO_cases`),
+  `HY.SpeedLog` (`HL.loose_of_speedLog`) and `HY.Incl` (`HL.widen_of_incl`) steps, which encode into them.
 * `HY.NFX`: the strict normal form for `HY.Step` and `HY.Incl` steps (used by `threshold_sup`).
 -/
 
