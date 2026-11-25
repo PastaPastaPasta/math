@@ -39,7 +39,8 @@ block list, and every line alternates (`Alt`: adjacent blocks have different qua
 
 `nfCheck` is an executable checker over ℚ that replays a list of rule tags (`runQ`) from
 DTIME_d[n^{a₀}] and tests the normal-form conditions; `nfCheck_sound` turns acceptance into an
-`NF` path over ℝ at the same c and d.
+`NF` path over ℝ at the same c and d, and `nfCheck_spec` says that this path is the replayed list of
+lines cast to ℝ, of length `ts.length`.
 -/
 
 namespace PastaMath.OneTapeThreshold
@@ -361,10 +362,12 @@ theorem runQ_spec {c d : ℚ} :
             rw [e2 j (by omega), e2 (j + 1) (by omega)]
             exact this
 
-/-- If `nfCheck c d a0 ts = true` then there is a strict normal-form proof `NF c d M n` over ℝ (with
-c and d cast to ℝ). -/
-theorem nfCheck_sound {c d a0 : ℚ} {ts : List Tag} (h : nfCheck c d a0 ts = true) :
-    ∃ M n, NF (c : ℝ) (d : ℝ) M n := by
+/-- If `nfCheck c d a0 ts = true` then the replay of `ts` from `([], T a0)` succeeds with some list
+`ls` of lines, and these lines cast to ℝ form a strict normal-form proof `NF c d M n` with
+n = `ts.length` (c and d cast to ℝ). -/
+theorem nfCheck_spec {c d a0 : ℚ} {ts : List Tag} (h : nfCheck c d a0 ts = true) :
+    ∃ ls, runQ c d ([], .T a0) ts = some ls ∧
+      NF (c : ℝ) (d : ℝ) (fun i => castL (ls.getD i ([], .T a0))) ts.length := by
   unfold nfCheck at h
   cases hr : runQ c d ([], .T a0) ts with
   | none => simp [hr] at h
@@ -396,7 +399,7 @@ theorem nfCheck_sound {c d a0 : ℚ} {ts : List Tag} (h : nfCheck c d a0 ts = tr
           simp only [lastT, Bool.and_eq_true, decide_eq_true_eq] at hlast
           exact ⟨a', rfl, hlast⟩
     obtain ⟨a', hfa, h1a, ha0⟩ := hfin
-    refine ⟨fun i => castL (ls.getD i L0), ts.length, hn, fun i hi => hstep i hi, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨ls, rfl, hn, fun i hi => hstep i hi, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · refine ⟨(a0 : ℝ), ?_⟩
       show castL (ls.getD 0 L0) = _
       rw [h0, hL0]; rfl
@@ -425,6 +428,13 @@ theorem nfCheck_sound {c d a0 : ℚ} {ts : List Tag} (h : nfCheck c d a0 ts = tr
         exact alt_cast _ this
       · rw [getD_ge (by omega), hL0]
         trivial
+
+/-- If `nfCheck c d a0 ts = true` then there is a strict normal-form proof `NF c d M n` over ℝ (with
+c and d cast to ℝ). -/
+theorem nfCheck_sound {c d a0 : ℚ} {ts : List Tag} (h : nfCheck c d a0 ts = true) :
+    ∃ M n, NF (c : ℝ) (d : ℝ) M n :=
+  let ⟨_, _, hnf⟩ := nfCheck_spec h
+  ⟨_, _, hnf⟩
 
 end HY
 end PastaMath.OneTapeThreshold

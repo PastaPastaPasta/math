@@ -20,6 +20,9 @@ c ≥ c₀ (no upper bound on c),
    `([], T a')` with a' ≤ a₀ (no condition on intermediate lines);
 3. every `HY.Step` path of length n ≥ 1 from `([], T a₀)`, a₀ > 0, to `([], T a')` has a₀ < a'
    (no condition on intermediate lines or alternation).
+
+`Variants.lean` extends (2) and (3) to paths that also use the inclusion DTIME_d[t] ⊆ DTISP[t, t]
+(`ceilingX_d1`, `ceilingX_d2`, `ceilingX_d3`).
 -/
 
 namespace PastaMath.OneTapeThreshold

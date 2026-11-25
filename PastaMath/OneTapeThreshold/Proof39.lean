@@ -19,7 +19,9 @@ at 1.3009, 1.1887 and 1.1372.
 on a DTISP kernel; 0 = Lemma 7.2). `cert39_ok` checks it with `nfCheck` and `cert39_time` checks that
 every line it produces has kernel time ≥ input superscript (`timeCheck`); both by `decide +kernel`.
 `cert39_above_r1`: a strict normal-form proof exists at c = 1.30095 and every real root of p₁ is
-below 1.30095.
+below 1.30095. `cert39_spec` states the 39-line proof in one theorem: `NF (26019/20000) 1 M 38` with
+`M 0 = ([], T 100000)` and kernel time ≥ input superscript on every line `M i`, i ≤ 38, and the
+root bound.
 -/
 
 namespace PastaMath.OneTapeThreshold
@@ -139,6 +141,34 @@ below 26019/20000. -/
 theorem cert39_above_r1 : (∃ M n, NF (26019 / 20000 : ℝ) 1 M n) ∧ ∀ x, pd 1 x = 0 → x < 26019 / 20000 :=
   ⟨cert39_nf, fun x h => by
     by_contra hc; push Not at hc; have := pd1_pos' x hc; linarith⟩
+
+/-- The 39-line proof as a single statement: there is a strict normal-form proof `NF c 1 M 38` at
+c = 26019/20000 (lines `M 0, …, M 38`, each obtained from the previous one by a `Step`) with
+`M 0 = ([], T 100000)`, kernel time ≥ input superscript on every line `M i`, i ≤ 38, and every real
+root of p₁ is below c. -/
+theorem cert39_spec :
+    (∃ M : ℕ → Line, NF (26019 / 20000 : ℝ) 1 M 38 ∧ M 0 = ([], .T 100000) ∧
+      ∀ i ≤ 38, pin (M i).1 ≤ (M i).2.time) ∧
+    ∀ x, pd 1 x = 0 → x < 26019 / 20000 := by
+  refine ⟨?_, cert39_above_r1.2⟩
+  obtain ⟨ls, hr, hnf⟩ := nfCheck_spec cert39_ok
+  have ht := cert39_time
+  simp only [timeCheck, hr, List.all_eq_true, decide_eq_true_eq] at ht
+  have hlen : cert39.length = 38 := by decide
+  obtain ⟨hl, hhead, -⟩ := runQ_spec cert39 _ ls hr
+  have hls : ls.length = 39 := by rw [hl, hlen]
+  have h0 : ls.getD 0 ([], .T 100000) = ([], .T 100000) := by
+    cases ls with
+    | nil => simp at hls
+    | cons L rest => simpa using hhead
+  rw [hlen] at hnf
+  push_cast at hnf
+  refine ⟨_, hnf, by show castL _ = _; rw [h0]; simp [castL, castK], fun i hi => ?_⟩
+  have hi' : i < ls.length := by omega
+  have hmem := ht _ (List.getElem_mem hi')
+  rw [getD_lt hi']
+  simp only [castL, pin_cast, time_cast]
+  exact_mod_cast hmem
 
 end HY
 end PastaMath.OneTapeThreshold

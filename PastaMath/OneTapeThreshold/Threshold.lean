@@ -15,7 +15,9 @@ import PastaMath.OneTapeThreshold.StairD3
   real c ≥ 1.3094 (d = 1), c ≥ 1.192 (d = 2), c ≥ 1.1392 (d = 3) none exists. So
   sup{c : ∃ M n, HY.NF c d M n} lies in [1.30921174, 1.3094], [1.1915968, 1.192] and
   [1.1386523, 1.1392]. The non-strict and relaxed forms of the upper bounds are
-  `HLM.ceiling_d1`, `HLM.ceiling_d2` and `HLM.ceiling_d3`.
+  `HLM.ceiling_d1`, `HLM.ceiling_d2` and `HLM.ceiling_d3`; with the inclusion
+  DTIME_d[t] ⊆ DTISP[t, t] added, `HLM.ceilingX_d1`, `HLM.ceilingX_d2` and `HLM.ceilingX_d3`.
+  All of them are for the output max(b, e) of the new log n block of Lemma 3.3.
 -/
 
 namespace PastaMath.OneTapeThreshold

@@ -34,8 +34,10 @@ The one-level potential: with g = 1/A, A = max(1 + 1/d, c), on a level with top 
 through the outer blocks by y ↦ ψ_T(b', c·max(b', y)) and finally y ↦ c·max(0, y) (`Phi`).
 Under `Facts c d g` (1 ≤ c, 0 ≤ g, c·g ≤ 1, 1 ≤ c²·g, 0 ≤ d, g ≤ d·(1 − g)) the potential does not
 decrease along `RStep` from lines with nonnegative entries (`phi_step`), so every quantifier-free
-line `T a'` reached from `T a₀` (a₀ ≥ 0) has a' ≥ a₀ (`qf_ge`). `no_nf`: for d > 0, c ≥ 1 and
-c² ≥ 1 + 1/d there is no `HY.NF` proof.
+line `T a'` reached from `T a₀` (a₀ ≥ 0) by an `RPath` has a' ≥ a₀ (`qf_ge`). The Lemma 3.3 case
+(`speed_ineq`) does not use the output superscript of the new log n block. `facts_of`: for d > 0,
+c ≥ 1 and c² ≥ 1 + 1/d, `Facts` hold with g = 1/max(1 + 1/d, c). `no_nf`: for such d and c there is
+no `HY.NF` proof.
 -/
 
 namespace PastaMath.OneTapeThreshold
@@ -203,73 +205,19 @@ theorem psT_big (F : Facts c d g) {b z : ℝ} (_hb : 0 ≤ b) (hz : c * b ≤ z)
   rw [mul_max_of_nonneg _ _ (by linarith : (0:ℝ) ≤ c)]
   exact max_le hz (by nlinarith [F.cg])
 
-/-- Lemma 3.3 (merged) does not lower the level value: under `Facts`, for b ≥ 0, x ≥ 0, e ≥ 0 and
-e ≤ a − x, ψ_S(b, a, e) ≤ ψ_T(b', c·max(b', ψ_S(max(b, e), a − x, e))) with b' = max(b, x + e). -/
-theorem speed_ineq (F : Facts c d g) {b a e x : ℝ} (hb : 0 ≤ b) (hx : 0 ≤ x) (_he : 0 ≤ e)
-    (_hex : e ≤ a - x) :
-    psS c b a e ≤ psT c g (max b (x + e)) (c * max (max b (x + e)) (psS c (max b e) (a - x) e)) := by
-  have hc1 := F.c1
-  have hc0 : 0 ≤ c := by linarith
-  set b' := max b (x + e) with hb'
-  set L := max b e with hL
-  have hb'0 : 0 ≤ b' := le_trans hb (le_max_left _ _)
-  have hL0 : 0 ≤ L := le_trans hb (le_max_left _ _)
-  set Sin := psS c L (a - x) e with hSin
-  have hSin0 : L ≤ Sin := psS_ge F hL0
-  have hz : c * b' ≤ c * max b' Sin := mul_le_mul_of_nonneg_left (le_max_left _ _) hc0
-  refine le_trans ?_ (psT_big F hb'0 hz)
-  have hgz : c * max b' (c * g * Sin) ≤ c * max b' (g * (c * max b' Sin)) := by
-    apply mul_le_mul_of_nonneg_left _ hc0
-    apply max_le_max le_rfl
-    have : c * g * Sin = g * (c * Sin) := by ring
-    rw [this]
-    exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left (le_max_right _ _) hc0) F.g0
-  refine le_trans ?_ hgz
-  have hLe : max L e = L := max_eq_left (le_max_right _ _)
-  have hSin' : Sin = min (max L (a - x)) (c * L) := by
-    simp only [hSin, psS, hLe]
-  have hcg0 : 0 ≤ c * g := mul_nonneg hc0 F.g0
-  rcases le_total (c * L) (max L (a - x)) with hA | hA
-  ·
-    rw [hSin', min_eq_right hA]
-    have h1 : psS c b a e ≤ c * L := min_le_right _ _
-    have h2 : c * L ≤ c * (c * g * (c * L)) := by
-      have : c * (c * g * (c * L)) = c * L * (c ^ 2 * g) := by ring
-      rw [this]
-      have hcL : 0 ≤ c * L := mul_nonneg hc0 hL0
-      nlinarith [F.c2g]
-    exact le_trans h1 (le_trans h2 (mul_le_mul_of_nonneg_left (le_max_right _ _) hc0))
-  · rw [hSin', min_eq_left hA]
-    rcases le_total a b with hab | hab
-    · calc psS c b a e ≤ max b a := min_le_left _ _
-        _ = b := max_eq_left hab
-        _ ≤ c * b := by nlinarith
-        _ ≤ c * max b' (c * g * max L (a - x)) :=
-            mul_le_mul_of_nonneg_left (le_trans (le_max_left _ _) (le_max_left _ _)) hc0
-    rcases le_total e b with heb | heb
-    · calc psS c b a e ≤ c * max b e := min_le_right _ _
-        _ = c * b := by rw [max_eq_left heb]
-        _ ≤ c * max b' (c * g * max L (a - x)) :=
-            mul_le_mul_of_nonneg_left (le_trans (le_max_left _ _) (le_max_left _ _)) hc0
-    have hLHS : psS c b a e ≤ min a (c * e) := by
-      simp only [psS, max_eq_right hab, max_eq_right heb]; exact le_rfl
-    set M' := max (x + e) (c * g * (a - x)) with hM'
-    have hM1 : x + e ≤ M' := le_max_left _ _
-    have hM2 : c * g * (a - x) ≤ M' := le_max_right _ _
-    have hRHS : c * M' ≤ c * max b' (c * g * max L (a - x)) := by
-      apply mul_le_mul_of_nonneg_left _ hc0
-      apply max_le (le_trans (le_max_right _ _) (le_max_left _ _))
-      exact le_trans (mul_le_mul_of_nonneg_left (le_max_right _ _) hcg0) (le_max_right _ _)
-    refine le_trans hLHS (le_trans ?_ hRHS)
-    by_cases hcase : e ≤ c * g * a
-    ·
-      have h1 : c * g * (a + e) ≤ (1 + c * g) * M' := by nlinarith
-      have h2 : c * e * (1 + c * g) ≤ c * M' * (1 + c * g) := by nlinarith
-      have h3 : c * e ≤ c * M' := le_of_mul_le_mul_right h2 (by linarith)
-      exact le_trans (min_le_right _ _) h3
-    · push Not at hcase
-      have : c * e ≤ c * M' := mul_le_mul_of_nonneg_left (by linarith) hc0
-      exact le_trans (min_le_right _ _) this
+/-- Lemma 3.3 does not lower the level value: under `Facts`, for 0 ≤ b ≤ b', e ≤ b' and every real
+Y, ψ_S(b, a, e) ≤ ψ_T(b', c·max(b', Y)). Here b' is the new top of the level and Y the value of the new
+inner level; ψ_S(b, a, e) ≤ c·max(b, e) ≤ c·b', and both arguments of the min in ψ_T(b', c·max(b', Y))
+are ≥ c·b'. -/
+theorem speed_ineq (F : Facts c d g) {b b' a e Y : ℝ} (hb : 0 ≤ b) (hbb : b ≤ b') (heb : e ≤ b') :
+    psS c b a e ≤ psT c g b' (c * max b' Y) := by
+  have hc0 : 0 ≤ c := by linarith [F.c1]
+  have hb' : 0 ≤ b' := le_trans hb hbb
+  have h1 : psS c b a e ≤ c * b' :=
+    le_trans (min_le_right _ _) (mul_le_mul_of_nonneg_left (max_le hbb heb) hc0)
+  refine le_trans h1 (le_min ?_ ?_)
+  · exact le_trans (mul_le_mul_of_nonneg_left (le_max_left _ _) hc0) (le_max_right _ _)
+  · exact mul_le_mul_of_nonneg_left (le_max_left _ _) hc0
 
 /-- For c, d ≥ 0, an `RStep` from a line with nonnegative entries leads to such a line. -/
 theorem nn_step (hc : 0 ≤ c) (hd : 0 ≤ d) {L L' : RLine} (h : RStep c d L L') (hL : NN L) : NN L' := by
@@ -404,8 +352,8 @@ theorem phi_step (F : Facts c d g) {L L' : RLine} (h : RStep c d L L') (hL : NN 
     simp only [Phi, pot, up]
     apply up_mono F
     have hb0 : 0 ≤ b := hb b (by simp)
-    refine le_trans (speed_ineq F hb0 hx hk.2 hex) (psT_mono F h' ?_)
-    apply mul_le_mul_of_nonneg_left (max_le_max h' (psS_mono F hL ha he)) hc0
+    exact speed_ineq F hb0 (le_trans (le_max_left _ _) h')
+      (le_trans (by linarith) (le_trans (le_max_right _ _) h'))
   | speedN bl a e x g₁ g₂ a₂ e₂ hx hex h₁ h₂ ha he =>
     simp only [KNN] at hk
     cases bl with
@@ -417,9 +365,9 @@ theorem phi_step (F : Facts c d g) {L L' : RLine} (h : RStep c d L L') (hL : NN 
       apply up_mono F
       have hb0 : 0 ≤ b := hb b (by simp)
       have h₁' : max b (x + e) ≤ g₁ := by simpa [pin] using h₁
-      have h₂' : max b e ≤ g₂ := by simpa [pin] using h₂
-      have hS := le_trans (speed_ineq F hb0 hx hk.2 hex) (psT_mono F h₁'
-        (mul_le_mul_of_nonneg_left (max_le_max h₁' (psS_mono F h₂' ha he)) hc0))
+      have hS : psS c b a e ≤ psT c g g₁ (c * max g₁ (psS c g₂ a₂ e₂)) :=
+        speed_ineq F hb0 (le_trans (le_max_left _ _) h₁')
+          (le_trans (by linarith) (le_trans (le_max_right _ _) h₁'))
       have hg₁0 : 0 ≤ g₁ := le_trans (le_trans hb0 (le_max_left _ _)) h₁'
       have hbY : b ≤ psT c g g₁ (c * max g₁ (psS c g₂ a₂ e₂)) :=
         le_trans (le_trans (le_max_left _ _) h₁') (psT_ge F hg₁0)
@@ -500,24 +448,29 @@ theorem sim {c d : ℝ} (hc : 0 ≤ c) {L L' : HY.Line} (h : HY.Step c d L L') :
     rw [encK_time]
     exact max_le_max (max_le_max (pin_le rest) le_rfl) (le_max_right _ _)
 
-/-- For real d > 0, c ≥ 1 and c² ≥ 1 + 1/d there is no strict normal-form proof `HY.NF c d M n`. -/
-theorem no_nf {c d : ℝ} (hd : 0 < d) (hc : 1 ≤ c) (hcd : 1 + 1 / d ≤ c ^ 2) (M : ℕ → HY.Line) (n : ℕ) :
-    ¬ HY.NF c d M n := by
-  rintro ⟨hn, hp, ⟨a₀, h0⟩, ⟨a', hN⟩, _, h1, hlt, _⟩
+/-- For real d > 0, c ≥ 1 and c² ≥ 1 + 1/d, the facts of the one-level potential hold with
+g = 1/A, A = max(1 + 1/d, c). -/
+theorem facts_of {c d : ℝ} (hd : 0 < d) (hc : 1 ≤ c) (hcd : 1 + 1 / d ≤ c ^ 2) :
+    Facts c d (1 / max (1 + 1 / d) c) := by
   set A := max (1 + 1 / d) c with hA
   have hA1 : 1 + 1 / d ≤ A := le_max_left _ _
   have hAc : c ≤ A := le_max_right _ _
   have hApos : 0 < A := by linarith
   have hAc2 : A ≤ c ^ 2 := max_le hcd (by nlinarith)
-  have F : Facts c d (1 / A) := by
-    refine ⟨hc, by positivity, ?_, ?_, hd.le, ?_⟩
-    · rw [mul_one_div, div_le_one hApos]; exact hAc
-    · rw [mul_one_div, le_div_iff₀ hApos]; linarith
-    · have hd1 : 1 / d ≤ A - 1 := by linarith
-      have : 1 ≤ d * (A - 1) := by
-        rw [div_le_iff₀ hd] at hd1; linarith
-      rw [show d * (1 - 1 / A) = d * (A - 1) / A by field_simp]
-      rw [div_le_div_iff_of_pos_right hApos]; exact this
+  refine ⟨hc, by positivity, ?_, ?_, hd.le, ?_⟩
+  · rw [mul_one_div, div_le_one hApos]; exact hAc
+  · rw [mul_one_div, le_div_iff₀ hApos]; linarith
+  · have hd1 : 1 / d ≤ A - 1 := by linarith
+    have : 1 ≤ d * (A - 1) := by
+      rw [div_le_iff₀ hd] at hd1; linarith
+    rw [show d * (1 - 1 / A) = d * (A - 1) / A by field_simp]
+    rw [div_le_div_iff_of_pos_right hApos]; exact this
+
+/-- For real d > 0, c ≥ 1 and c² ≥ 1 + 1/d there is no strict normal-form proof `HY.NF c d M n`. -/
+theorem no_nf {c d : ℝ} (hd : 0 < d) (hc : 1 ≤ c) (hcd : 1 + 1 / d ≤ c ^ 2) (M : ℕ → HY.Line) (n : ℕ) :
+    ¬ HY.NF c d M n := by
+  rintro ⟨hn, hp, ⟨a₀, h0⟩, ⟨a', hN⟩, _, h1, hlt, _⟩
+  have F := facts_of hd hc hcd
   have hrp : RPath c d (fun i => enc (M i)) n := fun i hi => sim (by linarith) (hp i hi)
   have hT0 : (M 0).2.time = a₀ := by rw [h0]; rfl
   have hTn : (M n).2.time = a' := by rw [hN]; rfl

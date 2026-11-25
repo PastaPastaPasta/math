@@ -18,7 +18,9 @@ A word's state is (A, L, D, m) = (Ad w, AL w, D w, |w|). Prepending a letter p m
 state of S has A > 0, L ≥ 0, D > 0 and an interval certificate for `ConvOK` (`ivOK`: a list of
 breakpoints in the ratio a/b, starting at 0, with one level per piece whose term is below
 max(A·b, Qf·a) on that piece), and S together with the state (1, 0, 1, 0) of the empty word is
-closed under prepending each letter, up to done states and domination by a state of S.
+closed under prepending each letter up to done states and domination (`closedQ`): every successor
+that is not done dominates some state t of S (`domQ`: it has A, L, m at least and D at most those of
+t), so `ConvOK` transfers from t to it.
 `absCheck_sound` turns acceptance into `Hyp` for the levels cast to ℝ.
 -/
 

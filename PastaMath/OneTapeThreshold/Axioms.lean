@@ -17,7 +17,13 @@ open PastaMath.OneTapeThreshold
 #print axioms HLM.ceiling_d2
 #print axioms HLM.ceiling_d3
 #print axioms HY.cert39_above_r1
+#print axioms HY.cert39_spec
 #print axioms HL.no_nf
+#print axioms HLM.ceilingX_d1
+#print axioms HLM.ceilingX_d2
+#print axioms HLM.ceilingX_d3
+#print axioms HL.no_drop_W
+#print axioms HL.path_unwiden
 #print axioms HY.nfCheck_sound
 #print axioms HD.dagCheck_sound
 #print axioms HDS.dagCheck_sound
