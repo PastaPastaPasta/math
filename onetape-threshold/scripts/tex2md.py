@@ -78,7 +78,7 @@ def number_labels(body):
     app = None
     current = None
     tok = re.compile(r"\\(section|subsection)(\*?)\{|\\begin\{(" + "|".join(THM_ENVS)
-                     + r"|table)\}|\\label\{([^}]*)\}|\\(appendix)(?![A-Za-z])")
+                     + r"|table|longtable)\}|\\label\{([^}]*)\}|\\(appendix)(?![A-Za-z])")
     for m in tok.finditer(body):
         if m.group(5):
             app = 0
@@ -92,7 +92,7 @@ def number_labels(body):
         elif m.group(1) == "subsection" and not m.group(2):
             sub += 1
             current = f"{sec}.{sub}"
-        elif m.group(3) == "table":
+        elif m.group(3) in ("table", "longtable"):
             tab += 1
             current = str(tab)
         elif m.group(3):
@@ -195,7 +195,7 @@ def convert(tex):
     def table(m):
         t = m.group(0)
         cap, _ = braced(t, t.index(r"\caption{") + len(r"\caption"))
-        n = table.count = getattr(table, "count", 0) + 1
+        n = len(re.findall(r"\\begin\{(?:long)?table\}", body[:m.start()])) + 1
         tab = t[t.index(r"\begin{tabular}"):t.index(r"\end{tabular}") + len(r"\end{tabular}")]
         tab = re.sub(r"\\(toprule|bottomrule)", "", tab).replace(r"\midrule", r"\hline", 1)
         tab = tab.replace(r"\midrule", "")
