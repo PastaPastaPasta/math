@@ -53,3 +53,4 @@ open PastaMath.OneTapeThreshold
 #print axioms threshold_sup
 #print axioms HL.no_nfO
 #print axioms HL.rpathW_last_T
+#print axioms HL.qf_ge_W

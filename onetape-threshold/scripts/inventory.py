@@ -32,14 +32,18 @@ asserts the further checks named in the paper (the two-step derivation of the DT
 endpoints of the Corollary 7.8 sub-derivations (D7), the printed base case (D6), the 0,1,0 criterion and the
 derivation of its first sample from DTIME_1[n^10] (D11), the absence of a Lemma 7.1 step with s = 0, the
 examples of the paper's Section 2.4, item 3, Section 5.2 and Section 6 (a slowdown below Lemma 7.2's value that
-meets the relaxed bound; a transition that is not a single relaxed step but expands into three exact steps; a
-[1,1,0,0] speedup outside Lemma 3.3's condition x <= a - 1 that is a single relaxed step), a sample at which inequality (31) of Case 1 (p. A:37) fails, and a [1,1,0,0] sample with
+meets the relaxed bound; a transition that is no single HL.RStep, HL.Loose or HL.Widen step but expands into three
+exact steps; a [1,1,0,0] speedup outside Lemma 3.3's condition x <= a - 1 that is a single HL.RStep step), a sample
+at which inequality (31) of Case 1 (p. A:37) fails, and a [1,1,0,0] sample with
 x, y >= 0 outside the side conditions of Lemma 3.3 that no exact or relaxed speedup gives (D17), a [1,1,0,0]
 sample outside only y <= a - 1 whose log n output fails the relaxed bound (D17), a [1,1,0,0] speedup whose log n
-output is below max(o, e) and which expands into three relaxed steps at c = 4/3, a log n output below
-max(HY.pin, e) on the empty prefix that is an RStep.speedN step, two Case 1 samples whose printed speedups are and
-are not relaxed steps (D12, D13), and the relaxed encoding of the line printed at the second use of Corollary 7.8
-(D9)). It ends with the number of assertions that hold; a failed one stops it.
+output is below max(o, e) (an HL.Loose step) and which expands into three relaxed steps at c = 4/3, a log n output
+below max(HY.pin, e) on the empty prefix that is an RStep.speedN step, two Case 1 samples whose printed speedups are
+HL.RStep steps and only HL.Loose steps (D12, D13), a Case 1 sample with e = 0 whose printed speedups, guess n^y
+included, are HY.Step.speedMerge steps (D13), the rule membership of the Corollary 7.8 sub-derivations (D7: under
+the output 1 the one at the second use is an HY.StepO path with l = 1, not an HY.Step path), and the relaxed
+encoding of the line printed at the second use of Corollary 7.8 (D9)). It ends with the number of assertions that
+hold; a failed one stops it.
 
 The printed lines are transcribed from the rendered pages (the text layer loses superscripts and primes).
 
@@ -108,11 +112,18 @@ def slow(line, c, omit_bk=False):
     return blocks[:-1], ("T", c * m)
 
 
-def cor78(line, c, d, ell="max"):
+def traced_speed(line, x, ell, trace):
+    new = speed(line, x, ell)
+    if trace is not None:
+        trace.append((line[0][-1][2], line[1][2], new[0][-1][2]))
+    return new
+
+
+def cor78(line, c, d, ell="max", trace=None):
     """Corollary 7.8 inside a prefix whose innermost block has output G = guess G: from (.., T G*A') with
     1 <= A' < eta, Lemma 7.7's rounds (Lemma 7.1 merged with s = G(A'-1), Lemma 3.3 merged so that the raised
     guess stays G, Lemma 7.2) until A' <= e_1, then the base case (s = G/(d+1), x = G(A'-1)). Returns the
-    endpoint and the number of steps."""
+    endpoint and the number of steps; appends (o, e, new log n output) of each Lemma 3.3 step to trace."""
     blocks, ker = line
     G = pin(blocks)
     e1 = Q(d + 2, d + 1)
@@ -122,11 +133,11 @@ def cor78(line, c, d, ell="max"):
         q = line[0][-1][0]
         if A1 <= e1:
             line = conv(line, G / (d + 1), d, q)
-            line = speed(line, G * (A1 - 1), ell)
+            line = traced_speed(line, G * (A1 - 1), ell, trace)
             return line, steps + 2
         A = c * (d + 1) * (A1 - 1)
         line = conv(line, G * (A1 - 1), d, q)
-        line = speed(line, G * (A1 - A / c), ell)
+        line = traced_speed(line, G * (A1 - A / c), ell, trace)
         line = slow(line, c)
         steps += 3
 
@@ -374,6 +385,22 @@ def theorem75():
         print(f"   second use of Corollary 7.8: the derivation reaches the scaled corollary endpoint {show(scaled)}"
               f" exactly; the line printed at the application, {show(printed_second)}, differs from it:"
               f" {'; '.join(compare(got, printed_second))} (asserted)")
+    # D7: rule membership of the two sub-derivations. HY.Step.speedMerge gives the new log n block max(o, e).
+    for ell in ("max", "one"):
+        tr1, tr2 = [], []
+        cor78(P([("E", G, G), ("A", Q(1), Q(1))], ("T", es)), c, d, ell, tr1)
+        cor78(P([("E", G, G)], ("T", c * c)), c, d, ell, tr2)
+        check(all(lo == max(o, e) == 1 for o, e, lo in tr1), "D7: first use, an HY.Step path under both outputs")
+        check(all(o == G > e for o, e, lo in tr2) and tr2[-1][:2] == (G, G * dd)
+              and all(lo == (G if ell == "max" else 1) for o, e, lo in tr2),
+              "D7: second use, outputs of the Lemma 3.3 steps")
+    check(c < Q(6547, 5000) and c * c < 2, "D7: c = 1.29 is below both d = 1 ceiling hypotheses")
+    print(f"   D7: at the first use every Lemma 3.3 step has max(o, e) = 1, so the replays with max(o, e) and with"
+          f" output 1 are the same HY.Step path; at the second use each of the {len(tr2)} Lemma 3.3 steps has o = G ="
+          f" {G} > e (the last e = {G * dd}), so HY.Step.speedMerge gives the new log n block output G, and the"
+          f" replay with output 1 is an HY.StepO path with l = 1, not an HY.Step path, each such step below the"
+          f" HL.RStep.speedM floor max(HL.pin, e) = G; c = {c} is below 6547/5000 and c^2 < 2, so these samples"
+          " check rule membership only (asserted)")
     # D8: the printed DTISP line is reached by Lemma 7.2 followed by Lemma 7.1 merged with s = 1/(d+1)
     L5 = first_end
     L6 = slow(L5, c)
@@ -626,7 +653,7 @@ def thm79_case2():
 def slow_relaxed_test():
     """Paper Section 6: the relaxed slowdown HL.RStep.slow requires a' >= c max(pin rest, b, time k) and drops
     the guess of the removed block. Remaining output, removed output and kernel time 1, removed guess 5: Lemma
-    7.2 gives 5c, the relaxed bound is c, so a time in [c, 5c) is below Lemma 7.2's value but a relaxed step."""
+    7.2 gives 5c, the relaxed bound is c, so a time in [c, 5c) is below Lemma 7.2's value but an HL.RStep step."""
     c = Q(3, 2)
     line = P([("E", Q(1), Q(1)), ("A", Q(5), Q(1))], ("T", Q(1)))
     exact = T(slow(line, c))
@@ -662,7 +689,8 @@ def rspeedM_ok(src, dst, x):
 
 
 def expansion_example():
-    """Paper Section 6: a transition that is not a single relaxed step but expands into exact steps. d = 1,
+    """Paper Section 6: a transition that is no single HL.RStep, HL.Loose or HL.Widen step (a single relaxed
+    slowdown would need a larger time; HL.Loose and HL.Widen give DTISP kernels) but expands into exact steps. d = 1,
     c = 10/7: Lemma 7.1 (s = 1) takes DTIME_1[n^3] to (E n^2)^2 DTISP[n^3, n^1]; a single relaxed slowdown from
     there needs time >= c max(0, 2, 3) = 30/7, while Lemma 3.3 (x = 1) and two Lemma 7.2 steps reach
     DTIME_1[n^(2c^2)] = DTIME_1[n^(200/49)], and 200/49 < 30/7."""
@@ -682,7 +710,7 @@ def expansion_example():
 
 def speed_outside_a36():
     """Paper Section 6: a [1,1,0,0] speedup of p. A:36 outside Lemma 3.3's side conditions that is still a single
-    relaxed step. d = 1, a = 3/2, x = 1/2, y = 3/4: y > a - 1 (so no HY.Step speedup, and the new time 3/4 is
+    HL.RStep step. d = 1, a = 3/2, x = 1/2, y = 3/4: y > a - 1 (so no HY.Step speedup, and the new time 3/4 is
     below 1), but e = dx = 1/2 <= a - y, and the printed line is an HL.RStep.speedM step from the Lemma 7.1 line."""
     d, a, x, y = 1, Q(3, 2), Q(1, 2), Q(3, 4)
     L1 = conv(([], ("T", a)), x, d)
@@ -795,6 +823,19 @@ def log_output_examples():
               f" the second with guess n^y) is"
               + (" an HL.RStep step" if want else " no HL.RStep step (needs >= max(b, e) = 3), an HL.Loose step")
               + " (asserted)")
+    b, ap, a4, x1, y1, e = Q(1), Q(1), Q(4), Q(1), Q(1), Q(0)
+    start = P([("A", Q(0), b), ("E", ap, b)], ("S", a4, e))
+    printed1 = P([("A", Q(0), b), ("E", max(ap, x1 + e), max(b, x1 + e)), ("A", Q(0), max(b, Q(1)))],
+                 ("S", a4 - x1, e))
+    printed2 = P([("A", Q(0), b), ("E", max(ap, x1 + e), max(b, x1 + e)), ("A", y1, max(b, y1 + e, Q(1))),
+                  ("E", Q(0), max(b, Q(1)))], ("S", a4 - x1 - y1, e))
+    L1 = speed(start, x1)
+    check(L1 == printed1 and speed(L1, y1) == printed2,
+          "Case 1 at e = 0: both printed speedups are HY.Step.speedMerge steps")
+    print(f"   Case 1 at d = 1, a = 4, b = a' = 1, x = y = 1, e = 0: the printed guess n^y equals Lemma 3.3's n^(y+e),"
+          f" and both printed speedups, {show(printed1)} and {show(printed2)}, are HY.Step.speedMerge steps with the"
+          " printed guesses and outputs (asserted)")
+
 
 
 def d17_output_example():

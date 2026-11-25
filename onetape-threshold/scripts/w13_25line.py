@@ -40,7 +40,10 @@ the slowdowns to lines 4, 7, 11, 20, 23, 24 print a time below c max(pin rest, b
 c * 1.155762944 = 1.500000002292736 > 1.5), the existential output falls at lines 12 (1.040108911 ->
 1.040108909, convM) and 22 (-> 1.040108908, speedM), lines 13, 15, 18 fail the relaxed conditions on a - s or x, and
 the log n blocks of lines 13, 16, 19, 22 have the default output 1 below max(b, e) (row D3). Apart from the
-last, every such failure is by at most 3e-9. The numerical origin of these discrepancies is not determined; the
+last, every such failure is by at most 3e-9. The transitions with a failure other than the log n output (lines 4,
+7, 11, 12, 13, 15, 18, 20, 22, 23, 24) are also no HL.Loose step (only 13 and 22 are speedups, see below) and no
+HL.Widen step (which goes from a DTIME_d kernel to a DTISP kernel under the same prefix, new time and space >= old
+time); asserted. The numerical origin of these discrepancies is not determined; the
 comparison uses the exact replay in place of the printed numbers.
 
 At c = 1.29784399 the same replay (same rules, parameters read off the printed lines) passes every side
@@ -351,9 +354,19 @@ def main():
     assert max(gaps) == Q("0.000000003")
     ok = [k for k, bad in lit.items() if not bad]
     assert ok == [1, 2, 3, 5, 6, 8, 9, 10, 14, 17, 21], ok
+    listed = sorted(k for k, bad in lit.items() if any(kd != "log" for kd, _ in bad))
+    assert listed == [4, 7, 11, 12, 13, 15, 18, 20, 22, 23, 24], listed
+
+    def outs(line):
+        return [max(g, Q(1)) for _, g in line[0]]
+
+    widen = [k for k in listed if printed[k - 1][1][0] == "T" and printed[k][1][0] == "S"
+             and outs(printed[k - 1]) == outs(printed[k]) and printed[k - 1][1][1] <= min(printed[k][1][1:])]
+    speedups = [k for k in listed if printed[k - 1][1][0] == "S" and len(printed[k][0]) > len(printed[k - 1][0])]
+    assert widen == [] and speedups == [13, 22], (widen, speedups)
     print("the printed transitions read literally (omitted outputs read block-wise, printed kernels) against the"
           " relaxed calculus HL.RStep (asserted):")
-    print(f"  relaxed steps as printed: to lines {ok}")
+    print(f"  HL.RStep steps as printed: to lines {ok}")
     print(f"  printed slowdown time below c max(pin rest, b, time k), the least any slowdown rule allows: lines"
           f" {kinds['slow']} (largest gap {float(max(a for b in lit.values() for kd, a in b if kd == 'slow')):.3e});"
           f" line 6 -> 7: c * 1.155762944 = {float(lb7):.15f} > 1.5")
@@ -364,6 +377,9 @@ def main():
     print(f"  printed log n output 1 below max(b, e) (row D3): lines {kinds['log']}")
     print(f"  every failure other than the log n outputs is by at most {float(max(gaps)):.1e}; the numerical"
           " origin of these discrepancies is not determined, and the comparison uses the exact replay")
+    print(f"  lines {listed}: none is an HL.Widen step (none goes from DTIME_d to DTISP under the same prefix with new"
+          " time and space >= old time); the only speedups among them, 13 and 22, are no HL.Loose step (below)")
+
     d3 = d3_literal(printed, d)
     assert {k for k, v in d3.items() if v[4]} == {16, 19}, d3
     assert {k for k, v in d3.items() if v[3]} == {16}, d3
