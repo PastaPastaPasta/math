@@ -43,7 +43,7 @@ Every theorem must depend only on `propext`, `Classical.choice` and `Quot.sound`
 'PastaMath.TautThreshold.TL.tlv_refutes' depends on axioms: [propext, Classical.choice, Quot.sound]
 ```
 
-The Lean files contain no `sorry`, `admit`, `native_decide`, `implemented_by` or `axiom` declarations; the CI workflow checks this and the axioms output on every push.
+The Lean files contain no `sorry`, `admit`, `native_decide`, `implemented_by` or `axiom` declarations; the CI workflow (`.github/workflows/lean.yml`) checks this and the axioms output on every push to `main`, on pull requests, and when run by hand (`workflow_dispatch`); pushes to other branches do not trigger it.
 
 ## Headline theorems
 

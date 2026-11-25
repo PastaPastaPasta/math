@@ -9,7 +9,7 @@ lake exe cache get   # download prebuilt Mathlib (pinned in lake-manifest.json)
 lake build           # builds PastaMath, including PastaMath/MWThreshold/Axioms.lean
 ```
 
-The build must end with `Build completed successfully` and no errors or warnings. With Mathlib from the cache, a build of the whole `PastaMath` library from scratch took about 19 s of wall time on an Apple-silicon laptop; the c = 8/5 certificate (`PastaMath/MWThreshold/Cert.lean`, checked with `decide +kernel`) took 7.5 s of it. While building `PastaMath.MWThreshold.Axioms`, Lean prints one `#print axioms` line per headline theorem. To print them again on their own:
+The build must end with `Build completed successfully` and no errors or warnings. With Mathlib from the cache, a build of the whole `PastaMath` library from scratch took about 19 s of wall time on an Apple-silicon laptop before `PastaMath/OneTapeThreshold/` was added (its certificates add about five minutes; see `onetape-threshold/VERIFICATION.md`); the c = 8/5 certificate (`PastaMath/MWThreshold/Cert.lean`, checked with `decide +kernel`) took 7.5 s of it. While building `PastaMath.MWThreshold.Axioms`, Lean prints one `#print axioms` line per headline theorem. To print them again on their own:
 
 ```sh
 lake env lean PastaMath/MWThreshold/Axioms.lean
@@ -48,7 +48,7 @@ Every theorem must depend only on `propext`, `Classical.choice` and `Quot.sound`
 'PastaMath.MWThreshold.MWL.mw_refutes_8_5' depends on axioms: [propext, Classical.choice, Quot.sound]
 ```
 
-The Lean files contain no `sorry`, `admit`, `native_decide`, `implemented_by` or `axiom` declarations, and no `import Mathlib.Tactic` umbrella import; the CI workflow checks this and the axioms output of both results on every push to `main` and on pull requests.
+The Lean files contain no `sorry`, `admit`, `native_decide`, `implemented_by` or `axiom` declarations, and no `import Mathlib.Tactic` umbrella import; the CI workflow checks this and the axioms output of every result on every push to `main`, on pull requests, and when run by hand (`workflow_dispatch`).
 
 ## Headline theorems
 
