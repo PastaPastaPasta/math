@@ -44,3 +44,6 @@ open PastaMath.OneTapeThreshold
 #print axioms HY.slow_convMerge_A34
 #print axioms HY.slow_convMerge_A34O
 #print axioms HY.path_S_ne_nil
+#print axioms HY.path_S_space_nonneg
+#print axioms HY.path_S_space_nonnegO
+#print axioms HL.cor78_base_reach

@@ -34,6 +34,14 @@ This is a replay of Williams's rounded display, not a verified proof: replayed f
 1.751958454 at c = 1.297844, the computed last line is about 1.0e-8 above the first, so the normal-form
 condition a' < a fails at that c. The script reports this.
 
+It also reads every printed transition literally against the relaxed calculus HL.RStep (omitted outputs
+read block-wise, printed kernels; function literal) and asserts which transitions no relaxed rule reproduces:
+the slowdowns to lines 4, 7, 11, 20, 23, 24 print a time below c max(pin rest, b, time k) (line 6 -> 7:
+c * 1.155762944 = 1.500000002292736 > 1.5), the existential output falls at lines 12 (1.040108911 ->
+1.040108909, convM) and 22 (-> 1.040108908, speedM), lines 13, 15, 18 fail by rounding of a - s or of x, and
+the log n blocks of lines 13, 16, 19, 22 have the default output 1 below max(b, e) (row D3). Apart from the
+last, every such failure is by at most 3e-9: rounding of the display, which the replay replaces by exact values.
+
 With --tex it also prints the body of the table of Appendix A.2 of the paper (rule and largest deviations
 per transition, and the notes D1-D3), from which that table is copied.
 
@@ -146,6 +154,59 @@ def replay(printed, c, d, ell):
     return rules, states, worst_k, worst_g, raw_g, bk_max, per
 
 
+def literal(printed, c, d):
+    """Each printed transition, read literally, against the relaxed calculus HL.RStep (Relaxed.lean), which
+    bounds every output, time and space only from below and has no guesses. A printed line is encoded with
+    Williams's default for omitted superscripts read block-wise (the output of a block is max{guess, 1}; the
+    printed n^1 of a log n block gives 1) and its printed kernel. For each transition the conditions of the
+    matching constructor are tested with the best choice of its parameter (convM/convN: s = min(a, e/d);
+    speedM: any x in [max(0, a - a2), min(a - e, b' - e)]; slow: c max(pin rest, b, time k) <= a'). Returns,
+    per transition, the failed conditions as (kind, amount); kind is "slow" (printed time below the relaxed
+    lower bound), "lowered" (printed output of the innermost block below the old one, which convM and speedM
+    forbid), "log" (printed log n output 1 below max(b, e)) or "other" (convM a - s, or speedM no x)."""
+    def enc(line):
+        blocks, ker = line
+        return [max(g, Q(1)) for _, g in blocks], ker
+
+    def rpin(outs):
+        return outs[-1] if outs else Q(0)
+
+    res = {}
+    for k in range(1, len(printed)):
+        (o0, k0), (o1, k1) = enc(printed[k - 1]), enc(printed[k])
+        bad = []
+        if k0[0] == "T" and k1[0] == "S":
+            a, a2, e = k0[1], k1[1], k1[2]
+            s = min(a, e / d)
+            if len(o1) == len(o0):
+                assert o1[:-1] == o0[:-1] and a <= a2
+                b, b1 = o0[-1], o1[-1]
+                if b1 < b:
+                    bad.append(("lowered", b - b1))
+                if b1 < a - s:
+                    bad.append(("other", a - s - b1))
+            else:
+                assert o1[:-1] == o0 and a <= a2 and max(rpin(o0), a - s) <= o1[-1]
+        elif k0[0] == "S" and len(o1) == len(o0) + 1:
+            a, e, a2, e2 = k0[1], k0[2], k1[1], k1[2]
+            b, bp, L = o0[-1], o1[-2], o1[-1]
+            assert o1[:-2] == o0[:-1] and e <= e2
+            lo, hi = max(Q(0), a - a2), min(a - e, bp - e)
+            if hi < lo:
+                bad.append(("other", lo - hi))
+            if bp < b:
+                bad.append(("lowered", b - bp))
+            if L < max(b, e):
+                bad.append(("log", max(b, e) - L))
+        else:
+            assert len(o1) == len(o0) - 1 and o1 == o0[:-1]
+            lb = c * max(rpin(o0[:-1]), o0[-1], k0[1])
+            if k1[1] < lb:
+                bad.append(("slow", lb - k1[1]))
+        res[k] = bad
+    return res
+
+
 def main():
     c, d = Q("1.297844"), 1
     printed = [parse(l) for l in PRINTED.strip().split("\n")]
@@ -206,6 +267,31 @@ def main():
                 print(f"    line {k}, block {i + 1} ({q} {kind}): output {float(o):.9f}, default {float(default):.9f}")
     print("every reading reproduces every printed number to within the same deviations (asserted): the display does"
           " not decide between them")
+    lit = literal(printed, c, d)
+    kinds = {kind: sorted(k for k, bad in lit.items() if any(b[0] == kind for b in bad))
+             for kind in ("slow", "lowered", "log", "other")}
+    assert kinds == {"slow": [4, 7, 11, 20, 23, 24], "lowered": [12, 22], "log": [13, 16, 19, 22],
+                     "other": [13, 15, 18]}, kinds
+    lb7 = c * printed[6][1][1]
+    assert printed[6][1][1] == Q("1.155762944") and printed[7][1][1] == Q("1.5")
+    assert lb7 == Q("1.500000002292736") and ("slow", lb7 - Q("1.5")) in lit[7]
+    assert printed[11][0][0][1] == Q("1.040108911") and printed[12][0][0][1] == Q("1.040108909")
+    assert ("lowered", Q("0.000000002")) in lit[12] and ("lowered", Q("0.000000003")) in lit[22]
+    rounding = [amt for bad in lit.values() for kind, amt in bad if kind != "log"]
+    assert max(rounding) == Q("0.000000003")
+    ok = [k for k, bad in lit.items() if not bad]
+    print("the printed transitions read literally (omitted outputs read block-wise, printed kernels) against the"
+          " relaxed calculus HL.RStep (asserted):")
+    print(f"  relaxed steps as printed: to lines {ok}")
+    print(f"  printed slowdown time below c max(pin rest, b, time k), the least any slowdown rule allows: lines"
+          f" {kinds['slow']} (largest gap {float(max(a for b in lit.values() for kd, a in b if kd == 'slow')):.3e});"
+          f" line 6 -> 7: c * 1.155762944 = {float(lb7):.15f} > 1.5")
+    print(f"  printed output of the innermost block lowered (convM, speedM need it >= the old): lines"
+          f" {kinds['lowered']} (1.040108911 -> 1.040108909 at line 12, 1.040108911 -> 1.040108908 at line 22)")
+    print(f"  other rounding (convM a - s above the printed output, or speedM with no admissible x): lines"
+          f" {kinds['other']}")
+    print(f"  printed log n output 1 below max(b, e) (row D3): lines {kinds['log']}")
+    print(f"  every failure other than the log n outputs is by at most {float(max(rounding)):.1e}")
     if "--tex" in sys.argv[1:]:
         print("rows of the table of A.2 in the paper (LaTeX):")
         for r in tex_rows:

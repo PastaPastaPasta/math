@@ -30,8 +30,9 @@ paper's Appendix A states one, the formula for what HY.Step gives from the print
 asserts both, asserts that every display replayed under several outputs l has the same kernels under each, and
 asserts the further checks named in the paper (the two-step derivation of the DTISP line of p. A:34 (D8), the
 endpoints of the Corollary 7.8 sub-derivations (D7), the printed base case (D6), the 0,1,0 criterion and the
-derivation of its first sample from DTIME_1[n^10] (D11), the absence of a Lemma 7.1 step with s = 0, and the
-examples of the paper's Section 2.4, item 3, and Section 5.2). It ends with the number of assertions that hold; a failed one stops it.
+derivation of its first sample from DTIME_1[n^10] (D11), the absence of a Lemma 7.1 step with s = 0, the
+examples of the paper's Section 2.4, item 3, Section 5.2 and Section 6 (a slowdown below Lemma 7.2's value that
+meets the relaxed bound), and a sample at which inequality (31) of Case 1 (p. A:37) fails). It ends with the number of assertions that hold; a failed one stops it.
 
 The printed lines are transcribed from the rendered pages (the text layer loses superscripts and primes).
 
@@ -472,7 +473,13 @@ def thm79_010():
         check((disp < full) == (bp > max(b, a - s, ap, a, d * s)),
               "0,1,0: below exactly when b' > max{b, a-s, a', a, ds}")
         check((disp00 < full00) == (bp > max(b, ap, a)), "0,0: below exactly when b' > max{b, a', a}")
+        rel010 = c * max(bp, max(b, a - s), a)
+        rel00 = c * max(bp, b, a)
+        check((disp < rel010) == (disp < full) and (disp00 < rel00) == (disp00 < full00),
+              "0,1,0 and 0,0: below the HL.RStep.slow bound c max(pin rest, b, time k) exactly when below Lemma 7.2")
         bstrict = bp > max(b, a - s, ap, a)
+        print(f"     HL.RStep.slow bound c max(b', max(b, a-s), a) = {rel010} (0,1,0), c max(b', b, a) = {rel00} (0,0):"
+              f" the display is below it exactly when it is below Lemma 7.2's value (asserted)")
         print(f"     displayed exponent {disp} is {rel} Lemma 7.2's {full} (asserted); b' is the strict maximum of"
               f" Lemma 7.2: {bstrict}; b' > max(b, a-s, a', a, ds): {bp > max(b, a - s, ap, a, d * s)}")
         run(f"p. A:36, 0,0 comparison, same parameters", start, [
@@ -581,6 +588,36 @@ def thm79_case2():
             ], c, d, ell)
 
 
+def slow_relaxed_test():
+    """Paper Section 6: the relaxed slowdown HL.RStep.slow requires a' >= c max(pin rest, b, time k) and drops
+    the guess of the removed block. Remaining output, removed output and kernel time 1, removed guess 5: Lemma
+    7.2 gives 5c, the relaxed bound is c, so a time in [c, 5c) is below Lemma 7.2's value but a relaxed step."""
+    c = Q(3, 2)
+    line = P([("E", Q(1), Q(1)), ("A", Q(5), Q(1))], ("T", Q(1)))
+    exact = T(slow(line, c))
+    bound = c * max(pin(line[0][:-1]), line[0][-1][2], line[1][1])
+    check(exact == 5 * c and bound == c, "Section 6: slowdown with the removed guess the unique maximum")
+    print(f"\n== Paper Section 6: slowdown of {show(line)} at c = {c}: Lemma 7.2 gives {exact} = 5c, the relaxed bound"
+          f" c max(pin rest, b, time k) is {bound} = c (asserted)")
+
+
+def thm79_case1_31():
+    """Inequality (31) of the sketch of Theorem 7.9, Case 1 (pp. A:37-A:38), max{b, 1, x+e, a-x} <=
+    c max{b, y+e, 1, x+e, a-x-y}, at d = 1, c = 3/2 = (d+2)/(d+1), b = a' = 1, a = 5, e = 1/2, x = 0, y = 9/4,
+    which satisfy the side conditions of both Lemma 3.3 steps of Case 1 (HY.Step's speedMerge conditions:
+    a >= 1, 0 <= e <= a-x, 0 <= x <= a-1, then the same for a-x and y)."""
+    d, c, b, ap, a, e, x, y = 1, Q(3, 2), Q(1), Q(1), Q(5), Q(1, 2), Q(0), Q(9, 4)
+    check(c >= Q(d + 2, d + 1), "(31) sample: c >= (d+2)/(d+1)")
+    line = P([("A", Q(0), b), ("E", ap, b)], ("S", a, e))
+    L1 = speed(line, x)
+    L2 = speed(L1, y)
+    lhs = max(b, Q(1), x + e, a - x)
+    rhs = c * max(b, y + e, Q(1), x + e, a - x - y)
+    check(lhs == 5 and rhs == Q(33, 8) and lhs > rhs, "(31) fails at the sample")
+    print(f"\n== p. A:37, inequality (31) at d = {d}, c = {c}, b = a' = {b}, a = {a}, e = {e}, x = {x}, y = {y}: both"
+          f" Lemma 3.3 steps apply ({show(L2)}); (31) reads {lhs} <= {rhs}, which is false (asserted)")
+
+
 def section52_example():
     """Paper Section 5.2: an S-level closed below c max(top, space) by one Lemma 7.2 step (d = 2, c = 3/2)."""
     d, c = 2, Q(3, 2)
@@ -614,6 +651,8 @@ def main():
     thm79_010()
     thm79_case1()
     thm79_case2()
+    thm79_case1_31()
+    slow_relaxed_test()
     print("\n== Summary: transitions whose output differs from the printed line, the rule applied to the printed"
           " previous line (omitted superscripts read block-wise)")
     for title, ell, rows in SUMMARY:
