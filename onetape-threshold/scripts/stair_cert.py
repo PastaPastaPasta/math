@@ -94,8 +94,8 @@ tol = Fr(1, int(sys.argv[8])) if len(sys.argv) > 8 else Fr(1, 10**8)
 K = [climb(0, lambda prev: [prev], tol)]
 def ratio(q): return float(c * phiF(q))
 print("level 0 kink t/M=%.9f psi=%.9f c*g=%.9f nodes=%d" % (nodes[K[0]]['t']/M, float(phiF(K[0])*Fr(nodes[K[0]]['t'],M)), ratio(K[0]), len(nodes)))
-root = None
-for h in range(maxlev):
+root = K[0] if c * phiF(K[0]) < 1 else None
+for h in range(maxlev if root is None else 0):
     seqf = [K[h], K[h]] + K[::-1][1:]
     tmax = M + M // d
     hiW = cl(3 * S)
