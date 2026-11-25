@@ -19,7 +19,9 @@ The claims, moves and checker are those of `Dag.lean` with these changes: `Der` 
 kernels) e ≤ a on their first line and guarantee pin rest ≤ a'; a speedup is clipped at
 x ≤ a − max(e, u.o, 1); chain positions must stay ≥ M (κ' ≥ 1); Lemma 7.1 picks s ≤ a/d.
 `dagCheck_sound`: acceptance gives `∃ Mp n, HY.NF c d Mp n ∧ ∀ i ≤ n, pin ≤ time ∧ SpOK` on
-`Mp i`.
+`Mp i`. As in `Dag.lean`, everything is proved for `HY.StepO ℓ` with `HY.LogOK ℓ` (here the output ℓ of
+the new log n block is also at most the new kernel time, since it is at most max(u.o, e)):
+`dagCheck_soundO` gives `HY.NFO ℓ`, `dagCheck_sound` is ℓ = max and `dagCheck_sound1` is ℓ = 1.
 -/
 
 namespace PastaMath.OneTapeThreshold
@@ -35,44 +37,44 @@ def SpOK : Ker → Prop
 /-- The block list alternates and every block has 1 ≤ o and 0 ≤ g ≤ o. -/
 def Good (bl : List Blk) : Prop := Alt bl ∧ ∀ u ∈ bl, 1 ≤ u.o ∧ 0 ≤ u.g ∧ u.g ≤ u.o
 
-/-- A `HY.Step` derivation whose lines after the first have nonempty, alternating block lists,
+/-- A `HY.StepO ℓ c d` derivation whose lines after the first have nonempty, alternating block lists,
 kernel time ≥ input superscript, and `SpOK`. -/
-inductive Der (c d : ℝ) : Line → Line → Prop
-  | refl (L : Line) : Der c d L L
-  | cons {L L' L'' : Line} : Step c d L L' → L'.1 ≠ [] → Alt L'.1 → pin L'.1 ≤ L'.2.time →
-      SpOK L'.2 → Der c d L' L'' → Der c d L L''
+inductive Der (ℓ : ℝ → ℝ → ℝ) (c d : ℝ) : Line → Line → Prop
+  | refl (L : Line) : Der ℓ c d L L
+  | cons {L L' L'' : Line} : StepO ℓ c d L L' → L'.1 ≠ [] → Alt L'.1 → pin L'.1 ≤ L'.2.time →
+      SpOK L'.2 → Der ℓ c d L' L'' → Der ℓ c d L L''
 
 /-- Strict S-claim: for every scale B ≥ B0 and every line `(u :: rest, S a e)` with `Good (u :: rest)`,
 u.o ≤ B, 1 ≤ a ≤ κ·B, 0 ≤ e ≤ ε·B, u.o ≤ a and e ≤ a, there are a' with 1 ≤ a', pin rest ≤ a' and
-a' ≤ c·max (pin rest) (V·B), a `Der` derivation from that line to some `Lp`, and a `HY.Step` from `Lp` to
+a' ≤ c·max (pin rest) (V·B), a `Der` derivation from that line to some `Lp`, and a `HY.StepO ℓ c d` step from `Lp` to
 `(rest, T a')`. -/
-def SC (c d B0 κ ε V : ℝ) : Prop :=
+def SC (ℓ : ℝ → ℝ → ℝ) (c d B0 κ ε V : ℝ) : Prop :=
   ∀ B, B0 ≤ B → ∀ (u : Blk) (rest : List Blk) (a e : ℝ), Good (u :: rest) → u.o ≤ B → 1 ≤ a →
     a ≤ κ * B → 0 ≤ e → e ≤ ε * B → u.o ≤ a → e ≤ a →
     ∃ a', 1 ≤ a' ∧ pin rest ≤ a' ∧ a' ≤ c * max (pin rest) (V * B) ∧
-      ∃ Lp, Der c d (u :: rest, .S a e) Lp ∧ Step c d Lp (rest, .T a')
+      ∃ Lp, Der ℓ c d (u :: rest, .S a e) Lp ∧ StepO ℓ c d Lp (rest, .T a')
 
 /-- Strict T-claim: as `SC`, for lines `(u :: rest, T a)` with `Good (u :: rest)`, u.o ≤ B,
 1 ≤ a ≤ α·B and u.o ≤ a. -/
-def TC (c d B0 α V : ℝ) : Prop :=
+def TC (ℓ : ℝ → ℝ → ℝ) (c d B0 α V : ℝ) : Prop :=
   ∀ B, B0 ≤ B → ∀ (u : Blk) (rest : List Blk) (a : ℝ), Good (u :: rest) → u.o ≤ B → 1 ≤ a →
     a ≤ α * B → u.o ≤ a →
     ∃ a', 1 ≤ a' ∧ pin rest ≤ a' ∧ a' ≤ c * max (pin rest) (V * B) ∧
-      ∃ Lp, Der c d (u :: rest, .T a) Lp ∧ Step c d Lp (rest, .T a')
+      ∃ Lp, Der ℓ c d (u :: rest, .T a) Lp ∧ StepO ℓ c d Lp (rest, .T a')
 
 section sem
 
-variable {c d : ℝ}
+variable {ℓ : ℝ → ℝ → ℝ} {c d : ℝ}
 
 /-- Derivations compose. -/
-theorem Der.trans {L L' L'' : Line} (h₁ : Der c d L L') (h₂ : Der c d L' L'') : Der c d L L'' := by
+theorem Der.trans {L L' L'' : Line} (h₁ : Der ℓ c d L L') (h₂ : Der ℓ c d L' L'') : Der ℓ c d L L'' := by
   induction h₁ with
   | refl _ => exact h₂
   | cons hs hne halt hpt hsp _ ih => exact Der.cons hs hne halt hpt hsp (ih h₂)
 
-theorem Der.snoc {L L' L'' L''' : Line} (h₁ : Der c d L L') (hs : Step c d L' L'') (hne : L''.1 ≠ [])
-    (halt : Alt L''.1) (hpt : pin L''.1 ≤ L''.2.time) (hsp : SpOK L''.2) (h₂ : Der c d L'' L''') :
-    Der c d L L''' :=
+theorem Der.snoc {L L' L'' L''' : Line} (h₁ : Der ℓ c d L L') (hs : StepO ℓ c d L' L'') (hne : L''.1 ≠ [])
+    (halt : Alt L''.1) (hpt : pin L''.1 ≤ L''.2.time) (hsp : SpOK L''.2) (h₂ : Der ℓ c d L'' L''') :
+    Der ℓ c d L L''' :=
   h₁.trans (Der.cons hs hne halt hpt hsp h₂)
 
 theorem Good.tail {u : Blk} {rest : List Blk} (h : Good (u :: rest)) : Good rest := by
@@ -100,8 +102,8 @@ theorem alt_cons_q {u v : Blk} {rest : List Blk} (hq : u.q = v.q) (h : Alt (u ::
 /-- The final Lemma 7.2 step of a level, with its cost bound. -/
 theorem pop_step (_hc : 0 ≤ c) {u : Blk} {rest : List Blk} {k : Ker} (hg : Good (u :: rest))
     (hk : 1 ≤ k.time) :
-    Step c d (u :: rest, k) (rest, .T (c * max (max (pin rest) u.o) (max u.g k.time))) :=
-  Step.slow u rest k (pin_ge hg.tail) hg.head.1 hk hg.head.2.1
+    StepO ℓ c d (u :: rest, k) (rest, .T (c * max (max (pin rest) u.o) (max u.g k.time))) :=
+  StepO.slow u rest k (pin_ge hg.tail) hg.head.1 hk hg.head.2.1
 
 theorem pop_bound (hc : 0 ≤ c) {u : Blk} {rest : List Blk} {t W : ℝ} (hg : Good (u :: rest))
     (ho : u.o ≤ W) (ht : t ≤ W) :
@@ -124,8 +126,8 @@ theorem pop_ge (hc : 1 ≤ c) {u : Blk} {rest : List Blk} {t : ℝ} (hg : Good (
   nlinarith
 
 /-- For c ≥ 1 and B0 ≥ 0, closing the level at once (one Lemma 7.2 step) proves
-`SC c d B0 κ ε (max 1 κ)`. -/
-theorem SC_pop (hc : 1 ≤ c) {B0 κ ε : ℝ} (hB0 : 0 ≤ B0) : SC c d B0 κ ε (max 1 κ) := by
+`SC ℓ c d B0 κ ε (max 1 κ)`. -/
+theorem SC_pop (hc : 1 ≤ c) {B0 κ ε : ℝ} (hB0 : 0 ≤ B0) : SC ℓ c d B0 κ ε (max 1 κ) := by
   intro B hB u rest a e hg ho ha haκ _ _ _ _
   have hB' : 0 ≤ B := le_trans hB0 hB
   refine ⟨_, pop_ge hc hg, pop_pin hc hg, pop_bound (by linarith) hg ?_ ?_, _, Der.refl _, pop_step (by linarith) hg ha⟩
@@ -133,8 +135,8 @@ theorem SC_pop (hc : 1 ≤ c) {B0 κ ε : ℝ} (hB0 : 0 ≤ B0) : SC c d B0 κ �
   · show a ≤ max 1 κ * B
     exact le_trans haκ (mul_le_mul_of_nonneg_right (le_max_right _ _) hB')
 
-/-- For c ≥ 1 and B0 ≥ 0, closing the level at once proves `TC c d B0 α (max 1 α)`. -/
-theorem TC_pop (hc : 1 ≤ c) {B0 α : ℝ} (hB0 : 0 ≤ B0) : TC c d B0 α (max 1 α) := by
+/-- For c ≥ 1 and B0 ≥ 0, closing the level at once proves `TC ℓ c d B0 α (max 1 α)`. -/
+theorem TC_pop (hc : 1 ≤ c) {B0 α : ℝ} (hB0 : 0 ≤ B0) : TC ℓ c d B0 α (max 1 α) := by
   intro B hB u rest a hg ho ha haα _
   have hB' : 0 ≤ B := le_trans hB0 hB
   refine ⟨_, pop_ge hc hg, pop_pin hc hg, pop_bound (by linarith) hg ?_ ?_, _, Der.refl _, pop_step (by linarith) hg ha⟩
@@ -143,26 +145,26 @@ theorem TC_pop (hc : 1 ≤ c) {B0 α : ℝ} (hB0 : 0 ≤ B0) : TC c d B0 α (max
     exact le_trans haα (mul_le_mul_of_nonneg_right (le_max_right _ _) hB')
 
 /-- For B0 ≥ 0 and c ≥ 0, an S-claim with value V is an S-claim with every value V' ≥ V. -/
-theorem SC_mono {B0 κ ε V V' : ℝ} (hB0 : 0 ≤ B0) (hc : 0 ≤ c) (hV : V ≤ V') (h : SC c d B0 κ ε V) :
-    SC c d B0 κ ε V' := by
+theorem SC_mono {B0 κ ε V V' : ℝ} (hB0 : 0 ≤ B0) (hc : 0 ≤ c) (hV : V ≤ V') (h : SC ℓ c d B0 κ ε V) :
+    SC ℓ c d B0 κ ε V' := by
   intro B hB u rest a e hg ho ha haκ he heε hst hea
   obtain ⟨a', h1, hp, h2, rest'⟩ := h B hB u rest a e hg ho ha haκ he heε hst hea
   refine ⟨a', h1, hp, le_trans h2 (mul_le_mul_of_nonneg_left (max_le_max le_rfl ?_) hc), rest'⟩
   exact mul_le_mul_of_nonneg_right hV (le_trans hB0 hB)
 
 /-- For B0 ≥ 0 and c ≥ 0, a T-claim with value V is a T-claim with every value V' ≥ V. -/
-theorem TC_mono {B0 α V V' : ℝ} (hB0 : 0 ≤ B0) (hc : 0 ≤ c) (hV : V ≤ V') (h : TC c d B0 α V) :
-    TC c d B0 α V' := by
+theorem TC_mono {B0 α V V' : ℝ} (hB0 : 0 ≤ B0) (hc : 0 ≤ c) (hV : V ≤ V') (h : TC ℓ c d B0 α V) :
+    TC ℓ c d B0 α V' := by
   intro B hB u rest a hg ho ha haα hst
   obtain ⟨a', h1, hp, h2, rest'⟩ := h B hB u rest a hg ho ha haα hst
   refine ⟨a', h1, hp, le_trans h2 (mul_le_mul_of_nonneg_left (max_le_max le_rfl ?_) hc), rest'⟩
   exact mul_le_mul_of_nonneg_right hV (le_trans hB0 hB)
 
 /-- Lemma 7.1, merged: for B0 ≥ 0, d ≥ 1, κ ≥ 1, 0 < ε ≤ 1 and d·(κ − 1) ≤ ε, an S-claim
-`SC c d B0 κ ε Ω` gives `TC c d B0 α (Ω/κ·α)` for every α ≥ κ. -/
+`SC ℓ c d B0 κ ε Ω` gives `TC ℓ c d B0 α (Ω/κ·α)` for every α ≥ κ. -/
 theorem TC_of_SC {B0 κ ε Ω : ℝ} (hB0 : 0 ≤ B0) (hd1 : 1 ≤ d) (hκ : 1 ≤ κ) (hε : 0 < ε)
-    (hε1 : ε ≤ 1) (hdε : d * (κ - 1) ≤ ε) (h : SC c d B0 κ ε Ω) {α : ℝ} (hα : κ ≤ α) :
-    TC c d B0 α (Ω / κ * α) := by
+    (hε1 : ε ≤ 1) (hdε : d * (κ - 1) ≤ ε) (h : SC ℓ c d B0 κ ε Ω) {α : ℝ} (hα : κ ≤ α) :
+    TC ℓ c d B0 α (Ω / κ * α) := by
   intro B hB u rest a hg ho ha haα hst
   have hB' : 0 ≤ B := le_trans hB0 hB
   have hκ0 : 0 < κ := by linarith
@@ -193,7 +195,7 @@ theorem TC_of_SC {B0 κ ε Ω : ℝ} (hB0 : 0 ≤ B0) (hd1 : 1 ≤ d) (hκ : 1 �
       refine ⟨a - β, by linarith, by linarith, by linarith, hsp0, ?_⟩
       have : ε * β ≤ β := by nlinarith
       linarith
-  have hstep := Step.convMerge (c := c) (d := d) u rest a s hs0 hsa hg.head.1
+  have hstep := StepO.convMerge (ℓ := ℓ) (c := c) (d := d) u rest a s hs0 hsa hg.head.1
   set u' : Blk := ⟨u.q, max u.g (a - s), max (a - s) u.o⟩ with hu'
   have hg' : Good (u' :: rest) := by
     refine ⟨alt_cons_q (u := u) (v := u') rfl hg.1, ?_⟩
@@ -213,14 +215,14 @@ theorem TC_of_SC {B0 κ ε Ω : ℝ} (hB0 : 0 ≤ B0) (hd1 : 1 ≤ d) (hκ : 1 �
   have : Ω * β = Ω / κ * α * B := by rw [hβ]; field_simp
   rw [this] at h2; exact h2
 
-/-- Lemma 3.3, merged: for c ≥ 1 and B0 ≥ 0, from an inner S-claim `SC c d B0 κ' ε W` and an
-outer T-claim `TC c d B0 α VT`, with 1 ≤ u, ε ≤ u, κ' = κ + ε − u, ε ≤ κ', 1 ≤ κ', ε ≤ 1, 0 ≤ ε,
-1 ≤ κ'·B0, c·max(u, W) ≤ α·u and 1 ≤ u·VT, follows `SC c d B0 κ ε (u·VT)`. -/
-theorem SC_speed (hc : 1 ≤ c) {B0 κ κ' ε u W α VT : ℝ} (hB0 : 0 ≤ B0)
-    (hinner : SC c d B0 κ' ε W) (houter : TC c d B0 α VT)
+/-- Lemma 3.3, merged: for c ≥ 1 and B0 ≥ 0, from an inner S-claim `SC ℓ c d B0 κ' ε W` and an
+outer T-claim `TC ℓ c d B0 α VT`, with 1 ≤ u, ε ≤ u, κ' = κ + ε − u, ε ≤ κ', 1 ≤ κ', ε ≤ 1, 0 ≤ ε,
+1 ≤ κ'·B0, c·max(u, W) ≤ α·u and 1 ≤ u·VT, follows `SC ℓ c d B0 κ ε (u·VT)`. -/
+theorem SC_speed (hℓ : LogOK ℓ) (hc : 1 ≤ c) {B0 κ κ' ε u W α VT : ℝ} (hB0 : 0 ≤ B0)
+    (hinner : SC ℓ c d B0 κ' ε W) (houter : TC ℓ c d B0 α VT)
     (hu : 1 ≤ u) (hεu : ε ≤ u) (hκ' : κ' = κ + ε - u) (hεκ' : ε ≤ κ') (hκ1 : 1 ≤ κ') (hε1 : ε ≤ 1)
     (hε0 : 0 ≤ ε) (hfl : 1 ≤ κ' * B0) (hα : c * max u W ≤ α * u) (_hV1 : 1 ≤ u * VT) :
-    SC c d B0 κ ε (u * VT) := by
+    SC ℓ c d B0 κ ε (u * VT) := by
   intro B hB u0 rest a e hg ho ha haκ he heε hst hae
   have hB' : 0 ≤ B := le_trans hB0 hB
   have hc0 : 0 ≤ c := by linarith
@@ -235,8 +237,9 @@ theorem SC_speed (hc : 1 ≤ c) {B0 κ κ' ε u W α VT : ℝ} (hB0 : 0 ≤ B0)
   have hm11 : 1 ≤ m1 := le_max_right _ _
   have hex : e ≤ a - x := by linarith
   have hx1 : x ≤ a - 1 := by linarith
-  have hstep := Step.speedMerge (c := c) (d := d) u0 rest a e x ha he hex hx0 hx1 hg.head.1
-  set lo : Blk := ⟨!u0.q, 0, max u0.o e⟩
+  have hstep := StepO.speedMerge (ℓ := ℓ) (c := c) (d := d) u0 rest a e x ha he hex hx0 hx1 hg.head.1
+  set lo : Blk := ⟨!u0.q, 0, ℓ u0.o e⟩
+  have hℓe := hℓ u0.o e hg.head.1 he
   set mo : Blk := ⟨u0.q, max u0.g (x + e), max u0.o (x + e)⟩
   have hgm : Good (mo :: rest) := by
     refine ⟨alt_cons_q (u := u0) (v := mo) rfl hg.1, ?_⟩
@@ -252,12 +255,12 @@ theorem SC_speed (hc : 1 ≤ c) {B0 κ κ' ε u W α VT : ℝ} (hB0 : 0 ≤ B0)
     intro v hv
     simp only [List.mem_cons] at hv
     rcases hv with rfl | hv
-    · exact ⟨le_trans hg.head.1 (le_max_left _ _), le_rfl, le_trans (by linarith [hg.head.1]) (le_max_left _ _)⟩
+    · exact ⟨hℓe.1, le_rfl, by linarith [hℓe.1]⟩
     · exact hgm.2 v (by simpa using hv)
-  have hlo : lo.o ≤ B := max_le ho (le_trans heε (by nlinarith))
+  have hlo : lo.o ≤ B := le_trans hℓe.2 (max_le ho (le_trans heε (by nlinarith)))
   have hlost : lo.o ≤ a - x := by
-    show max u0.o e ≤ a - x
-    exact max_le (by linarith) (by linarith)
+    show ℓ u0.o e ≤ a - x
+    exact le_trans hℓe.2 (max_le (by linarith) (by linarith))
   have hin1 : 1 ≤ a - x := by linarith
   have hinκ : a - x ≤ κ' * B := by
     rcases le_total ((u - ε) * B) (a - m1) with h | h
@@ -289,10 +292,10 @@ theorem SC_speed (hc : 1 ≤ c) {B0 κ κ' ε u W α VT : ℝ} (hB0 : 0 ≤ B0)
   refine ⟨a₂, h1₂, hp₂, by rw [show u * VT * B = VT * (u * B) by ring]; exact h2₂, Lp₂, ?_, hfin₂⟩
   exact Der.cons hstep (by simp) hgl.1 hlost hex (Der.snoc hder₁ hfin₁ (by simp) hgm.1 hmost trivial hder₂)
 
-/-- A `Der` derivation gives an indexed `HY.Step` path whose lines after the first have nonempty,
+/-- A `Der` derivation gives an indexed `HY.StepO ℓ c d` path whose lines after the first have nonempty,
 alternating block lists, kernel time ≥ input superscript, and `SpOK`. -/
-theorem der_path {L L' : Line} (h : Der c d L L') :
-    ∃ n, ∃ M : ℕ → Line, M 0 = L ∧ M n = L' ∧ Path (Step c d) M n ∧
+theorem der_path {L L' : Line} (h : Der ℓ c d L L') :
+    ∃ n, ∃ M : ℕ → Line, M 0 = L ∧ M n = L' ∧ Path (StepO ℓ c d) M n ∧
       ∀ i, 0 < i → i ≤ n → (M i).1 ≠ [] ∧ Alt (M i).1 ∧ pin (M i).1 ≤ (M i).2.time ∧ SpOK (M i).2 := by
   induction h with
   | refl L => exact ⟨0, fun _ => L, rfl, rfl, fun i hi => absurd hi (Nat.not_lt_zero _), fun i h1 h2 => by omega⟩
@@ -311,16 +314,16 @@ theorem der_path {L L' : Line} (h : Der c d L L') :
         · simpa using hP (i + 1) (by omega) (by omega)
 
 /-- For c ≥ 1, B0 ≥ 0, d ≥ 0, κ > 1, d·(κ − 1) ≤ ε ≤ 1, V ≥ 1 and c·V < κ, an S-claim
-`SC c d B0 κ ε V` gives a strict normal-form proof `HY.NF c d M n` with `pin ≤ time` and `SpOK` on every
+`SC ℓ c d B0 κ ε V` gives a strict normal-form proof `HY.NFO ℓ c d M n` with `pin ≤ time` and `SpOK` on every
 line `M i`, i ≤ n. -/
 theorem nf_of_SC (_hc : 1 ≤ c) {B0 κ ε V : ℝ} (_hB0 : 0 ≤ B0) (hd : 0 ≤ d) (hκ : 1 < κ)
-    (hdε : d * (κ - 1) ≤ ε) (hε1 : ε ≤ 1) (hV : 1 ≤ V) (hcV : c * V < κ) (h : SC c d B0 κ ε V) :
-    ∃ M n, HY.NF c d M n ∧ ∀ i ≤ n, pin (M i).1 ≤ (M i).2.time ∧ SpOK (M i).2 := by
+    (hdε : d * (κ - 1) ≤ ε) (hε1 : ε ≤ 1) (hV : 1 ≤ V) (hcV : c * V < κ) (h : SC ℓ c d B0 κ ε V) :
+    ∃ M n, HY.NFO ℓ c d M n ∧ ∀ i ≤ n, pin (M i).1 ≤ (M i).2.time ∧ SpOK (M i).2 := by
   set β := max B0 1 with hβ
   have hβ1 : 1 ≤ β := le_max_right _ _
   set a0 := κ * β
   have hs0 : 0 < a0 - β := by nlinarith
-  have hstep := Step.convNew (c := c) (d := d) [] true a0 (a0 - β)
+  have hstep := StepO.convNew (ℓ := ℓ) (c := c) (d := d) [] true a0 (a0 - β)
     (fun u rest h => by simp at h) hs0 (by nlinarith) (by simp [pin])
   set u : Blk := ⟨true, a0 - (a0 - β), max (a0 - (a0 - β)) (pin [])⟩
   have huo : u.o = β := by simp [u, pin, max_eq_left hβ1]
@@ -347,7 +350,7 @@ theorem nf_of_SC (_hc : 1 ≤ c) {B0 κ ε V : ℝ} (_hB0 : 0 ≤ B0) (hd : 0 �
     rw [max_eq_right hVβ] at h2
     have : c * (V * β) < κ * β := by nlinarith
     linarith
-  have hder' : Der c d ([], .T a0) Lp := Der.cons hstep (by simp) trivial (by simpa [pin, Ker.time] using huo') hsp0 hder
+  have hder' : Der ℓ c d ([], .T a0) Lp := Der.cons hstep (by simp) trivial (by simpa [pin, Ker.time] using huo') hsp0 hder
   obtain ⟨n, M, h0, hn, hp, hP⟩ := der_path hder'
   refine ⟨fun i => if i ≤ n then M i else ([], .T a'), n + 1, ?_, ?_⟩
   swap
@@ -437,20 +440,20 @@ def dagCheck (c : ℚ) (d M SH : ℕ) (nodes : List Node) (root : ℕ) : Bool :=
 
 section sound
 
-variable {cq : ℚ} {d M SH : ℕ}
+variable {ℓ : ℝ → ℝ → ℝ} {cq : ℚ} {d M SH : ℕ}
 
 /-- Every table entry (t, φ) has M < t, d·(t − M) ≤ M, φ·t/M ≥ 1, and is an S-claim
-`SC c d M (t/M) (d·(t − M)/M) (φ·t/M)`. -/
-def TabOK (cq : ℚ) (d M : ℕ) (tab : List (ℕ × ℚ)) : Prop :=
+`SC ℓ c d M (t/M) (d·(t − M)/M) (φ·t/M)`. -/
+def TabOK (ℓ : ℝ → ℝ → ℝ) (cq : ℚ) (d M : ℕ) (tab : List (ℕ × ℚ)) : Prop :=
   ∀ (r tr : ℕ) (φ : ℚ), tab[r]? = some (tr, φ) →
     M < tr ∧ d * (tr - M) ≤ M ∧ 1 ≤ (φ : ℝ) * ((tr : ℝ) / M) ∧
-    SC (cq : ℝ) (d : ℝ) (M : ℝ) ((tr : ℝ) / M) ((d : ℝ) * ((tr : ℝ) - M) / M) ((φ : ℝ) * ((tr : ℝ) / M))
+    SC ℓ (cq : ℝ) (d : ℝ) (M : ℝ) ((tr : ℝ) / M) ((d : ℝ) * ((tr : ℝ) - M) / M) ((φ : ℝ) * ((tr : ℝ) / M))
 
 /-- For c ≥ 1, d ≥ 1, M ≥ 1 and a table with `TabOK`: if `tval` returns v at α, then
-`TC c d M α v`. -/
+`TC ℓ c d M α v`. -/
 theorem tval_sound (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) {tab : List (ℕ × ℚ)}
-    (htab : TabOK cq d M tab) {r : ℕ} {α v : ℚ} (h : tval M tab r α = some v) :
-    TC (cq : ℝ) (d : ℝ) (M : ℝ) (α : ℝ) (v : ℝ) := by
+    (htab : TabOK ℓ cq d M tab) {r : ℕ} {α v : ℚ} (h : tval M tab r α = some v) :
+    TC ℓ (cq : ℝ) (d : ℝ) (M : ℝ) (α : ℝ) (v : ℝ) := by
   have hM0 : (0 : ℝ) < M := by exact_mod_cast hM
   unfold tval at h
   split_ifs at h with hr
@@ -492,11 +495,11 @@ theorem tval_sound (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) {tab : 
       rw [e] at this; exact this
 
 /-- For c ≥ 1, d ≥ 1, M ≥ 1, a table with `TabOK` and i ≤ M: if `chain` returns W from
-position j, then W ≥ 1 and `SC c d M (j/M) (i/M) W`. -/
-theorem chain_sound (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) {tab : List (ℕ × ℚ)}
-    (htab : TabOK cq d M tab) {i p : ℕ} (hi : i ≤ M) :
+position j, then W ≥ 1 and `SC ℓ c d M (j/M) (i/M) W`. -/
+theorem chain_sound (hℓ : LogOK ℓ) (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) {tab : List (ℕ × ℚ)}
+    (htab : TabOK ℓ cq d M tab) {i p : ℕ} (hi : i ≤ M) :
     ∀ (steps : List (ℕ × ℕ × ℕ)) (j : ℕ) (W : ℚ), chain cq M i p SH tab j steps = some W →
-      1 ≤ (W : ℝ) ∧ SC (cq : ℝ) (d : ℝ) (M : ℝ) ((j : ℝ) / M) ((i : ℝ) / M) (W : ℝ) := by
+      1 ≤ (W : ℝ) ∧ SC ℓ (cq : ℝ) (d : ℝ) (M : ℝ) ((j : ℝ) / M) ((i : ℝ) / M) (W : ℝ) := by
   have hM0 : (0 : ℝ) < M := by exact_mod_cast hM
   intro steps
   induction steps with
@@ -531,7 +534,7 @@ theorem chain_sound (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) {tab :
     have hu0 : (0 : ℝ) < (ku : ℝ) / M := by linarith
     have hsub : ((j + i - ku : ℕ) : ℝ) = (j : ℝ) + i - ku := by
       rw [Nat.cast_sub (by omega)]; push_cast; ring
-    have hSC := SC_speed (c := (cq : ℝ)) (d := (d : ℝ)) hc (κ := (j : ℝ) / M) hM0.le hW'sc hT hu
+    have hSC := SC_speed (c := (cq : ℝ)) (d := (d : ℝ)) hℓ hc (κ := (j : ℝ) / M) hM0.le hW'sc hT hu
       (by rw [div_le_div_iff_of_pos_right hM0]; exact_mod_cast h2)
       (by rw [hsub]; field_simp)
       (by rw [hsub, div_le_div_iff_of_pos_right hM0]; have : (ku : ℝ) ≤ j := by exact_mod_cast h3
@@ -558,9 +561,9 @@ theorem chain_sound (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) {tab :
     refine ⟨by linarith, SC_mono hM0.le (by linarith) h2' hSC⟩
 
 /-- For c ≥ 1, d ≥ 1 and M ≥ 1, `procNodes` preserves `TabOK`. -/
-theorem procNodes_sound (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) :
-    ∀ (nodes : List Node) (tab tab' : List (ℕ × ℚ)), TabOK cq d M tab →
-      procNodes cq d M SH tab nodes = some tab' → TabOK cq d M tab' := by
+theorem procNodes_sound (hℓ : LogOK ℓ) (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) :
+    ∀ (nodes : List Node) (tab tab' : List (ℕ × ℚ)), TabOK ℓ cq d M tab →
+      procNodes cq d M SH tab nodes = some tab' → TabOK ℓ cq d M tab' := by
   have hM0 : (0 : ℝ) < M := by exact_mod_cast hM
   intro nodes
   induction nodes with
@@ -576,7 +579,7 @@ theorem procNodes_sound (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) :
     split_ifs at e with hφ
     obtain ⟨hφ1, hφ2⟩ := hφ
     apply ih _ _ _ e
-    obtain ⟨hW1, hSC⟩ := chain_sound (SH := SH) hc hd hM htab h2 nd.steps nd.t W hW
+    obtain ⟨hW1, hSC⟩ := chain_sound (SH := SH) hℓ hc hd hM htab h2 nd.steps nd.t W hW
     intro r tr φ hr
     rcases lt_or_ge r tab.length with hlt | hge
     · rw [List.getElem?_append_left hlt] at hr
@@ -606,11 +609,13 @@ theorem procNodes_sound (hc : 1 ≤ (cq : ℝ)) (hd : 1 ≤ d) (hM : 1 ≤ M) :
       push_cast at this ⊢
       rwa [div_le_iff₀ hκ] at this
 
-/-- If `dagCheck c d M SH nodes root = true` then there is a strict normal-form proof
-`HY.NF c d Mp n` (c and d cast to ℝ) with kernel time ≥ input superscript and `SpOK` on every line
-`Mp i`, i ≤ n. -/
-theorem dagCheck_sound {nodes : List Node} {root : ℕ} (h : dagCheck cq d M SH nodes root = true) :
-    ∃ Mp n, HY.NF (cq : ℝ) (d : ℝ) Mp n ∧ ∀ i ≤ n, pin (Mp i).1 ≤ (Mp i).2.time ∧ SpOK (Mp i).2 := by
+/-- For every log n output `ℓ` with `LogOK ℓ`: if `dagCheck c d M SH nodes root = true` then there
+is a strict normal-form proof `HY.NFO ℓ c d Mp n` (c and d cast to ℝ) with kernel time ≥ input
+superscript and `SpOK` on every line `Mp i`, i ≤ n. -/
+theorem dagCheck_soundO (hℓ : LogOK ℓ) {nodes : List Node} {root : ℕ}
+    (h : dagCheck cq d M SH nodes root = true) :
+    ∃ Mp n, HY.NFO ℓ (cq : ℝ) (d : ℝ) Mp n ∧
+      ∀ i ≤ n, pin (Mp i).1 ≤ (Mp i).2.time ∧ SpOK (Mp i).2 := by
   simp only [dagCheck, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨hc, hd⟩, hM⟩, h⟩ := h
   have hc' : (1 : ℝ) ≤ cq := by exact_mod_cast hc
@@ -622,7 +627,7 @@ theorem dagCheck_sound {nodes : List Node} {root : ℕ} (h : dagCheck cq d M SH 
   · exact absurd h (by simp)
   rename_i tr φ hr
   have hcφ : cq * φ < 1 := by simpa using h
-  have hok := procNodes_sound (SH := SH) hc' hd hM nodes [] tab (by intro r tr φ h; simp at h) htab
+  have hok := procNodes_sound (SH := SH) hℓ hc' hd hM nodes [] tab (by intro r tr φ h; simp at h) htab
   obtain ⟨h1, h2, h3, h4⟩ := hok root tr φ hr
   have htr : (M : ℝ) < tr := by exact_mod_cast h1
   have hκ : 1 < (tr : ℝ) / M := by rw [lt_div_iff₀ hM0]; linarith
@@ -639,6 +644,22 @@ theorem dagCheck_sound {nodes : List Node} {root : ℕ} (h : dagCheck cq d M SH 
     calc (cq : ℝ) * ((φ : ℝ) * ((tr : ℝ) / M)) = ((cq : ℝ) * φ) * ((tr : ℝ) / M) := by ring
       _ < 1 * ((tr : ℝ) / M) := mul_lt_mul_of_pos_right this hκ0
       _ = (tr : ℝ) / M := one_mul _
+
+/-- If `dagCheck c d M SH nodes root = true` then there is a strict normal-form proof
+`HY.NF c d Mp n` (c and d cast to ℝ) with kernel time ≥ input superscript and `SpOK` on every line
+`Mp i`, i ≤ n. -/
+theorem dagCheck_sound {nodes : List Node} {root : ℕ} (h : dagCheck cq d M SH nodes root = true) :
+    ∃ Mp n, HY.NF (cq : ℝ) (d : ℝ) Mp n ∧ ∀ i ≤ n, pin (Mp i).1 ≤ (Mp i).2.time ∧ SpOK (Mp i).2 :=
+  let ⟨Mp, n, h, h'⟩ := dagCheck_soundO logOK_max h
+  ⟨Mp, n, nf_of_nfO_max h, h'⟩
+
+/-- If `dagCheck c d M SH nodes root = true` then there is a strict normal-form proof
+`HY.NFO (fun _ _ => 1) c d Mp n`, in the calculus in which the new log n block of Lemma 3.3 has
+output exactly 1, with kernel time ≥ input superscript and `SpOK` on every line `Mp i`, i ≤ n. -/
+theorem dagCheck_sound1 {nodes : List Node} {root : ℕ} (h : dagCheck cq d M SH nodes root = true) :
+    ∃ Mp n, HY.NFO (fun _ _ => 1) (cq : ℝ) (d : ℝ) Mp n ∧
+      ∀ i ≤ n, pin (Mp i).1 ≤ (Mp i).2.time ∧ SpOK (Mp i).2 :=
+  dagCheck_soundO logOK_one h
 
 end sound
 

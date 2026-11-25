@@ -7,6 +7,7 @@ open PastaMath.OneTapeThreshold
 
 #print axioms conjecture_fails
 #print axioms threshold_bounds
+#print axioms conjecture_fails_one
 #print axioms HStair.stairD1_nf
 #print axioms HStair.stairD1_snf
 #print axioms HStair.stairD2_nf
@@ -27,6 +28,8 @@ open PastaMath.OneTapeThreshold
 #print axioms HY.nfCheck_sound
 #print axioms HD.dagCheck_sound
 #print axioms HDS.dagCheck_sound
+#print axioms HD.dagCheck_soundO
+#print axioms HDS.dagCheck_soundO
 #print axioms HL.sim
 #print axioms HLM.absCheck_sound
 #print axioms HLM.no_nf_of

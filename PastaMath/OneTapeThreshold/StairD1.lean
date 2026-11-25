@@ -10,7 +10,8 @@ steps in all, root node 551), produced by an untrusted generator from the stairc
 checked twice by `decide +kernel`: by `HD.dagCheck` (`stairD1_ok`) and by `HDS.dagCheck`
 (`stairD1_sok`). `stairD1_nf`: a strict normal-form proof `HY.NF` exists at c = 130921174/100000000 = 1.30921174,
 d = 1. `stairD1_snf`: one exists all of whose lines have kernel time ≥ input superscript and, on
-DTISP kernels, space ≤ time.
+DTISP kernels, space ≤ time. `stairD1_snf1`: the same in the calculus in which the new log n
+block of Lemma 3.3 has output exactly 1 (`HY.NFO (fun _ _ => 1)`), from the same check.
 -/
 
 namespace PastaMath.OneTapeThreshold
@@ -598,6 +599,15 @@ superscript and `HDS.SpOK` (space ≤ time on DTISP kernels) on every line. -/
 theorem stairD1_snf : ∃ Mp n, HY.NF (130921174 / 100000000 : ℝ) 1 Mp n ∧
     ∀ i ≤ n, HY.pin (Mp i).1 ≤ (Mp i).2.time ∧ HDS.SpOK (Mp i).2 := by
   have h := HDS.dagCheck_sound stairD1_sok
+  push_cast at h; norm_num at h ⊢
+  exact h
+
+/-- The same node list in the calculus in which the new log n block of Lemma 3.3 has output exactly 1
+(`HY.NFO (fun _ _ => 1)`): a strict normal-form proof exists at c = 130921174/100000000, d = 1, with
+kernel time ≥ input superscript and `HDS.SpOK` on every line (via `HDS.dagCheck_sound1`). -/
+theorem stairD1_snf1 : ∃ Mp n, HY.NFO (fun _ _ => 1) (130921174 / 100000000 : ℝ) 1 Mp n ∧
+    ∀ i ≤ n, HY.pin (Mp i).1 ≤ (Mp i).2.time ∧ HDS.SpOK (Mp i).2 := by
+  have h := HDS.dagCheck_sound1 stairD1_sok
   push_cast at h; norm_num at h ⊢
   exact h
 

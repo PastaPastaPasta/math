@@ -6,7 +6,7 @@ import PastaMath.OneTapeThreshold.StairD2
 import PastaMath.OneTapeThreshold.StairD3
 
 /-!
-# Williams's §7 calculus: the conjecture fails, and the threshold lies in a short interval
+# Williams's §7 calculus as formalised: the conjecture fails, and the threshold lies in a short interval
 
 * `conjecture_fails`: for (d, c) = (1, 1.30921174), (2, 1.1915968), (3, 1.1386523) there is a strict
   normal-form proof `HY.NF c d` all of whose lines have kernel time ≥ input superscript and, on DTISP
@@ -14,10 +14,12 @@ import PastaMath.OneTapeThreshold.StairD3
 * `threshold_bounds`: for the same (d, c_d) a strict normal-form proof exists at c_d, and for every
   real c ≥ 1.3094 (d = 1), c ≥ 1.192 (d = 2), c ≥ 1.1392 (d = 3) none exists. So
   sup{c : ∃ M n, HY.NF c d M n} lies in [1.30921174, 1.3094], [1.1915968, 1.192] and
-  [1.1386523, 1.1392]. The non-strict and relaxed forms of the upper bounds are
-  `HLM.ceiling_d1`, `HLM.ceiling_d2` and `HLM.ceiling_d3`; with the inclusion
+  [1.1386523, 1.1392]. The non-strict and relaxed forms of the upper bounds, for paths from
+  `([], T a₀)` with a₀ > 0, are `HLM.ceiling_d1`, `HLM.ceiling_d2` and `HLM.ceiling_d3`; with the inclusion
   DTIME_d[t] ⊆ DTISP[t, t] added, `HLM.ceilingX_d1`, `HLM.ceilingX_d2` and `HLM.ceilingX_d3`.
   All of them are for the output max(b, e) of the new log n block of Lemma 3.3.
+* `conjecture_fails_one`: the existence part of `conjecture_fails` in the calculus in which that
+  block has output exactly 1 (`HY.NFO (fun _ _ => 1)`), from the same certificate checks.
 -/
 
 namespace PastaMath.OneTapeThreshold
@@ -57,5 +59,18 @@ theorem threshold_bounds :
   ⟨⟨HStair.stairD1_nf, fun _ hc => (HLM.ceiling_d1 hc).1⟩,
     ⟨HStair.stairD2_nf, fun _ hc => (HLM.ceiling_d2 hc).1⟩,
     ⟨HStair.stairD3_nf, fun _ hc => (HLM.ceiling_d3 hc).1⟩⟩
+
+/-- For d = 1, 2, 3 and c = 130921174/100000000, 11915968/10000000, 11386523/10000000 respectively:
+in the calculus `HY.StepO (fun _ _ => 1)`, in which the new log n block of Lemma 3.3 has output
+exactly 1, there is a strict normal-form proof `HY.NFO (fun _ _ => 1) c d M n` with kernel time ≥
+input superscript and, on DTISP kernels, space ≤ time on every line `M i`, i ≤ n. -/
+theorem conjecture_fails_one :
+    (∃ M n, NFO (fun _ _ => 1) (130921174 / 100000000 : ℝ) 1 M n ∧
+        ∀ i ≤ n, pin (M i).1 ≤ (M i).2.time ∧ HDS.SpOK (M i).2) ∧
+    (∃ M n, NFO (fun _ _ => 1) (11915968 / 10000000 : ℝ) 2 M n ∧
+        ∀ i ≤ n, pin (M i).1 ≤ (M i).2.time ∧ HDS.SpOK (M i).2) ∧
+    (∃ M n, NFO (fun _ _ => 1) (11386523 / 10000000 : ℝ) 3 M n ∧
+        ∀ i ≤ n, pin (M i).1 ≤ (M i).2.time ∧ HDS.SpOK (M i).2) :=
+  ⟨HStair.stairD1_snf1, HStair.stairD2_snf1, HStair.stairD3_snf1⟩
 
 end PastaMath.OneTapeThreshold

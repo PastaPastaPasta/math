@@ -111,6 +111,56 @@ def NF (c d : ℝ) (M : ℕ → Line) (n : ℕ) : Prop :=
     (∀ i, 0 < i → i < n → (M i).1 ≠ []) ∧ 1 ≤ (M n).2.time ∧ (M n).2.time < (M 0).2.time ∧
     ∀ i ≤ n, Alt (M i).1
 
+/-- `Step` with the output superscript of the new log n block of Lemma 3.3 given by `ℓ`: it is
+`ℓ u.o e` for `speedMerge` and `ℓ (pin bl) e` for `speedNew`; every other output is the one of
+`Step`. `StepO max` is `Step` (`step_of_stepO_max`), and `StepO (fun _ _ => 1)` is the calculus in
+which that block has output exactly 1. -/
+inductive StepO (ℓ : ℝ → ℝ → ℝ) (c d : ℝ) : Line → Line → Prop
+  | convMerge (u : Blk) (rest : List Blk) (a s : ℝ) (hs : 0 < s) (hsa : s ≤ a) (hb : 1 ≤ u.o) :
+      StepO ℓ c d (u :: rest, .T a) (⟨u.q, max u.g (a - s), max (a - s) u.o⟩ :: rest, .S a (d * s))
+  | convNew (bl : List Blk) (q : Bool) (a s : ℝ) (hq : ∀ u rest, bl = u :: rest → u.q ≠ q)
+      (hs : 0 < s) (hsa : s ≤ a) (hb : 1 ≤ pin bl) :
+      StepO ℓ c d (bl, .T a) (⟨q, a - s, max (a - s) (pin bl)⟩ :: bl, .S a (d * s))
+  | speedMerge (u : Blk) (rest : List Blk) (a e x : ℝ) (ha : 1 ≤ a) (he : 0 ≤ e)
+      (hex : e ≤ a - x) (hx : 0 ≤ x) (hx1 : x ≤ a - 1) (hb : 1 ≤ u.o) :
+      StepO ℓ c d (u :: rest, .S a e)
+        (⟨!u.q, 0, ℓ u.o e⟩ :: ⟨u.q, max u.g (x + e), max u.o (x + e)⟩ :: rest, .S (a - x) e)
+  | speedNew (bl : List Blk) (q : Bool) (a e x : ℝ) (hq : ∀ u rest, bl = u :: rest → u.q ≠ q)
+      (ha : 1 ≤ a) (he : 0 ≤ e) (hex : e ≤ a - x) (hx : 0 ≤ x) (hx1 : x ≤ a - 1)
+      (hb : 1 ≤ pin bl) :
+      StepO ℓ c d (bl, .S a e)
+        (⟨!q, 0, ℓ (pin bl) e⟩ :: ⟨q, x + e, max (pin bl) (x + e)⟩ :: bl, .S (a - x) e)
+  | slow (u : Blk) (rest : List Blk) (k : Ker) (h1 : 1 ≤ pin rest) (h2 : 1 ≤ u.o)
+      (h3 : 1 ≤ k.time) (h4 : 0 ≤ u.g) :
+      StepO ℓ c d (u :: rest, k) (rest, .T (c * max (max (pin rest) u.o) (max u.g k.time)))
+
+/-- `NF` for `StepO ℓ c d`. `NFO (fun _ _ => 1) c d M n` is a strict normal-form proof in the
+calculus in which the new log n block of Lemma 3.3 has output exactly 1. -/
+def NFO (ℓ : ℝ → ℝ → ℝ) (c d : ℝ) (M : ℕ → Line) (n : ℕ) : Prop :=
+  1 ≤ n ∧ Path (StepO ℓ c d) M n ∧ (∃ a, M 0 = ([], .T a)) ∧ (∃ a', M n = ([], .T a')) ∧
+    (∀ i, 0 < i → i < n → (M i).1 ≠ []) ∧ 1 ≤ (M n).2.time ∧ (M n).2.time < (M 0).2.time ∧
+    ∀ i ≤ n, Alt (M i).1
+
+/-- The log n output `ℓ` lies between 1 and max(o, e) whenever 1 ≤ o and 0 ≤ e. -/
+def LogOK (ℓ : ℝ → ℝ → ℝ) : Prop := ∀ o e : ℝ, 1 ≤ o → 0 ≤ e → 1 ≤ ℓ o e ∧ ℓ o e ≤ max o e
+
+theorem logOK_max : LogOK max := fun _ _ ho _ => ⟨le_trans ho (le_max_left _ _), le_rfl⟩
+
+theorem logOK_one : LogOK (fun _ _ => 1) := fun _ _ ho _ => ⟨le_rfl, le_trans ho (le_max_left _ _)⟩
+
+/-- `StepO max` is `Step`. -/
+theorem step_of_stepO_max {c d : ℝ} {L L' : Line} (h : StepO max c d L L') : Step c d L L' := by
+  cases h with
+  | convMerge u rest a s hs hsa hb => exact Step.convMerge u rest a s hs hsa hb
+  | convNew bl q a s hq hs hsa hb => exact Step.convNew bl q a s hq hs hsa hb
+  | speedMerge u rest a e x ha he hex hx hx1 hb => exact Step.speedMerge u rest a e x ha he hex hx hx1 hb
+  | speedNew bl q a e x hq ha he hex hx hx1 hb => exact Step.speedNew bl q a e x hq ha he hex hx hx1 hb
+  | slow u rest k h1 h2 h3 h4 => exact Step.slow u rest k h1 h2 h3 h4
+
+/-- `NFO max` is `NF`. -/
+theorem nf_of_nfO_max {c d : ℝ} {M : ℕ → Line} {n : ℕ} (h : NFO max c d M n) : NF c d M n :=
+  ⟨h.1, fun i hi => step_of_stepO_max (h.2.1 i hi), h.2.2⟩
+
 structure BlkQ where
   q : Bool
   g : ℚ
