@@ -3,19 +3,26 @@
 """Inventory of the displayed derivations of Williams's TOCT paper, Section 7 (pp. A:31-A:38), against the
 rules of the formal calculus HY.Step.
 
-Every displayed transition is replayed at exact rational parameter values that satisfy the side conditions
-Williams states: the rule is applied (Lemma 7.1 merged or opening a block, Lemma 3.3 merged into the
-innermost block, Lemma 7.2), and its output is compared component by component with the printed line, once
-from the printed previous line and once from the line HY.Step produced. A printed superscript that is
-omitted is compared with Williams's default (p. A:5) read block-wise: max{guess, 1}. The new log n block of
-Lemma 3.3 is given the output l(o, e) for four functions l: max(o, e) (HY.Step), 1, max(o, 1) and
-max(1, e) (HY.StepO l). A Lemma 7.2 step is also evaluated with the maximum that the 0,1,0 display of
-p. A:36 prints (without the output b_k of the remaining prefix).
+Every displayed transition below is replayed at exact rational parameter values that satisfy the side
+conditions Williams states: the rule is applied (Lemma 7.1 merged or opening a block, Lemma 3.3 merged into
+the innermost block, Lemma 7.2), and its output is compared component by component with the printed line,
+once from the printed previous line and once from the line HY.Step produced. A printed superscript that is
+omitted is compared with Williams's default (p. A:5) read block-wise: max{guess, 1}.
+
+Output of the new log n block of Lemma 3.3 (l(o, e)), per display:
+  p. A:31 example, Lemma 7.7 (base case and the inductive step k = 2, for d = 1 and d = 2), the 0,1,0 and
+    0,0 slowdowns of p. A:36: only l = max(o, e) (HY.Step);
+  Corollary 7.8 and the proof of Theorem 7.5 (p. A:34): l = max(o, e) and l = 1;
+  annotation [1,1,0,0] (p. A:36), Case 1 (p. A:37), Case 2 (p. A:38): l = max(o, e), 1, max(o, 1), max(1, e).
+The splice of Lemma 7.7's induction (the two existential blocks written as one, p. A:33) is not replayed.
+Corollary 7.8 (used twice in the proof of Theorem 7.5) is a sub-derivation that Williams does not display;
+it is constructed here from the rules (Lemma 7.1 merged, Lemma 3.3 merged, Lemma 7.2, repeated, then
+Lemma 7.7's base case) and only its endpoint is compared with the displayed one, at the two uses in the
+Theorem 7.5 sample and from 399 sample exponents under a block (A n^1)^1 (d = 1, c = 1.29). The Theorem 7.5
+sample satisfies the conditions printed on p. A:34 with a common epsilon. The 25-line proof of
+pp. A:32-A:33 is replayed separately by w13_25line.py.
 
 The printed lines are transcribed from the rendered pages (the text layer loses superscripts and primes).
-The 25-line proof of pp. A:32-A:33 is replayed separately by w13_25line.py. Corollary 7.8 (used twice in
-the proof of Theorem 7.5) is a sub-derivation; it is constructed here from the rules (Lemma 7.1 merged,
-Lemma 3.3 merged, Lemma 7.2, repeated) and its endpoint is compared with the displayed one.
 
 Python 3 standard library only; exact arithmetic.
 
@@ -226,14 +233,20 @@ def lemma77():
 
 def theorem75():
     d, c = 1, Q(129, 100)
-    a, x = Q(44, 25), Q(13, 50)
+    a, x = Q(17617, 10000), Q(2583, 10000)
     G = x + d * (a - 1)
     eta = c * (d + 1) / (c * (d + 1) - 1)
     es = c * ((d + 1) * (a - 1) - x)
+    e2 = c * c / G
+    eps = eta - e2
     t1 = 1 - d * (a - 1)
-    print(f"\n   Theorem 7.5 parameters: d = {d}, c = {c}, a = {a}, x = {x}; x + d(a-1) = {G}, "
-          f"1 - d(a-1) = {t1}, e* = c((d+1)(a-1) - x) = {es} < eta = {eta}: {es < eta}, "
-          f"c^2/(x+d(a-1)) = {c * c / G} < eta: {c * c / G < eta}, final c^2(x+d(a-1)) = {c * c * G} < a: {c * c * G < a}")
+    print(f"\n   Theorem 7.5 parameters: d = {d}, c = {c}, a = {a}, x = {x}; eta = 1 + 1/(c(d+1)-1) = {eta}")
+    print(f"     c >= x + d(a-1) = {G} >= 1: {c >= G >= 1}; 1 - d(a-1) = {t1} >= 0: {t1 >= 0}")
+    print(f"     printed conditions (p. A:34) with the common epsilon = eta - c^2/(x+d(a-1)) = {eps} > 0: {eps > 0};"
+          f" c((d+1)(a-1) - x) = {es} >= eta - epsilon = {e2}: {es >= e2}")
+    print(f"     Corollary 7.8 needs exponents below eta: c((d+1)(a-1) - x) < eta: {es < eta}, "
+          f"c^2/(x+d(a-1)) < eta: {e2 < eta}")
+    print(f"     final exponent c^2(x+d(a-1)) = {c * c * G} < a: {c * c * G < a}")
     for ell in ("max", "one"):
         Ln = run(f"p. A:34, proof of Theorem 7.5, d = {d}, c = {c}", P([], ("T", a)), [
             ("Lemma 7.1, s = a-1", lambda L: conv(L, a - 1, d), P([("E", Q(1), None)], ("S", a, d * (a - 1)))),
@@ -270,6 +283,27 @@ def theorem75():
           f"for A' = 1 + (eta-1)k/400, k = 1..399: {'all' if not bad else 'fails at ' + str(bad[:3])}")
 
 
+def cor78_base_printed():
+    """The base case printed in the proof of Corollary 7.8, DTIME_d[n^((d+1)/(d+2))]: from it HY.Step allows only
+    Lemma 7.1 (time unchanged); after it Lemma 3.3 (a >= 1), Lemma 7.2 (time >= 1) and Lemma 7.1 (DTIME_d kernel)
+    do not apply. Checked for d = 1, 2, 3 at s = t/2 and s = t."""
+    for d in (1, 2, 3):
+        t = Q(d + 1, d + 2)
+        L0 = ([], ("T", t))
+        res = []
+        for s in (t / 2, t):
+            L1 = conv(L0, s, d)
+            for name, f in (("Lemma 3.3, x = 0", lambda L: speed(L, Q(0))), ("Lemma 7.2", lambda L: slow(L, Q(3, 2))),
+                            ("Lemma 7.1", lambda L: conv(L, t / 2, d))):
+                try:
+                    f(L1)
+                    res.append(f"{name} applies after s = {s}")
+                except RuleError:
+                    pass
+        print(f"   p. A:34, printed base case DTIME_{d}[n^{t}]: after Lemma 7.1 no rule applies: "
+              + ("yes" if not res else "; ".join(res)))
+
+
 def thm79_1100():
     for d, c, a, x, y in ((1, Q(3, 2), Q(4), Q(1), Q(1)), (1, Q(3, 2), Q(3), Q(1, 2), Q(2)),
                           (2, Q(4, 3), Q(5), Q(2), Q(1, 2))):
@@ -291,7 +325,8 @@ def thm79_1100():
 def thm79_010():
     print("\n   The 0,1,0 display of p. A:36 (Lemma 7.2 maximum printed without b'):")
     for d, c, bp, ap, b, a, s in ((1, Q(3, 2), Q(10), Q(5), Q(5), Q(15, 2), Q(15, 4)),
-                                   (1, Q(3, 2), Q(2), Q(3), Q(3), Q(4), Q(1))):
+                                   (1, Q(3, 2), Q(2), Q(3), Q(3), Q(4), Q(1)),
+                                   (2, Q(3, 2), Q(1), Q(1), Q(1), Q(2), Q(2))):
         start = P([("A", Q(0), bp), ("E", ap, b)], ("T", a))
         run(f"p. A:36, 0,1,0, d = {d}, c = {c}, b' = {bp}, a' = {ap}, b = {b}, a = {a}, s = {s}", start, [
             ("Lemma 7.1 (merged), s", lambda L: conv(L, s, d),
@@ -301,6 +336,10 @@ def thm79_010():
         ], c, d)
         L1 = conv(start, s, d)
         print(f"     Lemma 7.2 with the printed maximum (without b'): {show(slow(L1, c, omit_bk=True))}")
+        disp = max(c * b, c * a - c * s, c * ap, c * a, c * d * s)
+        full = slow(L1, c)[1][1]
+        rel = "above" if disp > full else "below" if disp < full else "equal to"
+        print(f"     displayed exponent {disp} is {rel} Lemma 7.2's {full}")
         run(f"p. A:36, 0,0 comparison, same parameters", start, [
             ("Lemma 7.2", lambda L: slow(L, c), P([("A", Q(0), bp)], ("T", max(c * b, c * a, c * ap)))),
         ], c, d)
@@ -364,6 +403,7 @@ def main():
     example_a31()
     lemma77()
     theorem75()
+    cor78_base_printed()
     thm79_1100()
     thm79_010()
     thm79_case1()

@@ -8,7 +8,8 @@ The printed lines show each block's guess exponent, log n blocks as n^1, and no 
 script carries the full state (quantifier, guess, output superscript) itself: for each printed step it
 infers the rule from the shape of the next line and its parameter from the printed numbers (s from the new
 space exponent, x from the new time exponent), applies the rule exactly, and compares every printed
-number with the computed one. Compared are the kernel exponents (time, and space on DTISP lines),
+number with the computed one. The rule is applied to the computed previous line, not to the printed one, so
+the deviations accumulate along the replay. Compared are the kernel exponents (time, and space on DTISP lines),
 directly, and the block guess exponents, as max(guess, 1), since the printed lines show guesses below 1
 (log n blocks, and the first block, whose computed guess is 0.999997582) as n^1. Output superscripts are
 not printed, so they are not compared. It reports the largest deviations, per transition and overall,
@@ -160,13 +161,13 @@ def main():
             kdiff = [k for k in range(len(states)) if states[k][1] != ref[k][1]]
             print("  every step is a rule of this variant with its side conditions; kernels that differ from the"
                   f" max(b, e) replay: {kdiff if kdiff else 'none'}")
-        print(f"  largest deviation of a kernel exponent from the printed number: {float(worst_k):.3e}")
+        print(f"  largest deviation of a kernel exponent from the printed number: {float(worst_k):.7e}")
         print(f"  largest deviation of max(guess, 1) from the printed block exponent: {float(worst_g):.2e}")
         for k, g, pg in raw_g[:1]:
             print(f"    (line {k}: computed guess {float(g):.9f}, printed n^{float(pg):g})")
         last = round(final, 9)
         print(f"  computed final exponent {float(final):.10f}, printed {float(start):.9f}: difference"
-              f" {float(final - start):.3e}; rounded to the printed 9 decimals it is {float(last):.9f}, so the"
+              f" {float(final - start):.7e}; rounded to the printed 9 decimals it is {float(last):.9f}, so the"
               + (" last printed digit agrees" if last == start else " last printed digit does not agree"))
         if final >= start:
             print("  the computed last line is not below the first: at c = 1.297844 this replay of the rounded display"
@@ -179,7 +180,7 @@ def main():
                   " line's (no merged rule lowers a guess):")
             for k, r, par, kd, gd, lower in per:
                 ps = f"{par[0]} = {float(par[1]):.10f}" if par else "-"
-                print(f"    {k:2d} {r} {ps:16s} kernel {float(kd):.2e}  guess {float(gd):.2e}"
+                print(f"    {k:2d} {r} {ps:16s} kernel {float(kd):.3e}  guess {float(gd):.3e}"
                       + (f"  printed guess lowered in block {lower}" if lower else ""))
             dev = []
             for k, (blocks, ker) in enumerate(states):
