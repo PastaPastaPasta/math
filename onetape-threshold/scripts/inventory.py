@@ -36,10 +36,11 @@ meets the relaxed bound; a transition that is no single HL.RStep, HL.Loose or HL
 exact steps; a [1,1,0,0] speedup outside Lemma 3.3's condition x <= a - 1 that is a single HL.RStep step), a sample
 at which inequality (31) of Case 1 (p. A:37) fails, and a [1,1,0,0] sample with
 x, y >= 0 outside the side conditions of Lemma 3.3 that no exact or relaxed speedup gives (D17), a [1,1,0,0]
-sample outside only y <= a - 1 whose log n output fails the relaxed bound (D17), a [1,1,0,0] speedup whose log n
+sample outside only y <= a - 1 whose log n output fails the HL.RStep bound (an HL.Loose step), a [1,1,0,0] speedup whose log n
 output is below max(o, e) (an HL.Loose step) and which expands into three relaxed steps at c = 4/3, a log n output
-below max(HY.pin, e) on the empty prefix that is an RStep.speedN step, two Case 1 samples whose printed speedups are
-HL.RStep steps and only HL.Loose steps (D12, D13), a Case 1 sample with e = 0 whose printed speedups, guess n^y
+below max(HY.pin, e) on the empty prefix that is an RStep.speedN step (on a path from ([], T a0) such a line
+arises only from an HL.Widen step), two Case 1 samples whose printed speedups are HL.RStep steps, resp. HL.Loose
+steps but no HL.RStep steps (D12, D13), a Case 1 sample with e = 0 whose printed speedups, guess n^y
 included, are HY.Step.speedMerge steps (D13), the rule membership of the Corollary 7.8 sub-derivations (D7: under
 the output 1 the one at the second use is an HY.StepO path with l = 1, not an HY.Step path), and the relaxed
 encoding of the line printed at the second use of Corollary 7.8 (D9)). It ends with the number of assertions that
@@ -839,7 +840,7 @@ def log_output_examples():
 
 
 def d17_output_example():
-    """Rows D17 and item 3: [1,1,0,0] (p. A:36) at d = 1, a = 3, x = 1/4, y = 5/2 violates y <= a - 1 while
+    """[1,1,0,0] (p. A:36) at d = 1, a = 3, x = 1/4, y = 5/2 violates y <= a - 1 while
     dx <= a - y. The Lemma 7.1 line is (E n^{11/4})^{11/4} DTISP[n^3, n^{1/4}]; the printed speedup gives the new
     log n block the output 1 < max(11/4, 1/4), so it is no HL.RStep step (speedM is the only constructor of that
     shape), but an HL.Loose step."""
