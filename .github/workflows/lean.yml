@@ -16,7 +16,7 @@ jobs:
           use-mathlib-cache: true
       - name: Check axioms of headline theorems
         run: |
-          for f in PastaMath/TautThreshold/Axioms.lean PastaMath/MWThreshold/Axioms.lean; do
+          for f in PastaMath/TautThreshold/Axioms.lean PastaMath/MWThreshold/Axioms.lean PastaMath/OneTapeThreshold/Axioms.lean; do
             lake env lean "$f" > axioms.out
             cat axioms.out
             n="$(grep -c '^#print axioms' "$f")"
