@@ -31,27 +31,14 @@ is read here inside a prefix, with the maximum m of the Slowdown Rule of William
 and of Lemma 7.2, which includes the output b_k of the remaining prefix; the statement of §3 alone is for
 one block over a DTIME kernel and has the three-term maximum max{a, a', b}. Read so, each application of
 Lemma 3.4 gives the line of `HY.Step.slow` followed by a `Widen` step (time and space c'·m, e·m ≥ c·m,
-where c·m is the time exponent `slow` gives); `HY.Incl` is the case c' = e = c. A slowdown whose maximum
-omits b_k (as the 0,1,0 and 0,0 displays of Williams's sketch of Theorem 7.9 print it, p. A:36) is covered
-by the relaxed statements whenever its output meets the bound c·max(pin rest, b, time k) of
-`HL.RStep.slow`. For those two displays this fails exactly when the display is below Lemma 7.2's value,
-i.e. when b′ > max{b, a − s, a′, a, d·s} (0,1,0), resp. b′ > max{b, a′, a} (0,0), and then no ceiling
-covers it (paper row D11).
+where c·m is the time exponent `slow` gives); `HY.Incl` is the case c' = e = c. So the weakened forms
+are covered by part (1) of `HLM.ceilingX_d{1,2,3}` (relaxed, `HL.RPathX`) and the exact form also by
+part (2).
 
-The ceilings are theorems about the formalised rule set: `HY.Step` plus the extensions named in each
-theorem (`HL.RStep`, `HY.Incl`/`HL.Widen`, and for `HL.no_drop_W` also `HY.SpeedLog`/`HL.Loose`). That
-rule set follows the statements of Williams's Lemmas 7.1, 3.3 and 7.2 with their side conditions;
-Williams's text differs from it in the places listed in Section 2.4 and Appendix A of the paper. The
-known differences that matter for the ceilings are: (a) the output max(o, e) of the new log n block of
-Lemma 3.3 versus the smaller superscripts displayed on pp. A:36–A:38 (sharp ceilings only); (b) the full
-maximum of Lemma 7.2, including b_k, versus the 0,1,0 and 0,0 displays on p. A:36 (above); (c) both
-halves of the p. A:31 sentence "When C is DTISP, the Speedup and Slowdown Rules from Section 4 apply":
-speedups of a DTISP kernel are read as Lemma 3.3 and slowdowns as Lemma 7.2 or Lemma 3.4 with exponents
-≥ c (above), and the literal Speedup Rules 0–2 and Slowdown Rule of §4 on a DTISP kernel (DTS outputs)
-are excluded, with nothing claimed for them; (d) the side conditions of Lemma 3.3, in particular
-e ≤ a − x, which the p. A:36 display (stating only x, y ≥ 0) does not impose; (e) no splitting of a
-block into two of the same type (alternation as in Definition 4.1). We do not claim this list of
-reading choices is exhaustive.
+The ceilings are theorems about the formalised rule set (`HY.Step` with the extensions named in each
+theorem), which is our reading of Williams's lemmas as set out in Section 2.4 of the paper. His proof
+sketches display some lines that differ from it, and for some of those the ceilings are not established;
+the scope table at the end of Section 2.4 is the full statement (not claimed exhaustive).
 
 * `HLM.ceilingX_d1`, `ceilingX_d2`, `ceilingX_d3`: for every real c ≥ 6547/5000, 149/125, 712/625
   respectively, (1) there is no path of `RStep c d` and `Widen` steps (`HL.RPathX`) with n ≥ 1 from
@@ -65,6 +52,13 @@ reading choices is exhaustive.
   steps. This excludes a' < a₀ (so strict normal forms), not a path with a' = a₀. The one-level potential does not use the output
   superscript of the new log n block (`HL.speed_ineq`). The multi-level potentials do, so the
   ceilings `HLM.ceiling_d*` are not extended to `HY.SpeedLog`.
+* `HL.stepO_cases`, `HL.no_nfO`: if ℓ o e ≥ 0 for o ≥ 1, e ≥ 0 (e.g. under `HY.LogOK ℓ`), every
+  `HY.StepO ℓ` step is a `HY.Step` or `HY.SpeedLog` step, so for d ≥ 1, c ≥ 1 and c² ≥ 1 + 1/d there is
+  no `HY.NFO ℓ c d M n`.
+* `HL.rpathW_last_T`: for c ≥ 0, an `RPathW c d` path of length ≥ 1 ending at `(P, T a')` has
+  c · pin P ≤ a' (only `RStep.slow` produces a `T` kernel). So a slowdown to a time below c · pin P under
+  the retained prefix P is not reached by any derivation in these rule sets.
+* `HY.NFX`: the strict normal form for `HY.Step` and `HY.Incl` steps (used by `threshold_sup`).
 -/
 
 namespace PastaMath.OneTapeThreshold
@@ -102,6 +96,17 @@ theorem path_alt_incl {c d a₀ : ℝ} {M : ℕ → Line} {n : ℕ}
     rcases hp j (by omega) with h | h
     · exact step_alt h (ih (by omega))
     · exact incl_alt h (ih (by omega))
+
+/-- `NF` for the calculus `HY.Step c d` with the inclusion `HY.Incl` added: the same conditions, with
+every step a `Step c d` or an `Incl` step. -/
+def NFX (c d : ℝ) (M : ℕ → Line) (n : ℕ) : Prop :=
+  1 ≤ n ∧ (∀ i < n, Step c d (M i) (M (i + 1)) ∨ Incl (M i) (M (i + 1))) ∧
+    (∃ a, M 0 = ([], .T a)) ∧ (∃ a', M n = ([], .T a')) ∧
+    (∀ i, 0 < i → i < n → (M i).1 ≠ []) ∧ 1 ≤ (M n).2.time ∧ (M n).2.time < (M 0).2.time ∧
+    ∀ i ≤ n, Alt (M i).1
+
+theorem nfX_of_nf {c d : ℝ} {M : ℕ → Line} {n : ℕ} (h : NF c d M n) : NFX c d M n :=
+  ⟨h.1, fun i hi => Or.inl (h.2.1 i hi), h.2.2⟩
 
 end HY
 
@@ -407,6 +412,44 @@ theorem no_drop_W {c d : ℝ} (hd : 1 ≤ d) (hc : 1 ≤ c) (hcd : 1 + 1 / d ≤
   · exact Or.inl (Or.inl (sim (by linarith) h))
   · exact Or.inr (widen_of_incl h)
   · exact Or.inl (Or.inr (loose_of_speedLog h))
+
+/-- If ℓ o e ≥ 0 whenever o ≥ 1 and e ≥ 0 (for example under `HY.LogOK ℓ`), every `HY.StepO ℓ c d` step
+is an `HY.Step c d` step or an `HY.SpeedLog` step. -/
+theorem stepO_cases {ℓ : ℝ → ℝ → ℝ} (hℓ : ∀ o e : ℝ, 1 ≤ o → 0 ≤ e → 0 ≤ ℓ o e) {c d : ℝ}
+    {L L' : HY.Line} (h : HY.StepO ℓ c d L L') : HY.Step c d L L' ∨ HY.SpeedLog L L' := by
+  cases h with
+  | convMerge u rest a s hs hsa hb => exact Or.inl (HY.Step.convMerge u rest a s hs hsa hb)
+  | convNew bl q a s hq hs hsa hb => exact Or.inl (HY.Step.convNew bl q a s hq hs hsa hb)
+  | speedMerge u rest a e x ha he hex hx hx1 hb =>
+    exact Or.inr (HY.SpeedLog.merge u rest a e x _ ha he hex hx hx1 hb (hℓ _ _ hb he))
+  | speedNew bl q a e x hq ha he hex hx hx1 hb =>
+    exact Or.inr (HY.SpeedLog.new bl q a e x _ hq ha he hex hx hx1 hb (hℓ _ _ hb he))
+  | slow u rest k h1 h2 h3 h4 => exact Or.inl (HY.Step.slow u rest k h1 h2 h3 h4)
+
+/-- For real d ≥ 1, c ≥ 1 and c² ≥ 1 + 1/d, and every log n output ℓ with ℓ o e ≥ 0 whenever o ≥ 1 and
+e ≥ 0 (in particular every ℓ with `HY.LogOK ℓ`): there is no strict normal-form proof `HY.NFO ℓ c d M n`. -/
+theorem no_nfO {ℓ : ℝ → ℝ → ℝ} (hℓ : ∀ o e : ℝ, 1 ≤ o → 0 ≤ e → 0 ≤ ℓ o e) {c d : ℝ} (hd : 1 ≤ d)
+    (hc : 1 ≤ c) (hcd : 1 + 1 / d ≤ c ^ 2) (M : ℕ → HY.Line) (n : ℕ) : ¬ HY.NFO ℓ c d M n := by
+  rintro ⟨_, hp, ⟨a₀, h0⟩, ⟨a', hN⟩, _, h1, hlt, _⟩
+  have hT0 : (M 0).2.time = a₀ := by rw [h0]; rfl
+  have hTn : (M n).2.time = a' := by rw [hN]; rfl
+  have := no_drop_W hd hc hcd M n
+    (fun i hi => (stepO_cases hℓ (hp i hi)).elim Or.inl (fun h => Or.inr (Or.inr h)))
+    (by linarith) h0 hN
+  linarith
+
+/-- For c ≥ 0: if an `RPathW c d` path of length n ≥ 1 ends at a line `(P, T a')`, its last step is a
+relaxed slowdown (no other `RStep`, `Loose` or `Widen` step gives a `T` kernel), so c · pin P ≤ a'. -/
+theorem rpathW_last_T {c d : ℝ} (hc : 0 ≤ c) {M : ℕ → RLine} {n : ℕ} (hp : RPathW c d M n)
+    (hn : 1 ≤ n) {P : List ℝ} {a' : ℝ} (hN : M n = (P, .T a')) : c * pin P ≤ a' := by
+  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
+  rcases hp m (by omega) with (h | h) | h <;> rw [hN] at h <;> generalize M m = L at h
+  · cases h with
+    | slow b rest k a' hh =>
+      exact le_trans (mul_le_mul_of_nonneg_left (le_max_of_le_left (le_max_left _ _)) hc) hh
+  · cases h
+  · obtain ⟨_, _, _, _, _, h2, _, _⟩ := h
+    cases h2
 
 end HL
 

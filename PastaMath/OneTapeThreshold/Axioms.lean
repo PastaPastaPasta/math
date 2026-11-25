@@ -50,3 +50,6 @@ open PastaMath.OneTapeThreshold
 #print axioms HY.path_alt
 #print axioms HY.path_alt_incl
 #print axioms HL.rstep_T_mono
+#print axioms threshold_sup
+#print axioms HL.no_nfO
+#print axioms HL.rpathW_last_T
