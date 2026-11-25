@@ -8,10 +8,20 @@ The printed lines show each block's guess exponent, log n blocks as n^1, and no 
 script carries the full state (quantifier, guess, output superscript) itself: for each printed step it
 infers the rule from the shape of the next line and its parameter from the printed numbers (s from the new
 space exponent, x from the new time exponent), applies the rule exactly, and compares every printed
-number with the computed one. Kernel exponents are compared directly; block exponents are compared as
-max(guess, 1), since the printed lines show guesses below 1 (log n blocks, and the first block, whose
-computed guess is 0.999997582) as n^1. It reports the largest deviations; the printed numbers have 9-10
+number with the computed one. Compared are the kernel exponents (time, and space on DTISP lines),
+directly, and the block guess exponents, as max(guess, 1), since the printed lines show guesses below 1
+(log n blocks, and the first block, whose computed guess is 0.999997582) as n^1. Output superscripts are
+not printed, so they are not compared. It reports the largest deviations; the printed numbers have 9-10
 significant digits.
+
+The replay is run twice: with the output superscript max(b, e) of HY.Step for the new log n block of
+Lemma 3.3, and with output exactly 1. Both reproduce every printed number to the same precision, so the
+display does not decide between the two readings. The script also compares the carried output
+superscripts with Williams's default for an omitted superscript (Section 2, p. A:5: max{a_i, 1} for a block
+of guess exponent a_i, read block-wise, so 1 for a log n block): under max(b, e) the log n blocks of lines
+13, 16, 19 and 22 get about 1.04010891 (inherited from the enclosing existential block), not the default 1.
+The next step removes each of them by Lemma 7.2, whose maximum contains that existential block's output,
+so no printed number depends on the difference.
 
 This is a replay of Williams's rounded display, not a verified proof: replayed from the printed start
 1.751958454 at c = 1.297844, the computed last line is about 1.0e-8 above the first, so the normal-form
@@ -61,14 +71,13 @@ def parse(line):
     return blocks, ("S", Q(m.group(1)), Q(m.group(2)))
 
 
-def main():
-    c, d = Q("1.297844"), 1
-    printed = [parse(l) for l in PRINTED.strip().split("\n")]
+def replay(printed, c, d, log_one):
     state = ([], printed[0][1])
     worst_k = Q(0)
     worst_g = Q(0)
     raw_g = []
     rules = []
+    states = [state]
     for k in range(1, len(printed)):
         blocks, ker = state
         pb, pk = printed[k]
@@ -88,7 +97,8 @@ def main():
             x = a - pk[1]
             assert a >= 1 and 0 <= e <= a - x and 0 <= x <= a - 1 and b >= 1
             q, g, o = blocks[-1]
-            blocks = blocks[:-1] + [(q, max(g, x + e), max(o, x + e)), ("A" if q == "E" else "E", Q(0), max(o, e))]
+            lo = Q(1) if log_one else max(o, e)
+            blocks = blocks[:-1] + [(q, max(g, x + e), max(o, x + e)), ("A" if q == "E" else "E", Q(0), lo)]
             ker = ("S", a - x, e); rules.append("L3.3")
         elif len(pb) == len(blocks) - 1:
             q, g, o = blocks[-1]
@@ -105,17 +115,46 @@ def main():
         worst_k = max([worst_k] + [abs(x - y) for x, y in zip(ker[1:], pk[1:])])
         raw_g += [(k, g, pg) for (q, g, o), (_, pg) in zip(blocks, pb) if 0 < g < 1]
         state = (blocks, ker)
-    final, start = state[1][1], printed[0][1][1]
-    print(f"rules: {' '.join(rules)}")
-    print("every step is a rule of the formal calculus")
-    print(f"largest deviation of a kernel exponent from the printed number: {float(worst_k):.2e}")
-    print(f"largest deviation of max(guess, 1) from the printed block exponent: {float(worst_g):.2e}")
-    for k, g, pg in raw_g[:1]:
-        print(f"  (line {k}: computed guess {float(g):.9f}, printed n^{float(pg):g})")
-    print(f"computed final exponent {float(final):.10f} vs. start {float(start):.10f} (difference {float(final - start):.2e})")
-    if final >= start:
-        print("the computed last line is not below the first: at c = 1.297844 this replay of the rounded display"
-              " is not a strict normal-form proof (a' < a fails); it agrees with the display to the printed precision")
+        states.append(state)
+    return rules, states, worst_k, worst_g, raw_g
+
+
+def main():
+    c, d = Q("1.297844"), 1
+    printed = [parse(l) for l in PRINTED.strip().split("\n")]
+    start = printed[0][1][1]
+    for log_one in (False, True):
+        rules, states, worst_k, worst_g, raw_g = replay(printed, c, d, log_one)
+        final = states[-1][1][1]
+        print("new log n block of Lemma 3.3 with output " + ("exactly 1:" if log_one else "max(b, e) (HY.Step):"))
+        print(f"  rules: {' '.join(rules)}")
+        print("  every step is a rule of the formal calculus" + (" (output-1 variant)" if log_one else ""))
+        print(f"  compared: kernel exponents (time, and space on DTISP lines) and max(guess, 1) for every block;"
+              f" output superscripts are not printed")
+        print(f"  largest deviation of a kernel exponent from the printed number: {float(worst_k):.2e}")
+        print(f"  largest deviation of max(guess, 1) from the printed block exponent: {float(worst_g):.2e}")
+        for k, g, pg in raw_g[:1]:
+            print(f"    (line {k}: computed guess {float(g):.9f}, printed n^{float(pg):g})")
+        print(f"  computed final exponent {float(final):.10f} vs. start {float(start):.10f}"
+              f" (difference {float(final - start):.2e})")
+        if final >= start:
+            print("  the computed last line is not below the first: at c = 1.297844 this replay of the rounded display"
+                  " is not a strict normal-form proof (a' < a fails); it agrees with the display to the printed precision")
+        if not log_one:
+            dev = []
+            for k, (blocks, ker) in enumerate(states):
+                for i, (q, g, o) in enumerate(blocks):
+                    default = max(g, Q(1))
+                    if abs(o - default) > Q(1, 10**7):
+                        dev.append((k, i, q, g, o, default))
+            print("  carried output superscripts that differ from Williams's default max{guess, 1} (p. A:5) by more"
+                  " than 1e-7:")
+            for k, i, q, g, o, default in dev:
+                kind = "log n" if g == 0 else f"n^{float(g):.9f}"
+                print(f"    line {k}, block {i + 1} ({q} {kind}): output {float(o):.9f}, default {float(default):.9f}")
+    print("both readings reproduce every printed number to the same precision: the display does not decide"
+          " between them, and under the block-wise default the omitted superscripts of the log n blocks above"
+          " are 1, the smaller value")
     return 0
 
 

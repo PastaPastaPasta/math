@@ -17,7 +17,9 @@ locates a point where the verdict changes, not the supremum.
 usage:
   staircase.py levels C D [H]     the levels at c = C (decimal), dimension D
   staircase.py threshold D DIGITS bisect for c*_stair(D) in interval arithmetic (directed rounding);
-                                  every verdict used is certified by the intervals; the printed digits
+                                  every verdict used is certified by the intervals (the verdicts at the
+                                  exact endpoints 1 + 1/(4d) and 1 + 1/d on outward-rounded enclosures,
+                                  the later ones at decimal points, which are exact); the printed digits
                                   are those shared by the two ends of a bracket of width 10^-DIGITS
                                   with opposite certified verdicts (a numerical estimate of
                                   c*_stair: the bisection assumes the verdict is monotone in c)
@@ -139,10 +141,17 @@ def threshold(d, digits):
     prec = digits + 40
     Iv.F = Context(prec=prec, rounding=ROUND_FLOOR); Iv.C = Context(prec=prec, rounding=ROUND_CEILING)
     num = IvNum()
-    lo, hi = D(1) + D(1) / (4 * d), D(1) + D(1) / d
     H = 40 * digits + 400
-    vlo, vhi = recursion(Iv(lo), d, H, num)[0], recursion(Iv(hi), d, H, num)[0]
+    # the exact endpoints 1 + 1/(4d) and 1 + 1/d, enclosed in outward-rounded intervals; a verdict
+    # certified on an enclosure holds at every point of it, in particular at the exact endpoint and at
+    # the decimal ends of the enclosure, from which the bisection starts
+    ends = [Fr(4 * d + 1, 4 * d), Fr(d + 1, d)]
+    encl = [Iv(Iv.F.divide(D(q.numerator), D(q.denominator)), Iv.C.divide(D(q.numerator), D(q.denominator)))
+            for q in ends]
+    vlo, vhi = recursion(encl[0], d, H, num)[0], recursion(encl[1], d, H, num)[0]
     assert (vlo, vhi) == ("REF", "STOP"), (vlo, vhi)
+    print(f"d = {d}: verdict REF certified on an enclosure of c = {ends[0]}, STOP on an enclosure of c = {ends[1]}")
+    lo, hi = encl[0].hi, encl[1].lo
     q = D(10) ** (-digits)
     while Iv.C.subtract(hi, lo) > q:
         mid = Iv.F.divide(Iv.F.add(lo, hi), 2)

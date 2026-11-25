@@ -9,7 +9,12 @@ quantifier-free line, 1 <= a' < a), and the strict reading (kernel time >= input
 space <= time on DTISP lines), and prints the proof with exponents divided by 1000 (a0 = 10^5 is shown as
 100.000); "log" is a log n block. Exact arithmetic; Python 3 standard library only.
 
-usage: replay39.py ../../PastaMath/OneTapeThreshold/Proof39.lean"""
+With --log-one it replays the same tags in the variant of the calculus in which the new log n block of
+Lemma 3.3 has output superscript exactly 1 (instead of max(b, e)), runs the same checks, and lists the
+lines that differ from the replay with max(b, e). This is a script check only; Lean checks the 39-line
+proof for max(b, e) (HY.cert39_spec), and the output-1 variant only for the staircase certificates.
+
+usage: replay39.py [--log-one] ../../PastaMath/OneTapeThreshold/Proof39.lean"""
 import re
 import sys
 from fractions import Fraction as Q
@@ -29,7 +34,7 @@ def inp(blocks):
     return blocks[-1][2] if blocks else Q(1)
 
 
-def step(c, d, line, tag, p):
+def step(c, d, line, tag, p, log_one=False):
     blocks, ker = line
     b = inp(blocks)
     if tag in ("convNew", "convMerge"):
@@ -48,7 +53,7 @@ def step(c, d, line, tag, p):
         assert a >= 1 and 0 <= e <= a - x and 0 <= x <= a - 1 and b >= 1
         q, g, o = blocks[-1]
         other = "A" if q == "E" else "E"
-        nb = blocks[:-1] + [(q, max(g, x + e), max(o, x + e)), (other, Q(0), max(o, e))]
+        nb = blocks[:-1] + [(q, max(g, x + e), max(o, x + e)), (other, Q(0), Q(1) if log_one else max(o, e))]
         return nb, ("S", a - x, e), "L3.3"
     if tag == "slow":
         q, g, o = blocks[-1]
@@ -69,13 +74,18 @@ def show(line):
     return (s + " " + k).strip()
 
 
-def main(path):
-    c, d, a0, ts = tags(path)
+def replay(c, d, a0, ts, log_one):
     lines = [([], ("T", a0))]
     rules = [""]
     for tag, p in ts:
-        nb, nk, r = step(c, d, lines[-1], tag, p)
+        nb, nk, r = step(c, d, lines[-1], tag, p, log_one)
         lines.append((nb, nk)); rules.append(r)
+    return lines, rules
+
+
+def main(path, log_one=False):
+    c, d, a0, ts = tags(path)
+    lines, rules = replay(c, d, a0, ts, log_one)
     n = len(lines) - 1
     for i, (blocks, ker) in enumerate(lines):
         assert all(blocks[k][0] != blocks[k + 1][0] for k in range(len(blocks) - 1)), "alternation"
@@ -84,15 +94,26 @@ def main(path):
         assert ker[0] == "T" or ker[2] <= ker[1], "space <= time"
     assert lines[-1][1][0] == "T" and 1 <= lines[-1][1][1] < a0
     gap, at = min((k[1] - inp(bl), i) for i, (bl, k) in enumerate(lines))
-    print(f"c = {c} = {float(c)}, d = {d}, a0 = {a0}, {n + 1} lines")
+    print(f"c = {c} = {float(c)}, d = {d}, a0 = {a0}, {n + 1} lines"
+          + (", new log n block of Lemma 3.3 with output exactly 1" if log_one else ""))
     for i, L in enumerate(lines):
         print(f"{i:2d} {rules[i]:5s} {show(L)}")
     print(f"final exponent {float(lines[-1][1][1])} < {a0}; a0 - a' = {float(a0 - lines[-1][1][1]):.6f}")
     near = [i for i, (bl, k) in enumerate(lines) if k[1] - inp(bl) < Q(1, 10**6)]
     print(f"all side conditions, alternation, normal form, time >= input and space <= time hold; "
           f"min(time - input) = {float(gap):.3g} (line {at}); time - input < 1e-6 on lines {near}")
+    if log_one:
+        ref, _ = replay(c, d, a0, ts, False)
+        diff = [i for i in range(n + 1) if lines[i] != ref[i]]
+        kdiff = [i for i in range(n + 1) if lines[i][1] != ref[i][1]]
+        print(f"lines that differ from the replay with output max(b, e): {diff}")
+        print(f"lines whose kernel differs: {kdiff if kdiff else 'none'}; final exponent "
+              + ("the same" if lines[-1] == ref[-1] else "different"))
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1]))
+    args = sys.argv[1:]
+    one = "--log-one" in args
+    args = [x for x in args if x != "--log-one"]
+    sys.exit(main(args[0], one))
