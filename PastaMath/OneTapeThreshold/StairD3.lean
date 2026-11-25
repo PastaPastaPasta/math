@@ -6,8 +6,9 @@ import PastaMath.OneTapeThreshold.DagStrict
 # A staircase certificate for d = 3 at c = 11386523/10000000 = 1.1386523
 
 One node list (`stairD3Raw`; grid M = 2^50 = 1125899906842624, values in units of 2^-110; 212 nodes, 1255 speedup
-steps in all, root node 211), produced by an untrusted generator from the staircase recursion and
-checked twice by `decide +kernel`: by `HD.dagCheck` (`stairD3_ok`) and by `HDS.dagCheck`
+steps in all, root node 211), from an earlier run of an untrusted generator (`scripts/stair_cert.py`, which builds node lists from
+the staircase recursion; the current generator does not reproduce this list byte for byte, and only its
+acceptance by the checkers matters), checked twice by `decide +kernel`: by `HD.dagCheck` (`stairD3_ok`) and by `HDS.dagCheck`
 (`stairD3_sok`). `stairD3_nf`: a strict normal-form proof `HY.NF` exists at c = 11386523/10000000 = 1.1386523,
 d = 3. `stairD3_snf`: one exists all of whose lines have kernel time ≥ input superscript and, on
 DTISP kernels, space ≤ time. `stairD3_snf1`: the same in the calculus in which the new log n
