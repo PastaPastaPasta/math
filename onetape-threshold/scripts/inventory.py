@@ -34,7 +34,12 @@ derivation of its first sample from DTIME_1[n^10] (D11), the absence of a Lemma 
 examples of the paper's Section 2.4, item 3, Section 5.2 and Section 6 (a slowdown below Lemma 7.2's value that
 meets the relaxed bound; a transition that is not a single relaxed step but expands into three exact steps; a
 [1,1,0,0] speedup outside Lemma 3.3's condition x <= a - 1 that is a single relaxed step), a sample at which inequality (31) of Case 1 (p. A:37) fails, and a [1,1,0,0] sample with
-x, y >= 0 outside the side conditions of Lemma 3.3 that no exact or relaxed speedup gives (D17)). It ends with the number of assertions that hold; a failed one stops it.
+x, y >= 0 outside the side conditions of Lemma 3.3 that no exact or relaxed speedup gives (D17), a [1,1,0,0]
+sample outside only y <= a - 1 whose log n output fails the relaxed bound (D17), a [1,1,0,0] speedup whose log n
+output is below max(o, e) and which expands into three relaxed steps at c = 4/3, a log n output below
+max(HY.pin, e) on the empty prefix that is an RStep.speedN step, two Case 1 samples whose printed speedups are and
+are not relaxed steps (D12, D13), and the relaxed encoding of the line printed at the second use of Corollary 7.8
+(D9)). It ends with the number of assertions that hold; a failed one stops it.
 
 The printed lines are transcribed from the rendered pages (the text layer loses superscripts and primes).
 
@@ -361,6 +366,11 @@ def theorem75():
         got = cor78(P([("E", G, G)], ("T", c * c)), c, d, ell)[0]
         check(got == scaled and compare(got, printed_second) != [],
               "second use of Corollary 7.8: the scaled endpoint is reached and differs from the printed line")
+        if ell == "one":
+            check(renc(fill(printed_second)) == renc(scaled),
+                  "D9: the printed line has the same relaxed encoding as the endpoint reached with output 1")
+            print(f"   D9: with output 1 the printed line {show(printed_second)} and the endpoint {show(scaled)} have the"
+                  f" same relaxed encoding {rshow(renc(scaled))} (asserted)")
         print(f"   second use of Corollary 7.8: the derivation reaches the scaled corollary endpoint {show(scaled)}"
               f" exactly; the line printed at the application, {show(printed_second)}, differs from it:"
               f" {'; '.join(compare(got, printed_second))} (asserted)")
@@ -688,6 +698,127 @@ def speed_outside_a36():
           f" {show(L1)} the display gives {show(printed)}, an HL.RStep.speedM step (asserted)")
 
 
+def r_step_any(src, dst, c, d, loose=False):
+    """Whether one HL.RStep c d step (with loose=True: one HL.Loose step, i.e. speedM/speedN with the bound on
+    the new log n block's output replaced by >= 0) takes the relaxed line src to dst. Relaxed lines are
+    (outputs, kernel), outputs outermost first (HL.RLine lists them innermost first); HL.pin of the empty prefix
+    is 0. The only constructor whose shape matches is tested, with the best parameter."""
+    (o0, k0), (o1, k1) = src, dst
+    if k1[0] == "T":
+        return (not loose and len(o0) >= 1 and o1 == o0[:-1]
+                and c * max(rpin(o0[:-1]), o0[-1], k0[1]) <= k1[1])
+    if k0[0] == "T":
+        if loose:
+            return False
+        a, a2, e = k0[1], k1[1], k1[2]
+        s = min(a, e / d) if d > 0 else a
+        if not (0 <= s <= a and a <= a2 and d * s <= e):
+            return False
+        if len(o1) == len(o0) and o0:
+            return o1[:-1] == o0[:-1] and max(o0[-1], a - s) <= o1[-1]
+        return len(o1) == len(o0) + 1 and o1[:-1] == o0 and max(rpin(o0), a - s) <= o1[-1]
+    a, e, a2, e2 = k0[1], k0[2], k1[1], k1[2]
+    if len(o1) == len(o0) + 1 and o0:
+        b, b1, L = o0[-1], o1[-2], o1[-1]
+        ok_rest = o1[:-2] == o0[:-1]
+    elif len(o1) == len(o0) + 2:
+        b, b1, L = rpin(o0), o1[-2], o1[-1]
+        ok_rest = o1[:-2] == o0
+    else:
+        return False
+    lo, hi = max(Q(0), a - a2), min(a - e, b1 - e)
+    return (ok_rest and lo <= hi and b <= b1 and e <= e2
+            and (L >= 0 if loose else max(b, e) <= L))
+
+
+def rshow(rl):
+    """A relaxed line in HL order (outputs innermost first), e.g. ([1, 3/2], S 3/2 3/2)."""
+    outs, ker = rl
+    return f"([{', '.join(str(o) for o in reversed(outs))}], {ker[0]} {' '.join(str(v) for v in ker[1:])})"
+
+
+def renc(line):
+    """HL.enc of a script line (outputs outermost first, then the kernel)."""
+    return [b[2] for b in line[0]], line[1]
+
+
+def log_output_examples():
+    """Scope table, row 'output of the new log n block below max(o, e)', and rows D10, D12.
+    (1) [1,1,0,0] (p. A:36) at d = 1, a = x = 3/2, y = 0, c = 4/3: the printed speedup goes from (E n^0)^1
+    DTISP[n^{3/2}, n^{3/2}] to (E n^{3/2})^{3/2} (A n^0)^1 DTISP[n^{3/2}, n^{3/2}], relaxed ([1], S 3/2 3/2) ->
+    ([1, 3/2], S 3/2 3/2) in HL order. It is no single HL.RStep step (speedM needs the log n output >= 3/2), but
+    it is RStep.slow to ([], T 2), RStep.convN (s = 1) to ([1], S 2 1) and RStep.speedM (x = 1/2) to the printed
+    line. (2) From ([], S 1 1/2), HY.SpeedLog.new with x = 0 and log n output 1/2 (below max(HY.pin [], e) = 1)
+    encodes to an HL.RStep.speedN step, since HL.pin [] = 0. (3) Case 1 (p. A:37) first speedup at the samples
+    b = 4, e = 1 (printed output max(b, 1) = 4 >= max(b, e)): an HL.RStep step; b = 2, e = 3 (2 < 3): no HL.RStep
+    step, an HL.Loose step."""
+    d, a, x, y, c = 1, Q(3, 2), Q(3, 2), Q(0), Q(4, 3)
+    L1 = conv(([], ("T", a)), x, d)
+    printed = ([("E", max(a - x, y + d * x), max(a - x, y + d * x, Q(1))), ("A", Q(0), Q(1))], ("S", a - y, d * x))
+    src, dst = renc(L1), renc(printed)
+    check(src == ([Q(1)], ("S", a, a)) and dst == ([Q(3, 2), Q(1)], ("S", a, a)), "A:36 a = x = 3/2: lines")
+    check(not r_step_any(src, dst, c, d) and r_step_any(src, dst, c, d, loose=True),
+          "A:36 a = x = 3/2: no single HL.RStep step (log n output 1 < 3/2); an HL.Loose step")
+    m1, m2 = ([], ("T", Q(2))), ([Q(1)], ("S", Q(2), Q(1)))
+    check(c * max(rpin([]), Q(1), a) <= 2, "expansion: RStep.slow to ([], T 2)")
+    check(0 <= 1 <= 2 and max(rpin([]), 2 - 1) <= 1 and 2 <= 2 and d * 1 <= 1, "expansion: convN s = 1")
+    xs = Q(1, 2)
+    check(0 <= xs and 1 <= 2 - xs and max(Q(1), xs + 1) <= Q(3, 2) and max(Q(1), Q(1)) <= 1 and 2 - xs <= a
+          and 1 <= a, "expansion: speedM x = 1/2")
+    check(r_step_any(src, m1, c, d) and r_step_any(m1, m2, c, d) and r_step_any(m2, dst, c, d),
+          "A:36 a = x = 3/2, c = 4/3: three relaxed steps")
+    print(f"\n== p. A:36, [1,1,0,0] at d = 1, a = x = 3/2, y = 0, c = 4/3: the printed speedup {rshow(src)} ->"
+          f" {rshow(dst)} is no single HL.RStep step (log n output 1 < max(1, 3/2)), an HL.Loose step;"
+          f" RStep.slow to {rshow(m1)}, RStep.convN (s = 1) to {rshow(m2)}, RStep.speedM (x = 1/2) reach it (asserted)")
+    sa, se, sx, sl = Q(1), Q(1, 2), Q(0), Q(1, 2)
+    check(sa >= 1 and 0 <= se <= sa - sx and 0 <= sx <= sa - 1 and pin([]) >= 1 and sl >= 0,
+          "SpeedLog.new from ([], S 1 1/2), x = 0: side conditions")
+    sp = ([("E", sx + se, max(pin([]), sx + se)), ("A", Q(0), sl)], ("S", sa - sx, se))
+    check(sp == ([("E", Q(1, 2), Q(1)), ("A", Q(0), Q(1, 2))], ("S", Q(1), Q(1, 2))), "SpeedLog.new line")
+    check(Q(1, 2) < max(pin([]), Q(1, 2)) and r_step_any(([], ("S", Q(1), Q(1, 2))), renc(sp), c, d),
+          "SpeedLog.new from ([], S 1 1/2) with x = 0, output 1/2: an RStep.speedN step")
+    print(f"   HY.SpeedLog.new from ([], S 1 1/2), x = 0, log n output 1/2 < max(HY.pin [], e) = 1: encoding {rshow(renc(sp))},"
+          " an HL.RStep.speedN step, since HL.pin [] = 0 (asserted)")
+    for b, e, want in ((Q(4), Q(1), True), (Q(2), Q(3), False)):
+        ap, a8, x1 = Q(2) if b == 4 else Q(1), Q(8), Q(2) if b == 4 else Q(1)
+        start = P([("A", Q(0), b), ("E", ap, b)], ("S", a8, e))
+        printed1 = P([("A", Q(0), b), ("E", max(ap, x1 + e), max(b, x1 + e)), ("A", Q(0), max(b, Q(1)))],
+                     ("S", a8 - x1, e))
+        y1 = Q(1)
+        printed2 = P([("A", Q(0), b), ("E", max(ap, x1 + e), max(b, x1 + e)), ("A", y1, max(b, y1 + e, Q(1))),
+                      ("E", Q(0), max(b, Q(1)))], ("S", a8 - x1 - y1, e))
+        s0, s1, s2 = renc(start), renc(printed1), renc(printed2)
+        check(r_step_any(s0, s1, Q(3, 2), 1) == want and r_step_any(s0, s1, Q(3, 2), 1, loose=True)
+              and r_step_any(s1, s2, Q(3, 2), 1) == want and r_step_any(s1, s2, Q(3, 2), 1, loose=True),
+              f"Case 1 sample b = {b}, e = {e}: printed speedups")
+        print(f"   Case 1 sample b = {b}, e = {e}: each printed speedup (log n output max(b, 1) = {max(b, Q(1))};"
+              f" the second with guess n^y) is"
+              + (" an HL.RStep step" if want else " no HL.RStep step (needs >= max(b, e) = 3), an HL.Loose step")
+              + " (asserted)")
+
+
+def d17_output_example():
+    """Rows D17 and item 3: [1,1,0,0] (p. A:36) at d = 1, a = 3, x = 1/4, y = 5/2 violates y <= a - 1 while
+    dx <= a - y. The Lemma 7.1 line is (E n^{11/4})^{11/4} DTISP[n^3, n^{1/4}]; the printed speedup gives the new
+    log n block the output 1 < max(11/4, 1/4), so it is no HL.RStep step (speedM is the only constructor of that
+    shape), but an HL.Loose step."""
+    d, a, x, y, c = 1, Q(3), Q(1, 4), Q(5, 2), Q(3, 2)
+    L1 = conv(([], ("T", a)), x, d)
+    printed = ([("E", max(a - x, y + d * x), max(a - x, y + d * x, Q(1))), ("A", Q(0), Q(1))], ("S", a - y, d * x))
+    try:
+        speed(L1, y)
+        exact = True
+    except RuleError:
+        exact = False
+    src, dst = renc(L1), renc(printed)
+    check(L1 == ([("E", Q(11, 4), Q(11, 4))], ("S", a, Q(1, 4))) and y > a - 1 and d * x <= a - y and not exact,
+          "D17 a = 3: Lemma 7.1 line, y > a - 1, dx <= a - y, no HY.Step speedup")
+    check(dst == ([Q(11, 4), Q(1)], ("S", Q(1, 2), Q(1, 4))) and not r_step_any(src, dst, c, d)
+          and r_step_any(src, dst, c, d, loose=True), "D17 a = 3: no HL.RStep step, an HL.Loose step")
+    print(f"\n== p. A:36, [1,1,0,0] at d = 1, a = 3, x = 1/4, y = 5/2: y > a - 1, dx <= a - y; from {show(L1)} the"
+          f" display gives {show(printed)}: log n output 1 < 11/4, so no HL.RStep step; an HL.Loose step (asserted)")
+
+
 def thm79_case1_31():
     """Inequality (31) of the sketch of Theorem 7.9, Case 1 (pp. A:37-A:38), max{b, 1, x+e, a-x} <=
     c max{b, y+e, 1, x+e, a-x-y}, at d = 1, c = 3/2 = (d+2)/(d+1), b = a' = 1, a = 5, e = 1/2, x = 0, y = 9/4,
@@ -743,6 +874,8 @@ def main():
     slow_relaxed_test()
     expansion_example()
     speed_outside_a36()
+    log_output_examples()
+    d17_output_example()
     print("\n== Summary: transitions whose output differs from the printed line, the rule applied to the printed"
           " previous line (omitted superscripts read block-wise)")
     for title, ell, rows in SUMMARY:

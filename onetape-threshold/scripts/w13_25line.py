@@ -46,6 +46,13 @@ comparison uses the exact replay in place of the printed numbers.
 At c = 1.29784399 the same replay (same rules, parameters read off the printed lines) passes every side
 condition and ends at 1.751958432856..., strictly below its start 1.751958454 (asserted).
 
+Row D3: the printed Lemma 3.3 transitions to lines 13, 16, 19, 22, read literally with any log n output >= 0
+allowed (HY.SpeedLog, relaxed HL.Loose): lines 16 and 19 are HL.Loose steps, 13 (no admissible x) and 22
+(existential output lowered) are not; line 16 is an exact HY.SpeedLog step, line 19 is not (x = 0.439049244
+gives the merged guess 1.0401089109 against the printed 1.040108911). Asserted, as are every value the paper
+quotes from this script: the largest deviations, the first guess, the final exponent, the b_k rows under each
+output, the blocks whose printed guess drops, the carried log n outputs and the body of the A.2 table.
+
 With --tex it also prints the body of the table of Appendix A.2 of the paper (rule and largest deviations
 per transition, and the notes D1-D3), from which that table is copied.
 
@@ -211,6 +218,48 @@ def literal(printed, c, d):
     return res
 
 
+def d3_literal(printed, d):
+    """Row D3, the printed Lemma 3.3 transitions to lines 13, 16, 19 and 22 read literally with the log n output
+    allowed to be any value >= 0 (HY.SpeedLog, relaxed form HL.Loose), omitted outputs read block-wise. Returns,
+    per line, the parameter x fixed by the printed times, the merged guess max(g, x + e) that Lemma 3.3 gives from
+    the printed previous line, the printed guess, whether the printed line is an exact HY.SpeedLog step (side
+    conditions, merged guess and output, kernel; the printed n^1 of the new block read as a log n guess) and
+    whether its encoding is an HL.Loose.speedM step (some x in [max(0, a - a2), min(a - e, b' - e)] and the outer
+    output not lowered)."""
+    res = {}
+    for k in (13, 16, 19, 22):
+        (pb, pk), (nb, nk) = printed[k - 1], printed[k]
+        a, e = pk[1], pk[2]
+        x = a - nk[1]
+        g = pb[-1][1]
+        o = max(g, Q(1))
+        mg = max(g, x + e)
+        pg = nb[-2][1]
+        side = a >= 1 and 0 <= e <= a - x and 0 <= x <= a - 1 and o >= 1 and nk[2] == e
+        exact = side and mg == pg and max(o, x + e) == max(pg, Q(1)) and [q for q, _ in nb[:-1]] == [q for q, _ in pb]
+        bp = max(pg, Q(1))
+        lo, hi = max(Q(0), a - nk[1]), min(a - e, bp - e)
+        loose = lo <= hi and o <= bp and e <= nk[2]
+        res[k] = (x, mg, pg, exact, loose)
+    return res
+
+
+EXPECTED_TEX = [
+    r"1 & L7.1 & 0 & 0 (first guess $0.999997582$) & 13 & L3.3 & 0 & $4.6\cdot10^{-9}$; D3\\",
+    r"2 & L3.3 & 0 & 0 & 14 & L7.2 & $6.8\cdot10^{-10}$ & $4.6\cdot10^{-9}$\\",
+    r"3 & L3.3 & 0 & 0 & 15 & L7.1 & $6.8\cdot10^{-10}$ & $4.6\cdot10^{-9}$\\",
+    r"4 & L7.2 & $2.1\cdot10^{-10}$ & 0 & 16 & L3.3 & 0 & $4.6\cdot10^{-9}$; D3\\",
+    r"5 & L7.1 & $2.1\cdot10^{-10}$ & 0 & 17 & L7.2 & $8.5\cdot10^{-11}$ & $4.6\cdot10^{-9}$\\",
+    r"6 & L3.3 & 0 & 0 & 18 & L7.1 & $8.5\cdot10^{-11}$ & $4.6\cdot10^{-9}$\\",
+    r"7 & L7.2 & $2.3\cdot10^{-9}$ & 0 & 19 & L3.3 & 0 & $2.6\cdot10^{-9}$; D3\\",
+    r"8 & L7.1 & $2.3\cdot10^{-9}$ & $2.3\cdot10^{-9}$ & 20 & L7.2 & $3.2\cdot10^{-10}$ & $2.6\cdot10^{-9}$\\",
+    r"9 & L3.3 & 0 & $2.3\cdot10^{-9}$ & 21 & L7.1 & $3.2\cdot10^{-10}$ & $2.6\cdot10^{-9}$\\",
+    r"10 & L7.2 & $3.0\cdot10^{-9}$ & $2.3\cdot10^{-9}$ & 22 & L3.3 & 0 & $5.6\cdot10^{-9}$; D2, D3\\",
+    r"11 & L7.2 & $4.2\cdot10^{-9}$ & 0 & 23 & L7.2 & $7.9\cdot10^{-9}$ & $5.6\cdot10^{-9}$\\",
+    r"12 & L7.1 & $4.2\cdot10^{-9}$ & $3.8\cdot10^{-9}$; D2 & 24 & L7.2 & $1.023\cdot10^{-8}$ & 0; D1\\",
+]
+
+
 def main():
     c, d = Q("1.297844"), 1
     printed = [parse(l) for l in PRINTED.strip().split("\n")]
@@ -234,10 +283,18 @@ def main():
             print("  every step of the exact replay satisfies this variant's rules, side conditions included; kernels"
                   " that differ from the"
                   " max(b, e) replay: none (asserted)")
-        print(f"  largest deviation of a kernel exponent from the printed number: {float(worst_k):.7e}")
-        print(f"  largest deviation of max(guess, 1) from the printed block exponent: {float(worst_g):.2e}")
+        assert f"{float(worst_k):.7e}" == "1.0230064e-08" and worst_k < Q(103, 10**10), worst_k
+        assert f"{float(worst_g):.2e}" == "5.60e-09" and worst_g < Q(6, 10**9), worst_g
+        assert raw_g[0][0] == 1 and f"{float(raw_g[0][1]):.9f}" == "0.999997582", raw_g[0]
+        assert f"{float(final):.10f}" == "1.7519584642", final
+        if ell in ("max", "in"):
+            assert bk_max == [], bk_max
+        else:
+            assert [k for k, _ in bk_max] == [10, 23] and all(0 < m < Q(6, 10**9) for _, m in bk_max), bk_max
+        print(f"  largest deviation of a kernel exponent from the printed number: {float(worst_k):.7e} (asserted)")
+        print(f"  largest deviation of max(guess, 1) from the printed block exponent: {float(worst_g):.2e} (asserted)")
         for k, g, pg in raw_g[:1]:
-            print(f"    (line {k}: computed guess {float(g):.9f}, printed n^{float(pg):g})")
+            print(f"    (line {k}: computed guess {float(g):.9f}, printed n^{float(pg):g}; asserted)")
         last = round(final, 9)
         diffpos = next((i + 1 for i, (u, v) in enumerate(zip(f"{float(last):.9f}".split(".")[1],
                                                                f"{float(start):.9f}".split(".")[1])) if u != v), None)
@@ -252,6 +309,11 @@ def main():
               " maximum: " + (", ".join(f"line {k} (by {float(m):.2e})" for k, m in bk_max) if bk_max else "none"))
         if ell == "max":
             tex_rows = table_rows(per, raw_g, states, worst_k)
+            assert tex_rows == EXPECTED_TEX, tex_rows
+            assert {k: lower for k, _, _, _, _, lower in per if lower} == {12: [1], 22: [1]}
+            for k in (12, 22):
+                gap = states[k][0][0][1] - printed[k][0][0][1]
+                assert 0 < gap < Q(6, 10**9), (k, gap)
             print("  per transition (to line k): rule, parameter, largest deviation of a kernel exponent and of"
                   " max(guess, 1) from the printed numbers, and the blocks whose printed guess is below the previous"
                   " line's (no merged rule lowers a guess):")
@@ -266,7 +328,8 @@ def main():
                     if abs(o - default) > Q(1, 10**7):
                         dev.append((k, i, q, g, o, default))
             assert sorted({k for k, i, q, g, o, default in dev if g == 0}) == [13, 16, 19, 22] and all(
-                g == 0 for k, i, q, g, o, default in dev), dev
+                g == 0 and f"{float(o):.8f}" == "1.04010891" and default == 1
+                for k, i, q, g, o, default in dev), dev
             print("  carried output superscripts that differ by more than 1e-7 from Williams's default for an omitted"
                   " superscript, read block-wise (the output of a block of guess a_i is max{a_i, 1}, p. A:5):")
             for k, i, q, g, o, default in dev:
@@ -287,6 +350,7 @@ def main():
     gaps = [amt for bad in lit.values() for kind, amt in bad if kind != "log"]
     assert max(gaps) == Q("0.000000003")
     ok = [k for k, bad in lit.items() if not bad]
+    assert ok == [1, 2, 3, 5, 6, 8, 9, 10, 14, 17, 21], ok
     print("the printed transitions read literally (omitted outputs read block-wise, printed kernels) against the"
           " relaxed calculus HL.RStep (asserted):")
     print(f"  relaxed steps as printed: to lines {ok}")
@@ -300,6 +364,19 @@ def main():
     print(f"  printed log n output 1 below max(b, e) (row D3): lines {kinds['log']}")
     print(f"  every failure other than the log n outputs is by at most {float(max(gaps)):.1e}; the numerical"
           " origin of these discrepancies is not determined, and the comparison uses the exact replay")
+    d3 = d3_literal(printed, d)
+    assert {k for k, v in d3.items() if v[4]} == {16, 19}, d3
+    assert {k for k, v in d3.items() if v[3]} == {16}, d3
+    assert "other" in [b[0] for b in lit[13]] and "lowered" in [b[0] for b in lit[22]]
+    x19, mg19, pg19 = d3[19][:3]
+    assert x19 == Q("0.439049244") and mg19 == Q("1.0401089109") and pg19 == Q("1.040108911"), d3[19]
+    print("row D3, the printed Lemma 3.3 transitions to lines 13, 16, 19, 22 with any log n output >= 0 allowed"
+          " (HY.SpeedLog; relaxed HL.Loose), omitted outputs read block-wise (asserted):")
+    for k, (x, mg, pg, exact, loose) in d3.items():
+        print(f"  line {k}: x = {float(x):.9f}, merged guess {float(mg):.10f}, printed {float(pg):.9f};"
+              f" exact HY.SpeedLog step: {'yes' if exact else 'no'}; HL.Loose step: {'yes' if loose else 'no'}")
+    print("  (line 13: no admissible x; line 22: the existential output is lowered; HL.Loose.speedM keeps both"
+          " conditions)")
     c2 = Q("1.29784399")
     states2 = replay(printed, c2, d, "max")[1]
     end2 = states2[-1][1][1]
