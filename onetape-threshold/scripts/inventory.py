@@ -32,7 +32,8 @@ asserts the further checks named in the paper (the two-step derivation of the DT
 endpoints of the Corollary 7.8 sub-derivations (D7), the printed base case (D6), the 0,1,0 criterion and the
 derivation of its first sample from DTIME_1[n^10] (D11), the absence of a Lemma 7.1 step with s = 0, the
 examples of the paper's Section 2.4, item 3, Section 5.2 and Section 6 (a slowdown below Lemma 7.2's value that
-meets the relaxed bound), and a sample at which inequality (31) of Case 1 (p. A:37) fails). It ends with the number of assertions that hold; a failed one stops it.
+meets the relaxed bound), a sample at which inequality (31) of Case 1 (p. A:37) fails, and a [1,1,0,0] sample with
+x, y >= 0 outside the side conditions of Lemma 3.3 that no exact or relaxed speedup gives (D17)). It ends with the number of assertions that hold; a failed one stops it.
 
 The printed lines are transcribed from the rendered pages (the text layer loses superscripts and primes).
 
@@ -448,6 +449,29 @@ def thm79_1100():
           " HL.RStep.convN allows s = 0")
 
 
+def thm79_1100_side():
+    """Row D17: the [1,1,0,0] display of p. A:36 is stated for x, y >= 0 only. At d = 1, a = 4, x = 3, y = 2 its
+    Lemma 3.3 step goes from (E n^1)^1 DTISP[n^4, n^3] to (E n^5)^5 (A n^0)^1 DTISP[n^2, n^3]: dx = 3 > a - y = 2,
+    so HY.Step has no such step (e <= a - x fails), and no relaxed speedup (HL.RStep speedM/speedN, HL.Loose)
+    either: each needs e <= a - x <= a2, i.e. new time >= old space."""
+    d, a, x, y = 1, Q(4), Q(3), Q(2)
+    L1 = conv(([], ("T", a)), x, d)
+    check(L1 == ([("E", Q(1), Q(1))], ("S", a, Q(3))), "D17: Lemma 7.1 step")
+    printed = ([("E", max(a - x, y + d * x), max(a - x, y + d * x, Q(1))), ("A", Q(0), Q(1))], ("S", a - y, d * x))
+    check(printed == ([("E", Q(5), Q(5)), ("A", Q(0), Q(1))], ("S", Q(2), Q(3))), "D17: printed line")
+    try:
+        speed(L1, y)
+        exact = True
+    except RuleError:
+        exact = False
+    old_space, new_time = L1[1][2], printed[1][1]
+    check(not exact and d * x > a - y, "D17: no HY.Step speedup (dx > a - y)")
+    check(new_time < old_space, "D17: no relaxed speedup (new time 2 below old space 3)")
+    print(f"\n== p. A:36, [1,1,0,0] at d = {d}, a = {a}, x = {x}, y = {y} (Williams: x, y >= 0): from {show(L1)} the display"
+          f" gives {show(printed)}; dx = {d * x} > a - y = {a - y}, so no HY.Step speedup, and new time {new_time} < old"
+          f" space {old_space}, so no relaxed speedup (asserted; row D17)")
+
+
 def thm79_010():
     print("\n   The 0,1,0 display of p. A:36 (Lemma 7.2 maximum printed without b'):")
     for d, c, bp, ap, b, a, s, rel_exp in ((1, Q(3, 2), Q(10), Q(5), Q(5), Q(15, 2), Q(15, 4), "below"),
@@ -648,6 +672,7 @@ def main():
     theorem75()
     cor78_base_printed()
     thm79_1100()
+    thm79_1100_side()
     thm79_010()
     thm79_case1()
     thm79_case2()

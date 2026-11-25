@@ -30,7 +30,7 @@ for a log n block): under max(b, e) the log n blocks of lines 13, 16, 19 and 22 
 Lemma 7.2, whose maximum contains that existential block's output, so no printed number depends on the
 difference.
 
-This is a replay of Williams's rounded display, not a verified proof: replayed from the printed start
+This is a replay of Williams's printed display, not a verified proof: replayed from the printed start
 1.751958454 at c = 1.297844, the computed last line is about 1.0e-8 above the first, so the normal-form
 condition a' < a fails at that c. The script reports this.
 
@@ -38,9 +38,13 @@ It also reads every printed transition literally against the relaxed calculus HL
 read block-wise, printed kernels; function literal) and asserts which transitions no relaxed rule reproduces:
 the slowdowns to lines 4, 7, 11, 20, 23, 24 print a time below c max(pin rest, b, time k) (line 6 -> 7:
 c * 1.155762944 = 1.500000002292736 > 1.5), the existential output falls at lines 12 (1.040108911 ->
-1.040108909, convM) and 22 (-> 1.040108908, speedM), lines 13, 15, 18 fail by rounding of a - s or of x, and
+1.040108909, convM) and 22 (-> 1.040108908, speedM), lines 13, 15, 18 fail the relaxed conditions on a - s or x, and
 the log n blocks of lines 13, 16, 19, 22 have the default output 1 below max(b, e) (row D3). Apart from the
-last, every such failure is by at most 3e-9: rounding of the display, which the replay replaces by exact values.
+last, every such failure is by at most 3e-9. The numerical origin of these discrepancies is not determined; the
+comparison uses the exact replay in place of the printed numbers.
+
+At c = 1.29784399 the same replay (same rules, parameters read off the printed lines) passes every side
+condition and ends at 1.751958432856..., strictly below its start 1.751958454 (asserted).
 
 With --tex it also prints the body of the table of Appendix A.2 of the paper (rule and largest deviations
 per transition, and the notes D1-D3), from which that table is copied.
@@ -241,7 +245,7 @@ def main():
               f" {float(final - start):.7e}; rounded to nine decimal places it is {float(last):.9f}, so the two"
               " differ when rounded to nine decimal places, first in the eighth decimal place")
         if final >= start:
-            print("  the computed last line is not below the first: at c = 1.297844 this replay of the rounded display"
+            print("  the computed last line is not below the first: at c = 1.297844 this replay of the printed display"
                   " is not a strict normal-form proof (a' < a fails)")
         print("  slowdowns at which the output superscript of the remaining prefix (b_k of Lemma 7.2) is the strict"
               " maximum: " + (", ".join(f"line {k} (by {float(m):.2e})" for k, m in bk_max) if bk_max else "none"))
@@ -260,6 +264,8 @@ def main():
                     default = max(g, Q(1))
                     if abs(o - default) > Q(1, 10**7):
                         dev.append((k, i, q, g, o, default))
+            assert sorted({k for k, i, q, g, o, default in dev if g == 0}) == [13, 16, 19, 22] and all(
+                g == 0 for k, i, q, g, o, default in dev), dev
             print("  carried output superscripts that differ by more than 1e-7 from Williams's default for an omitted"
                   " superscript, read block-wise (the output of a block of guess a_i is max{a_i, 1}, p. A:5):")
             for k, i, q, g, o, default in dev:
@@ -277,8 +283,8 @@ def main():
     assert lb7 == Q("1.500000002292736") and ("slow", lb7 - Q("1.5")) in lit[7]
     assert printed[11][0][0][1] == Q("1.040108911") and printed[12][0][0][1] == Q("1.040108909")
     assert ("lowered", Q("0.000000002")) in lit[12] and ("lowered", Q("0.000000003")) in lit[22]
-    rounding = [amt for bad in lit.values() for kind, amt in bad if kind != "log"]
-    assert max(rounding) == Q("0.000000003")
+    gaps = [amt for bad in lit.values() for kind, amt in bad if kind != "log"]
+    assert max(gaps) == Q("0.000000003")
     ok = [k for k, bad in lit.items() if not bad]
     print("the printed transitions read literally (omitted outputs read block-wise, printed kernels) against the"
           " relaxed calculus HL.RStep (asserted):")
@@ -288,10 +294,17 @@ def main():
           f" line 6 -> 7: c * 1.155762944 = {float(lb7):.15f} > 1.5")
     print(f"  printed output of the innermost block lowered (convM, speedM need it >= the old): lines"
           f" {kinds['lowered']} (1.040108911 -> 1.040108909 at line 12, 1.040108911 -> 1.040108908 at line 22)")
-    print(f"  other rounding (convM a - s above the printed output, or speedM with no admissible x): lines"
+    print(f"  other failures (convM a - s above the printed output, or speedM with no admissible x): lines"
           f" {kinds['other']}")
     print(f"  printed log n output 1 below max(b, e) (row D3): lines {kinds['log']}")
-    print(f"  every failure other than the log n outputs is by at most {float(max(rounding)):.1e}")
+    print(f"  every failure other than the log n outputs is by at most {float(max(gaps)):.1e}; the numerical"
+          " origin of these discrepancies is not determined, and the comparison uses the exact replay")
+    c2 = Q("1.29784399")
+    states2 = replay(printed, c2, d, "max")[1]
+    end2 = states2[-1][1][1]
+    assert states2[-1][0] == [] and end2 < start and f"{float(end2):.12f}" == "1.751958432856", end2
+    print(f"at c = 1.29784399 the same replay passes every side condition and ends at {float(end2):.15f}, strictly below"
+          f" its start {float(start):.9f} (asserted)")
     if "--tex" in sys.argv[1:]:
         print("rows of the table of A.2 in the paper (LaTeX):")
         for r in tex_rows:
