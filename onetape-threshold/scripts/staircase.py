@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""The staircase recursion of the paper (Section 5) and the numbers derived from it. None of this is
+"""The staircase recursion of the paper (Section 7.2) and the numbers derived from it. None of this is
 kernel-checked; it is numerical evidence for the conjectured threshold.
 
 Recursion (top normalised to 1; d >= 1, c > 1):
@@ -10,13 +10,21 @@ Recursion (top normalised to 1; d >= 1, c > 1):
              g_{h+1} = Psi_{h+1}/r_{h+1},  S_{h+1} = S_h/(c g_{h+1}) + 1/Psi_{h+1}.
 Level h+1 exists iff n_h > S_h/c, r_{h+1} <= 1 + 1/d and r_{h+1} > c Psi_h (equivalently g_{h+1} < g_h).
 Verdict at c: REF if some existing level has c g_h < 1; STOP if the staircase ends with c g_h > 1 for every
-existing level. c*_stair(d) is the supremum of the c with verdict REF.
+existing level. c*_stair(d) is the supremum of the c in [1 + 1/(4d), 1 + 1/d] with verdict REF. That the verdict is monotone in c
+(REF below a single boundary, STOP above it) is observed numerically, not proved; without it, the bisection
+locates a point where the verdict changes, not the supremum.
 
 usage:
   staircase.py levels C D [H]     the levels at c = C (decimal), dimension D
   staircase.py threshold D DIGITS bisect for c*_stair(D) in interval arithmetic (directed rounding);
-                                  every verdict used is certified by the intervals
-  staircase.py appear D [K]       c_1, ..., c_K: the largest c at which level h still exists (float bisection)
+                                  every verdict used is certified by the intervals; the printed digits
+                                  are those shared by the two ends of a bracket of width 10^-DIGITS
+                                  with opposite certified verdicts (a numerical estimate of
+                                  c*_stair: the bisection assumes the verdict is monotone in c)
+  staircase.py appear D [K]       c_1, ..., c_K, where c_h is the point found by float bisection on
+                                  [1 + 1/(4d), 1 + 1/d] at which the predicate "the recursion reaches
+                                  level h or refutes before reaching it" (exists_level) changes from
+                                  true to false; a numerical estimate
   staircase.py roots              r_d (largest real root of Williams's p_d), sqrt(1+1/d), 1+1/(d+1), and the
                                   roots of the cubics at which level 1 first appears, for d = 1, 2, 3
 Python 3 standard library only."""
@@ -154,11 +162,17 @@ def threshold(d, digits):
         k += 1
     print(f"d = {d}: c*_stair in [{a_[:digits + 4]}..., {b_[:digits + 4]}...]")
     print(f"  common digits of the two ends ({k - 2} decimals): {a_[:k]}")
+    print("  (the verdicts at the two ends are certified; that these are digits of the supremum assumes that the"
+          " verdict is monotone in c, which is not proved)")
     print(f"  verdict {vl} at the lower end after {len(ol) - 1} levels, {vh} at the upper end after {len(oh) - 1} levels;"
           f" kinds of r_(h+1) used at the lower end: {kinds}")
 
 
 def exists_level(c, d, h):
+    """True if the recursion at c reaches level h, or refutes (verdict REF) before reaching it. A refutation
+    stops the recursion, so this is not "level h exists" in the sense of the paper when the recursion
+    refutes early: at d = 1, c = 5/4 level 0 already refutes, and continuing past it would give a level-2
+    candidate r_2 = 42375/13639 > 1 + 1/d."""
     v, out = recursion(c, d, 2000, FloatNum())
     return v == "REF" or len(out) - 1 >= h
 
@@ -174,7 +188,7 @@ def appear(d, K=6):
             else:
                 hi = m
         res.append(lo)
-    print(f"d = {d}: level h exists for c up to c_h: " + ", ".join(f"c_{h} = {x:.6f}" for h, x in enumerate(res, 1)))
+    print(f"d = {d}: boundary c_h of 'reaches level h or refutes earlier' (float bisection): " + ", ".join(f"c_{h} = {x:.6f}" for h, x in enumerate(res, 1)))
 
 
 def poly_root(coef, lo, hi, it=200):
@@ -207,7 +221,7 @@ def roots():
             else:
                 hi = m
         print(f"d = {d}: r_d = {float(rd):.10f}  sqrt(1+1/d) = {(1 + 1 / d) ** 0.5:.6f}  1+1/(d+1) = {1 + 1 / (d + 1):.6f}"
-              f"  cubic root = {float(cr):.12f}  level 1 last exists at c_1 = {lo:.12f}")
+              f"  cubic root = {float(cr):.12f}  boundary c_1 (reaches level 1 or refutes earlier) = {lo:.12f}")
 
 
 if __name__ == "__main__":

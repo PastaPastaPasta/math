@@ -97,6 +97,16 @@ def unfolded_lines(cert):
     return 2 + memo[cert["root"]]
 
 
+def ceil_sci(n, digits=3):
+    """n rounded up to `digits` significant digits, as a string m.mme+k."""
+    k = len(str(n)) - digits
+    m = -(-n // 10 ** k) if k > 0 else n
+    if len(str(m)) > digits:
+        m //= 10; k += 1
+    t = str(m)
+    return f"{t[0]}.{t[1:]}e+{k + digits - 1}"
+
+
 def report(cert, label):
     lit, msg1 = check(cert, strict=False)
     st, msg2 = check(cert, strict=True)
@@ -110,7 +120,8 @@ def report(cert, label):
     t = cert["nodes"][cert["root"]]["t"]
     print(f"  normal-form proof built by nf_of_SC: from DTIME_d[n^a0], a0 = t_root = {t} ~ {t:.4e}, "
           f"to DTIME_d[n^a'] with a' <= c*phi_root*a0")
-    print(f"  unfolded derivation: {unfolded_lines(cert):.4e} lines")
+    u = unfolded_lines(cert)
+    print(f"  unfolded derivation: at most {u} lines (<= {ceil_sci(u)})")
     return lit is not None and st is not None
 
 

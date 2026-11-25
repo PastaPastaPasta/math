@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 """Calibration: replays the 25-line proof printed in Williams's TOCT paper (Section 7.2, pp. A:32-A:33;
-d = 1) under the rules of the formal calculus HY.Step (merged Lemma 7.1, merged Lemma 3.3 inside a prefix,
+d = 1) under the rules of the formal calculus HY.Step (Lemma 7.1, Lemma 3.3 merged inside a prefix,
 Lemma 7.2), with c = 1.297844 (the value implied by its lines 9 -> 10).
 
 The printed lines show each block's guess exponent, log n blocks as n^1, and no output superscripts. The
 script carries the full state (quantifier, guess, output superscript) itself: for each printed step it
 infers the rule from the shape of the next line and its parameter from the printed numbers (s from the new
 space exponent, x from the new time exponent), applies the rule exactly, and compares every printed
-number with the computed one (block exponents as max(guess, 1)). It reports the largest deviation; the
-printed numbers have 9-10 significant digits.
+number with the computed one. Kernel exponents are compared directly; block exponents are compared as
+max(guess, 1), since the printed lines show guesses below 1 (log n blocks, and the first block, whose
+computed guess is 0.999997582) as n^1. It reports the largest deviations; the printed numbers have 9-10
+significant digits.
+
+This is a replay of Williams's rounded display, not a verified proof: replayed from the printed start
+1.751958454 at c = 1.297844, the computed last line is about 1.0e-8 above the first, so the normal-form
+condition a' < a fails at that c. The script reports this.
 
 usage: w13_25line.py      (Python 3 standard library only; exact arithmetic except for the comparison)"""
 import re
@@ -59,7 +65,9 @@ def main():
     c, d = Q("1.297844"), 1
     printed = [parse(l) for l in PRINTED.strip().split("\n")]
     state = ([], printed[0][1])
-    worst = Q(0)
+    worst_k = Q(0)
+    worst_g = Q(0)
+    raw_g = []
     rules = []
     for k in range(1, len(printed)):
         blocks, ker = state
@@ -92,15 +100,22 @@ def main():
             raise SystemExit(f"line {k}: no rule matches")
         assert [q for q, *_ in blocks] == [q for q, _ in pb], f"line {k}: quantifiers"
         assert all(blocks[i][0] != blocks[i + 1][0] for i in range(len(blocks) - 1)), f"line {k}: alternation"
-        devs = [abs(max(g, 1) - pg) for (q, g, o), (_, pg) in zip(blocks, pb)]
-        devs += [abs(x - y) for x, y in zip(ker[1:], pk[1:])]
         assert ker[0] == pk[0]
-        worst = max(worst, max(devs))
+        worst_g = max([worst_g] + [abs(max(g, 1) - pg) for (q, g, o), (_, pg) in zip(blocks, pb)])
+        worst_k = max([worst_k] + [abs(x - y) for x, y in zip(ker[1:], pk[1:])])
+        raw_g += [(k, g, pg) for (q, g, o), (_, pg) in zip(blocks, pb) if 0 < g < 1]
         state = (blocks, ker)
     final, start = state[1][1], printed[0][1][1]
     print(f"rules: {' '.join(rules)}")
-    print(f"every step is a rule of the formal calculus; largest deviation from the printed numbers: {float(worst):.2e}")
+    print("every step is a rule of the formal calculus")
+    print(f"largest deviation of a kernel exponent from the printed number: {float(worst_k):.2e}")
+    print(f"largest deviation of max(guess, 1) from the printed block exponent: {float(worst_g):.2e}")
+    for k, g, pg in raw_g[:1]:
+        print(f"  (line {k}: computed guess {float(g):.9f}, printed n^{float(pg):g})")
     print(f"computed final exponent {float(final):.10f} vs. start {float(start):.10f} (difference {float(final - start):.2e})")
+    if final >= start:
+        print("the computed last line is not below the first: at c = 1.297844 this replay of the rounded display"
+              " is not a strict normal-form proof (a' < a fails); it agrees with the display to the printed precision")
     return 0
 
 

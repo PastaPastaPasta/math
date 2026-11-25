@@ -4,7 +4,9 @@
 level lists and abstract-state lists that PastaMath/OneTapeThreshold/Ceiling.lean checks.
 
 For each ceiling it prints c0, d, theta0 (and whether theta0 = c0^2 - c0/(d+1)), the levels (P, theta),
-the number of abstract states, and whether the check accepts.
+the number of abstract states, and whether the check accepts. It also runs two perturbed checks, which
+should both reject: c0 lowered by 1/10^4 with theta0 recomputed as c0^2 - c0/(d+1) (levels and states
+unchanged), and the last abstract state removed.
 
 usage: abs_check.py ../../PastaMath/OneTapeThreshold/Ceiling.lean
 Python 3 standard library only; exact arithmetic (fractions.Fraction)."""
@@ -130,6 +132,11 @@ def main(path):
               f"{'ACCEPT' if acc else 'REJECT'}")
         for P, th in x["lv"]:
             print(f"    level P = {float(P):.6f}, theta = {th} = {float(th)}")
+        c2 = c - Q(1, 10 ** 4)
+        low = abs_check(c2, d, c2 * c2 - c2 / (d + 1), x["lv"], x["S"])
+        cut = abs_check(c, d, th0, x["lv"], x["S"][:-1])
+        print(f"    perturbed: c0 - 1/10^4 = {c2}: {'ACCEPT' if low else 'REJECT'}; "
+              f"last abstract state removed: {'ACCEPT' if cut else 'REJECT'}")
     return 0 if ok else 1
 
 
