@@ -75,11 +75,17 @@ def number_labels(body):
     """Assign LaTeX-style numbers to sections, theorem-like environments and tables."""
     labels = {}
     sec = sub = thm = tab = 0
+    app = None
     current = None
     tok = re.compile(r"\\(section|subsection)(\*?)\{|\\begin\{(" + "|".join(THM_ENVS)
-                     + r"|table)\}|\\label\{([^}]*)\}")
+                     + r"|table)\}|\\label\{([^}]*)\}|\\(appendix)(?![A-Za-z])")
     for m in tok.finditer(body):
-        if m.group(1) == "section" and not m.group(2):
+        if m.group(5):
+            app = 0
+        elif m.group(1) == "section" and not m.group(2) and app is not None:
+            app += 1
+            current = chr(ord("A") + app - 1)
+        elif m.group(1) == "section" and not m.group(2):
             sec += 1
             sub = 0
             current = str(sec)
@@ -121,16 +127,29 @@ def convert(tex):
         return "{}[" + keys + (", " + o if o else "") + "]"
     body = replace_cmd(body, "cite", cite, opt=True)
 
-    counters = {"sec": 0, "sub": 0}
+    counters = {"sec": 0, "sub": 0, "app": None}
+    body = body.replace("\\allowbreak", "")
+    body = re.sub(r"\\multicolumn\{(\d+)\}\{[^}]*\}\{((?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*)\}",
+                  lambda m: m.group(2) + " &" * (int(m.group(1)) - 1), body)
+    if "\\appendix" in body:
+        body = body.replace("\\appendix", "\\section{@APPENDIX@}", 1)
 
     def section(m):
         star, name = m.group(2), m.group(3)
+        if m.group(1) == "section" and name == "@APPENDIX@":
+            counters["app"] = 0
+            return ""
+        if m.group(1) == "section" and not star and counters["app"] is not None:
+            counters["app"] += 1
+            return r"\section*{Appendix " + chr(ord("A") + counters["app"] - 1) + ". " + name + "}"
         if m.group(1) == "section":
             if star:
                 return r"\section*{" + name + "}"
             counters["sec"] += 1
             counters["sub"] = 0
             return r"\section*{" + f"{counters['sec']}. " + name + "}"
+        if star:
+            return r"\subsection*{" + name + "}"
         counters["sub"] += 1
         return r"\subsection*{" + f"{counters['sec']}.{counters['sub']} " + name + "}"
     body = re.sub(r"\\(section|subsection)(\*?)\{((?:[^{}]|\{[^{}]*\})*)\}", section, body)
