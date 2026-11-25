@@ -47,3 +47,6 @@ open PastaMath.OneTapeThreshold
 #print axioms HY.path_S_space_nonneg
 #print axioms HY.path_S_space_nonnegO
 #print axioms HL.cor78_base_reach
+#print axioms HY.path_alt
+#print axioms HY.path_alt_incl
+#print axioms HL.rstep_T_mono

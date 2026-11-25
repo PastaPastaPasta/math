@@ -29,6 +29,14 @@ produces a space exponent ≥ 0, so along a `Step` path from `([], T a₀)` ever
 `(∃ n)(∀ log n) DTISP[n, n^{d/(d+1)}]` from `DTIME_d[n^{(d+1)/(d+2)}]`, is reached in the relaxed
 calculus by two steps, for every c and d ≥ 0: `convN` with s = 0 to `([1], S 1 0)`, then `speedM` with
 x = 0 to `([1, 1], S 1 (d/(d+1)))`.
+
+`step_alt`, `path_alt`: every `Step` preserves alternation, so along a `Step` path from `([], T a₀)`
+every line alternates (`HY.path_alt_incl` in `Variants.lean`: the same with `HY.Incl` steps).
+
+`HL.rstep_T_mono`: for c, d ≥ 0 and 0 ≤ a ≤ a', a relaxed step from `(bl, T a')` is also a relaxed
+step from `(bl, T a)` to the same line, so raising a DTIME_d exponent (DTIME_d[n^a] ⊆ DTIME_d[n^{a'}])
+directly before a relaxed step is absorbed by that step (used for Corollary 7.8 as a black box, paper
+row D7).
 -/
 
 namespace PastaMath.OneTapeThreshold
@@ -135,6 +143,40 @@ theorem path_S_space_nonnegO {ℓ : ℝ → ℝ → ℝ} {c d a₀ : ℝ} (hd : 
   | zero => rw [h0] at hk; cases hk
   | succ j => exact step_S_space_nonnegO hd (hp j (by omega)) hk
 
+theorem alt_head_q {u v : Blk} {rest : List Blk} (hq : u.q = v.q) (h : Alt (u :: rest)) :
+    Alt (v :: rest) := by
+  cases rest with
+  | nil => trivial
+  | cons w r => exact ⟨hq ▸ h.1, h.2⟩
+
+theorem alt_tail {u : Blk} {rest : List Blk} (h : Alt (u :: rest)) : Alt rest := by
+  cases rest with
+  | nil => trivial
+  | cons w r => exact h.2
+
+theorem alt_push {u : Blk} {bl : List Blk} (hq : ∀ v rest, bl = v :: rest → v.q ≠ u.q)
+    (h : Alt bl) : Alt (u :: bl) := by
+  cases bl with
+  | nil => trivial
+  | cons v r => exact ⟨fun e => hq v r rfl e.symm, h⟩
+
+theorem step_alt {c d : ℝ} {L L' : Line} (h : Step c d L L') (hA : Alt L.1) : Alt L'.1 := by
+  cases h with
+  | convMerge u rest a s hs hsa hb => exact alt_head_q (u := u) rfl hA
+  | convNew bl q a s hq hs hsa hb => exact alt_push hq hA
+  | speedMerge u rest a e x ha he hex hx hx1 hb =>
+    exact ⟨by simp, alt_head_q (u := u) rfl hA⟩
+  | speedNew bl q a e x hq ha he hex hx hx1 hb =>
+    exact ⟨by simp, alt_push hq hA⟩
+  | slow u rest k h1 h2 h3 h4 => exact alt_tail hA
+
+theorem path_alt {c d a₀ : ℝ} {M : ℕ → Line} {n : ℕ} (hp : Path (Step c d) M n)
+    (h0 : M 0 = ([], .T a₀)) : ∀ i ≤ n, Alt (M i).1 := by
+  intro i hi
+  induction i with
+  | zero => rw [h0]; trivial
+  | succ j ih => exact step_alt (hp j (by omega)) (ih (by omega))
+
 end HY
 
 namespace HL
@@ -152,6 +194,28 @@ theorem cor78_base_reach (c d : ℝ) (hd : 0 ≤ d) :
   · refine RStep.speedM 1 [] 1 0 0 1 1 1 (d / (d + 1)) le_rfl (by norm_num) (by norm_num)
       (by norm_num) (by norm_num) ?_
     exact div_nonneg hd (by linarith)
+
+/-- A relaxed step from `(bl, T a')` can start from `(bl, T a)` for any 0 ≤ a ≤ a', to the same line
+(c, d ≥ 0): lowering a DTIME_d exponent before a relaxed step is absorbed by that step. Lemma 7.1
+(`convM`, `convN`) uses s' = min(s, a); Lemma 7.2 (`slow`) has a smaller lower bound. -/
+theorem rstep_T_mono {c d a a' : ℝ} {bl : List ℝ} {L' : RLine} (hc : 0 ≤ c) (hd : 0 ≤ d)
+    (ha : 0 ≤ a) (haa : a ≤ a') (h : RStep c d (bl, .T a') L') : RStep c d (bl, .T a) L' := by
+  have key : ∀ s : ℝ, s ≤ a' → a - min s a ≤ a' - s := fun s hs => by
+    rcases le_total s a with h' | h'
+    · rw [min_eq_left h']; linarith
+    · rw [min_eq_right h']; linarith
+  cases h with
+  | convM b rest _ s b₁ a₂ e hs hsa h₁ ha₂ he =>
+    refine RStep.convM b rest a (min s a) b₁ a₂ e (le_min hs ha) (min_le_right _ _) ?_
+      (by linarith) (le_trans (mul_le_mul_of_nonneg_left (min_le_left _ _) hd) he)
+    exact le_trans (max_le_max le_rfl (key s hsa)) h₁
+  | convN _ _ s g a₂ e hs hsa hg ha₂ he =>
+    refine RStep.convN bl a (min s a) g a₂ e (le_min hs ha) (min_le_right _ _) ?_
+      (by linarith) (le_trans (mul_le_mul_of_nonneg_left (min_le_left _ _) hd) he)
+    exact le_trans (max_le_max le_rfl (key s hsa)) hg
+  | slow b rest _ a'' hk =>
+    refine RStep.slow b rest (.T a) a'' (le_trans ?_ hk)
+    exact mul_le_mul_of_nonneg_left (max_le_max le_rfl haa) hc
 
 end HL
 end PastaMath.OneTapeThreshold

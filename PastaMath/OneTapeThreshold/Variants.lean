@@ -1,5 +1,6 @@
 -- SPDX-License-Identifier: Apache-2.0
 import PastaMath.OneTapeThreshold.Ceiling
+import PastaMath.OneTapeThreshold.Displays
 
 /-!
 # Two moves outside the formal calculus
@@ -31,12 +32,33 @@ and of Lemma 7.2, which includes the output b_k of the remaining prefix; the sta
 one block over a DTIME kernel and has the three-term maximum max{a, a', b}. Read so, each application of
 Lemma 3.4 gives the line of `HY.Step.slow` followed by a `Widen` step (time and space c'·m, e·m ≥ c·m,
 where c·m is the time exponent `slow` gives); `HY.Incl` is the case c' = e = c. A slowdown whose maximum
-omits b_k (as one display of Williams's sketch of Theorem 7.9 prints it, p. A:36) is not covered.
+omits b_k (as the 0,1,0 and 0,0 displays of Williams's sketch of Theorem 7.9 print it, p. A:36) is covered
+by the relaxed statements whenever its output meets the bound c·max(pin rest, b, time k) of
+`HL.RStep.slow`. For those two displays this fails exactly when the display is below Lemma 7.2's value,
+i.e. when b′ > max{b, a − s, a′, a, d·s} (0,1,0), resp. b′ > max{b, a′, a} (0,0), and then no ceiling
+covers it (paper row D11).
+
+The ceilings are theorems about the formalised rule set: `HY.Step` plus the extensions named in each
+theorem (`HL.RStep`, `HY.Incl`/`HL.Widen`, and for `HL.no_drop_W` also `HY.SpeedLog`/`HL.Loose`). That
+rule set follows the statements of Williams's Lemmas 7.1, 3.3 and 7.2 with their side conditions;
+Williams's text differs from it in the places listed in Section 2.4 and Appendix A of the paper. The
+known differences that matter for the ceilings are: (a) the output max(o, e) of the new log n block of
+Lemma 3.3 versus the smaller superscripts displayed on pp. A:36–A:38 (sharp ceilings only); (b) the full
+maximum of Lemma 7.2, including b_k, versus the 0,1,0 and 0,0 displays on p. A:36 (above); (c) both
+halves of the p. A:31 sentence "When C is DTISP, the Speedup and Slowdown Rules from Section 4 apply":
+speedups of a DTISP kernel are read as Lemma 3.3 and slowdowns as Lemma 7.2 or Lemma 3.4 with exponents
+≥ c (above), and the literal Speedup Rules 0–2 and Slowdown Rule of §4 on a DTISP kernel (DTS outputs)
+are excluded, with nothing claimed for them; (d) the side conditions of Lemma 3.3, in particular
+e ≤ a − x, which the p. A:36 display (stating only x, y ≥ 0) does not impose; (e) no splitting of a
+block into two of the same type (alternation as in Definition 4.1). We do not claim this list of
+reading choices is exhaustive.
 
 * `HLM.ceilingX_d1`, `ceilingX_d2`, `ceilingX_d3`: for every real c ≥ 6547/5000, 149/125, 712/625
   respectively, (1) there is no path of `RStep c d` and `Widen` steps (`HL.RPathX`) with n ≥ 1 from
   `([], T a₀)`, a₀ > 0, to `([], T a')` with a' ≤ a₀, and (2) every path of `HY.Step c d` and
   `HY.Incl` steps of length n ≥ 1 from `([], T a₀)`, a₀ > 0, to `([], T a')` has a₀ < a'.
+* `HY.path_alt_incl`: along a path of `HY.Step` and `HY.Incl` steps from `([], T a₀)` every line
+  alternates (`HY.step_alt` in `Displays.lean`; `HY.Incl` keeps the prefix).
 * `HL.qf_ge_W`: under `Facts c d g` and d ≥ 1, along every `RPathW c d` (`RStep`, `Loose` and
   `Widen` steps) from `([], T a₀)`, a₀ ≥ 0, to `([], T a')`, a₀ ≤ a'. `HL.no_drop_W`: for d ≥ 1,
   c ≥ 1 and c² ≥ 1 + 1/d, the same along every path of `HY.Step c d`, `HY.Incl` and `HY.SpeedLog`
@@ -64,6 +86,22 @@ inductive SpeedLog : Line → Line → Prop
       (ha : 1 ≤ a) (he : 0 ≤ e) (hex : e ≤ a - x) (hx : 0 ≤ x) (hx1 : x ≤ a - 1)
       (hb : 1 ≤ pin bl) (hℓ : 0 ≤ ℓ) :
       SpeedLog (bl, .S a e) (⟨!q, 0, ℓ⟩ :: ⟨q, x + e, max (pin bl) (x + e)⟩ :: bl, .S (a - x) e)
+
+theorem incl_alt {L L' : Line} (h : Incl L L') (hA : Alt L.1) : Alt L'.1 := by
+  cases h
+  exact hA
+
+/-- Along a path of `Step c d` and `Incl` steps from `([], T a₀)` every line alternates. -/
+theorem path_alt_incl {c d a₀ : ℝ} {M : ℕ → Line} {n : ℕ}
+    (hp : ∀ i < n, Step c d (M i) (M (i + 1)) ∨ Incl (M i) (M (i + 1)))
+    (h0 : M 0 = ([], .T a₀)) : ∀ i ≤ n, Alt (M i).1 := by
+  intro i hi
+  induction i with
+  | zero => rw [h0]; trivial
+  | succ j ih =>
+    rcases hp j (by omega) with h | h
+    · exact step_alt h (ih (by omega))
+    · exact incl_alt h (ih (by omega))
 
 end HY
 
