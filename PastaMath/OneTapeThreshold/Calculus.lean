@@ -16,7 +16,7 @@ for log n) and an output superscript `o` (Williams's b_{i+1}). The kernel is `Ke
 (DTIME_d[n^a]) or `Ker.S a e` (DTISP[n^a, n^e]). `pin bl` is the input superscript of the kernel:
 the `o` of the innermost block, or 1 when `bl = []`.
 
-`Step c d` has one constructor per rule, with Williams's exact outputs:
+`Step c d` has one constructor per rule, with the exact outputs of the §2.4 reading:
 
 * `convMerge u rest a s` (Lemma 7.1, new block merged into the innermost block, which has the same
   quantifier): from `(u :: rest, T a)` with 0 < s ≤ a and 1 ≤ u.o to
