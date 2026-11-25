@@ -129,7 +129,7 @@ def convert(tex):
 
     counters = {"sec": 0, "sub": 0, "app": None}
     body = body.replace("\\allowbreak", "")
-    body = replace_cmd(body, "multicolumn", lambda o, a: a[2] + " &" * (int(a[0]) - 1), nargs=3)
+    body = replace_cmd(body, "multicolumn", lambda o, a: a[2] + " & ←" * (int(a[0]) - 1), nargs=3)
     if "\\appendix" in body:
         body = body.replace("\\appendix", "\\section{@APPENDIX@}", 1)
 
