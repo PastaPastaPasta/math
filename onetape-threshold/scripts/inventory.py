@@ -32,7 +32,8 @@ asserts the further checks named in the paper (the two-step derivation of the DT
 endpoints of the Corollary 7.8 sub-derivations (D7), the printed base case (D6), the 0,1,0 criterion and the
 derivation of its first sample from DTIME_1[n^10] (D11), the absence of a Lemma 7.1 step with s = 0, the
 examples of the paper's Section 2.4, item 3, Section 5.2 and Section 6 (a slowdown below Lemma 7.2's value that
-meets the relaxed bound), a sample at which inequality (31) of Case 1 (p. A:37) fails, and a [1,1,0,0] sample with
+meets the relaxed bound; a transition that is not a single relaxed step but expands into three exact steps; a
+[1,1,0,0] speedup outside Lemma 3.3's condition x <= a - 1 that is a single relaxed step), a sample at which inequality (31) of Case 1 (p. A:37) fails, and a [1,1,0,0] sample with
 x, y >= 0 outside the side conditions of Lemma 3.3 that no exact or relaxed speedup gives (D17)). It ends with the number of assertions that hold; a failed one stops it.
 
 The printed lines are transcribed from the rendered pages (the text layer loses superscripts and primes).
@@ -625,6 +626,68 @@ def slow_relaxed_test():
           f" c max(pin rest, b, time k) is {bound} = c (asserted)")
 
 
+def rpin(outs):
+    """Input superscript of a relaxed line (HL.pin): the innermost output, or 0 for the empty prefix."""
+    return outs[-1] if outs else Q(0)
+
+
+def enc(line):
+    """The relaxed encoding HL.enc: the output superscripts (outermost first here) and the kernel."""
+    return [b[2] for b in line[0]], line[1]
+
+
+def rslow_bound(line, c):
+    """The least time HL.RStep.slow allows after removing the innermost block: c max(pin rest, b, time k)."""
+    outs, ker = enc(line)
+    return c * max(rpin(outs[:-1]), outs[-1], ker[1])
+
+
+def rspeedM_ok(src, dst, x):
+    """HL.RStep.speedM from the encoding of src to that of dst with parameter x: 0 <= x, e <= a - x,
+    max(b, x + e) <= b', max(b, e) <= L, a - x <= a2, e <= e2, and the outer outputs unchanged."""
+    (outs, (_, a, e)), (outs2, (_, a2, e2)) = enc(src), enc(dst)
+    b, (b1, L) = outs[-1], outs2[-2:]
+    return (outs2[:-2] == outs[:-1] and 0 <= x and e <= a - x and max(b, x + e) <= b1 and max(b, e) <= L
+            and a - x <= a2 and e <= e2)
+
+
+def expansion_example():
+    """Paper Section 6: a transition that is not a single relaxed step but expands into exact steps. d = 1,
+    c = 10/7: Lemma 7.1 (s = 1) takes DTIME_1[n^3] to (E n^2)^2 DTISP[n^3, n^1]; a single relaxed slowdown from
+    there needs time >= c max(0, 2, 3) = 30/7, while Lemma 3.3 (x = 1) and two Lemma 7.2 steps reach
+    DTIME_1[n^(2c^2)] = DTIME_1[n^(200/49)], and 200/49 < 30/7."""
+    d, c = 1, Q(10, 7)
+    L1 = conv(([], ("T", Q(3))), Q(1), d)
+    bound = rslow_bound(L1, c)
+    L2 = speed(L1, Q(1))
+    L3 = slow(L2, c)
+    L4 = slow(L3, c)
+    check(L1 == ([("E", Q(2), Q(2))], ("S", Q(3), Q(1))) and bound == Q(30, 7), "Section 6 expansion: start")
+    check(L4 == ([], ("T", 2 * c * c)) and 2 * c * c == Q(200, 49) and Q(200, 49) < bound,
+          "Section 6 expansion: three exact steps reach a time below the single-step relaxed bound")
+    print(f"\n== Paper Section 6: from {show(L1)} (d = 1, c = 10/7) a single relaxed slowdown needs time >= {bound};"
+          f" Lemma 3.3 (x = 1) and two Lemma 7.2 steps give {show(L2)}, {show(L3)}, {show(L4)}: time 200/49 < 30/7"
+          " (asserted)")
+
+
+def speed_outside_a36():
+    """Paper Section 6: a [1,1,0,0] speedup of p. A:36 outside Lemma 3.3's side conditions that is still a single
+    relaxed step. d = 1, a = 3/2, x = 1/2, y = 3/4: y > a - 1 (so no HY.Step speedup, and the new time 3/4 is
+    below 1), but e = dx = 1/2 <= a - y, and the printed line is an HL.RStep.speedM step from the Lemma 7.1 line."""
+    d, a, x, y = 1, Q(3, 2), Q(1, 2), Q(3, 4)
+    L1 = conv(([], ("T", a)), x, d)
+    printed = ([("E", max(a - x, y + d * x), max(a - x, y + d * x, Q(1))), ("A", Q(0), Q(1))], ("S", a - y, d * x))
+    try:
+        speed(L1, y)
+        exact = True
+    except RuleError:
+        exact = False
+    check(L1 == ([("E", Q(1), Q(1))], ("S", a, Q(1, 2))) and y > a - 1 and d * x <= a - y, "A:36 sample a = 3/2")
+    check(not exact and rspeedM_ok(L1, printed, y), "A:36 sample a = 3/2: no HY.Step speedup, but HL.RStep.speedM")
+    print(f"\n== p. A:36, [1,1,0,0] at d = {d}, a = {a}, x = {x}, y = {y}: y > a - 1, so no HY.Step speedup; from"
+          f" {show(L1)} the display gives {show(printed)}, an HL.RStep.speedM step (asserted)")
+
+
 def thm79_case1_31():
     """Inequality (31) of the sketch of Theorem 7.9, Case 1 (pp. A:37-A:38), max{b, 1, x+e, a-x} <=
     c max{b, y+e, 1, x+e, a-x-y}, at d = 1, c = 3/2 = (d+2)/(d+1), b = a' = 1, a = 5, e = 1/2, x = 0, y = 9/4,
@@ -678,6 +741,8 @@ def main():
     thm79_case2()
     thm79_case1_31()
     slow_relaxed_test()
+    expansion_example()
+    speed_outside_a36()
     print("\n== Summary: transitions whose output differs from the printed line, the rule applied to the printed"
           " previous line (omitted superscripts read block-wise)")
     for title, ell, rows in SUMMARY:

@@ -224,14 +224,15 @@ def main():
             ref = states
             ref_dev = (worst_k, worst_g)
             print(f"  rules: {' '.join(rules)}")
-            print("  every step is a rule of the formal calculus with its side conditions")
+            print("  every step of the exact replay satisfies the formal rules, side conditions included")
             print("  compared: kernel exponents (time, and space on DTISP lines) and max(guess, 1) for every block;"
                   " output superscripts are not printed")
         else:
             kdiff = [k for k in range(len(states)) if states[k][1] != ref[k][1]]
             assert not kdiff, f"kernels differ from the max(b, e) replay at lines {kdiff}"
             assert (worst_k, worst_g) == ref_dev, "deviations differ from the max(b, e) replay"
-            print("  every step is a rule of this variant with its side conditions; kernels that differ from the"
+            print("  every step of the exact replay satisfies this variant's rules, side conditions included; kernels"
+                  " that differ from the"
                   " max(b, e) replay: none (asserted)")
         print(f"  largest deviation of a kernel exponent from the printed number: {float(worst_k):.7e}")
         print(f"  largest deviation of max(guess, 1) from the printed block exponent: {float(worst_g):.2e}")
