@@ -13,13 +13,14 @@ the deviations accumulate along the replay. Compared are the kernel exponents (t
 directly, and the block guess exponents, as max(guess, 1), since the printed lines show guesses below 1
 (log n blocks, and the first block, whose computed guess is 0.999997582) as n^1. Output superscripts are
 not printed, so they are not compared. It reports the largest deviations, per transition and overall,
-the blocks whose printed guess is below the previous line's (no merged rule lowers a guess), and whether
-the computed last line agrees with the printed one in the last printed digit (it does not: 1.7519584642
-rounds to 1.751958464, Williams prints 1.751958454).
+the blocks whose printed guess is below the previous line's (no merged rule lowers a guess), and compares
+the computed last line with the printed one rounded to nine decimal places (1.7519584642 rounds to
+1.751958464, Williams prints 1.751958454: they differ in the eighth decimal place; asserted).
 
 The replay is run with four outputs for the new log n block of Lemma 3.3: max(b, e) of HY.Step, exactly 1,
 max(b, 1) (the display of Case 1 of the sketch of Theorem 7.9) and max(1, e). All reproduce every printed
-number to the same precision, so the display does not decide between them. For each, the script lists the
+number to the same precision, with the same kernels (asserted), so the display does not decide between
+them. For each, the script lists the
 Lemma 7.2 steps at which the output superscript of the remaining prefix (b_k) is the strict maximum, i.e.
 where a slowdown maximum without b_k (as displayed on p. A:36) would give a smaller exponent: none under
 max(b, e). It also compares the carried output superscripts with Williams's default for an omitted
@@ -33,7 +34,10 @@ This is a replay of Williams's rounded display, not a verified proof: replayed f
 1.751958454 at c = 1.297844, the computed last line is about 1.0e-8 above the first, so the normal-form
 condition a' < a fails at that c. The script reports this.
 
-usage: w13_25line.py      (Python 3 standard library only; exact arithmetic except for the comparison)"""
+With --tex it also prints the body of the table of Appendix A.2 of the paper (rule and largest deviations
+per transition, and the notes D1-D3), from which that table is copied.
+
+usage: w13_25line.py [--tex]      (Python 3 standard library only; exact arithmetic except for the comparison)"""
 import re
 import sys
 from fractions import Fraction as Q
@@ -153,28 +157,35 @@ def main():
         print(f"new log n block of Lemma 3.3 with output {ELL[ell][0]}:")
         if ref is None:
             ref = states
+            ref_dev = (worst_k, worst_g)
             print(f"  rules: {' '.join(rules)}")
             print("  every step is a rule of the formal calculus with its side conditions")
             print("  compared: kernel exponents (time, and space on DTISP lines) and max(guess, 1) for every block;"
                   " output superscripts are not printed")
         else:
             kdiff = [k for k in range(len(states)) if states[k][1] != ref[k][1]]
+            assert not kdiff, f"kernels differ from the max(b, e) replay at lines {kdiff}"
+            assert (worst_k, worst_g) == ref_dev, "deviations differ from the max(b, e) replay"
             print("  every step is a rule of this variant with its side conditions; kernels that differ from the"
-                  f" max(b, e) replay: {kdiff if kdiff else 'none'}")
+                  " max(b, e) replay: none (asserted)")
         print(f"  largest deviation of a kernel exponent from the printed number: {float(worst_k):.7e}")
         print(f"  largest deviation of max(guess, 1) from the printed block exponent: {float(worst_g):.2e}")
         for k, g, pg in raw_g[:1]:
             print(f"    (line {k}: computed guess {float(g):.9f}, printed n^{float(pg):g})")
         last = round(final, 9)
+        diffpos = next((i + 1 for i, (u, v) in enumerate(zip(f"{float(last):.9f}".split(".")[1],
+                                                               f"{float(start):.9f}".split(".")[1])) if u != v), None)
+        assert diffpos == 8, diffpos
         print(f"  computed final exponent {float(final):.10f}, printed {float(start):.9f}: difference"
-              f" {float(final - start):.7e}; rounded to the printed 9 decimals it is {float(last):.9f}, so the"
-              + (" last printed digit agrees" if last == start else " last printed digit does not agree"))
+              f" {float(final - start):.7e}; rounded to nine decimal places it is {float(last):.9f}, so the two"
+              " differ when rounded to nine decimal places, first in the eighth decimal place")
         if final >= start:
             print("  the computed last line is not below the first: at c = 1.297844 this replay of the rounded display"
                   " is not a strict normal-form proof (a' < a fails)")
         print("  slowdowns at which the output superscript of the remaining prefix (b_k of Lemma 7.2) is the strict"
               " maximum: " + (", ".join(f"line {k} (by {float(m):.2e})" for k, m in bk_max) if bk_max else "none"))
         if ell == "max":
+            tex_rows = table_rows(per, raw_g, states, worst_k)
             print("  per transition (to line k): rule, parameter, largest deviation of a kernel exponent and of"
                   " max(guess, 1) from the printed numbers, and the blocks whose printed guess is below the previous"
                   " line's (no merged rule lowers a guess):")
@@ -193,9 +204,44 @@ def main():
             for k, i, q, g, o, default in dev:
                 kind = "log n" if g == 0 else f"n^{float(g):.9f}"
                 print(f"    line {k}, block {i + 1} ({q} {kind}): output {float(o):.9f}, default {float(default):.9f}")
-    print("every reading reproduces every printed number to within the same deviations: the display does not decide"
-          " between them")
+    print("every reading reproduces every printed number to within the same deviations (asserted): the display does"
+          " not decide between them")
+    if "--tex" in sys.argv[1:]:
+        print("rows of the table of A.2 in the paper (LaTeX):")
+        for r in tex_rows:
+            print(r)
     return 0
+
+
+def sig(x, digits=2):
+    if x == 0:
+        return "0"
+    m, e = f"{float(x):.{digits - 1}e}".split("e")
+    return f"${m}\\cdot10^{{{int(e)}}}$"
+
+
+def table_rows(per, raw_g, states, worst_k):
+    """The body of the A.2 table: for each transition the rule, the largest kernel and guess deviations (two
+    significant digits; four for the overall largest kernel deviation), and the notes D1 (overall largest kernel
+    deviation), D2 (printed guess lowered) and D3 (carried log n output off the block-wise default by > 1e-7)."""
+    d3 = {k for k, (blocks, ker) in enumerate(states) for q, g, o in blocks if abs(o - max(g, Q(1))) > Q(1, 10**7)}
+    cells = []
+    for k, r, par, kd, gd, lower in per:
+        notes = []
+        if lower:
+            notes.append("D2")
+        if k in d3:
+            notes.append("D3")
+        if kd == worst_k:
+            notes.append("D1")
+        g = sig(gd)
+        if k == raw_g[0][0]:
+            g += f" (first guess ${float(raw_g[0][1]):.9f}$)"
+        if notes:
+            g += "; " + ", ".join(notes)
+        cells.append(f"{k} & {r} & {sig(kd, 4 if kd == worst_k else 2)} & {g}")
+    half = len(cells) // 2
+    return [f"{cells[i]} & {cells[i + half]}\\\\" for i in range(half)]
 
 
 if __name__ == "__main__":

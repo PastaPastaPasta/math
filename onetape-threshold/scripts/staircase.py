@@ -26,7 +26,8 @@ usage:
   staircase.py appear D [K]       c_1, ..., c_K, where c_h is the point found by float bisection on
                                   [1 + 1/(4d), 1 + 1/d] at which the predicate "the recursion reaches
                                   level h or refutes before reaching it" (exists_level) changes from
-                                  true to false; a numerical estimate
+                                  true to false; a numerical estimate. Asserts that at c_h - 2e-6
+                                  the recursion reaches level h without refuting before it
   staircase.py roots              r_d (largest real root of Williams's p_d), sqrt(1+1/d), 1+1/(d+1), and the
                                   roots of the cubics at which level 1 first appears, for d = 1, 2, 3
 Python 3 standard library only."""
@@ -198,6 +199,10 @@ def appear(d, K=6):
                 hi = m
         res.append(lo)
     print(f"d = {d}: boundary c_h of 'reaches level h or refutes earlier' (float bisection): " + ", ".join(f"c_{h} = {x:.6f}" for h, x in enumerate(res, 1)))
+    for h, x in enumerate(res, 1):
+        v, out = recursion(x - 2e-6, d, 2000, FloatNum())
+        assert len(out) - 1 >= h, (d, h, v, len(out) - 1)
+    print(f"  at c_h - 2e-6, h = 1..{K}, the recursion reaches level h without refuting before it (asserted)")
 
 
 def poly_root(coef, lo, hi, it=200):
