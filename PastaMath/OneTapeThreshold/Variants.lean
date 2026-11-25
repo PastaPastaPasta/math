@@ -7,16 +7,26 @@ import PastaMath.OneTapeThreshold.Ceiling
 * `HY.Incl`: the inclusion DTIME_d[t] ⊆ DTISP[t, t] under any prefix, from `(bl, T a)` to
   `(bl, S a a)` (a machine running for time t visits at most t cells). Lemma 3.4 with e = c applied
   to a level is Lemma 7.2 (`HY.Step.slow`) followed by this inclusion. Its relaxed form is
-  `HL.Widen`: from `(bl, T a)` to `(bl, S a₂ e₂)` with a ≤ a₂ and a ≤ e₂.
+  `HL.Widen`: from `(bl, T a)` to `(bl, S a₂ e₂)` with a ≤ a₂ and a ≤ e₂, which also covers
+  Lemma 3.4 with time exponent c' ≥ c and space exponent e ≥ c (below).
 * `HY.SpeedLog`: Lemma 3.3 in a prefix as in `HY.Step.speedMerge` and `HY.Step.speedNew`, except
   that the new log n block gets an arbitrary output superscript ℓ ≥ 0 (for example 1, as displayed
   in Williams's sketch of Theorem 7.9, instead of max(b, e)). Its relaxed form is `HL.Loose`.
 
 `HL.widen_dec`: for c ≥ 0 and d ≥ 1, a `Widen` step from `(bl, T a)` with a ≥ 0 followed by an
 `RStep` from the `S` line can be replaced by Lemma 7.1 with s = a/d (`convM` or `convN`) followed by an
-`RStep` to the same line (`HL.widen_dec_W`: the same with `Loose` steps allowed). `HL.path_unwiden`
-turns a path with `Widen` steps that ends on a `T` line into a path of the same length with the same
-endpoints and no `Widen` step, so every result about `RPath` applies (`HL.rpath_of_rpathX`).
+`RStep` to the same line (`HL.widen_dec_W`: the same with `Loose` steps allowed). `HL.path_unwiden`:
+if a relation R preserves `NN` (all entries ≥ 0) and satisfies the conclusion of `widen_dec`, then a
+path of R and `Widen` steps from a line with `NN` to a line with a `T` kernel can be replaced by an
+R-path of the same length with the same two endpoints. For `RStep c d` with c ≥ 0 and d ≥ 1 this is
+`HL.rpath_of_rpathX`. So a statement about `RPath` that depends only on the length and the two
+endpoints of a path transfers to `RPathX`; a statement about the intermediate lines need not: from
+`([], T 1)` a `Widen` step reaches `([], S 1 1)`, which lowers the one-level potential from 1 to 0.
+
+Lemma 3.4 needs NTIME[n] ⊆ DTISP[n^{c'}, n^e]. From NTIME[n] ⊆ DTIME_d[n^c] this follows for every
+c' ≥ c and e ≥ c (the best case being c' = e = c), and for no e < c by any argument we know. Each such
+application of Lemma 3.4 gives the line of `HY.Step.slow` followed by a `Widen` step (time and space
+c'·m, e·m ≥ c·m, where c·m is the time exponent `slow` gives); `HY.Incl` is the case c' = e = c.
 
 * `HLM.ceilingX_d1`, `ceilingX_d2`, `ceilingX_d3`: for every real c ≥ 6547/5000, 149/125, 712/625
   respectively, (1) there is no path of `RStep c d` and `Widen` steps (`HL.RPathX`) with n ≥ 1 from
@@ -25,7 +35,7 @@ endpoints and no `Widen` step, so every result about `RPath` applies (`HL.rpath_
 * `HL.qf_ge_W`: under `Facts c d g` and d ≥ 1, along every `RPathW c d` (`RStep`, `Loose` and
   `Widen` steps) from `([], T a₀)`, a₀ ≥ 0, to `([], T a')`, a₀ ≤ a'. `HL.no_drop_W`: for d ≥ 1,
   c ≥ 1 and c² ≥ 1 + 1/d, the same along every path of `HY.Step c d`, `HY.Incl` and `HY.SpeedLog`
-  steps. The one-level potential does not use the output
+  steps. This excludes a' < a₀ (so strict normal forms), not a path with a' = a₀. The one-level potential does not use the output
   superscript of the new log n block (`HL.speed_ineq`). The multi-level potentials do, so the
   ceilings `HLM.ceiling_d*` are not extended to `HY.SpeedLog`.
 -/
