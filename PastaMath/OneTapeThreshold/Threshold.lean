@@ -17,8 +17,21 @@ import PastaMath.OneTapeThreshold.StairD3
   [1.1386523, 1.1392]. The non-strict and relaxed forms of the upper bounds, for paths from
   `([], T a₀)` with a₀ > 0, are `HLM.ceiling_d1`, `HLM.ceiling_d2` and `HLM.ceiling_d3`; with the inclusion
   DTIME_d[t] ⊆ DTISP[t, t] added, `HLM.ceilingX_d1`, `HLM.ceilingX_d2` and `HLM.ceilingX_d3`.
-  All of them are for the output max(b, e) of the new log n block of Lemma 3.3 and for Lemma 7.2 with
-  its full maximum (including the output of the remaining prefix).
+  These ceilings are theorems about the formalised rule set: the rules of `HY.Step` plus the
+  extensions named in each theorem (`HL.RStep`, `HY.Incl`/`HL.Widen`, and for the closed-form ceiling
+  `HL.no_drop_W` also `HY.SpeedLog`/`HL.Loose`). That rule set follows the statements of Williams's
+  Lemmas 7.1, 3.3 and 7.2 with their side conditions. Williams's text differs from it in the places
+  listed in Section 2.4 and Appendix A of the paper; the known differences that matter for the ceilings
+  are: (a) the output max(o, e) of the new log n block of Lemma 3.3 versus the smaller superscripts
+  displayed on pp. A:36–A:38 (sharp ceilings only); (b) the full maximum of Lemma 7.2, including the
+  output b_k of the remaining prefix, versus the 0,1,0 and 0,0 displays on p. A:36; (c) both halves of
+  the p. A:31 sentence "When C is DTISP, the Speedup and Slowdown Rules from Section 4 apply": a
+  speedup of a DTISP kernel is read as Lemma 3.3 and a slowdown as Lemma 7.2 (or Lemma 3.4 with
+  exponents ≥ c), and the literal Speedup Rules 0–2 and Slowdown Rule of §4 on a DTISP kernel (DTS
+  outputs) are excluded, with nothing claimed for them; (d) the side conditions of Lemma 3.3, in
+  particular e ≤ a − x, which the p. A:36 display (stating only x, y ≥ 0) does not impose; (e) no
+  splitting of a block into two of the same type (alternation as in Definition 4.1). We do not claim
+  this list of reading choices is exhaustive.
 * `conjecture_fails_one`: the existence part of `conjecture_fails` in the calculus in which that
   block has output exactly 1 (`HY.NFO (fun _ _ => 1)`), from the same certificate checks.
 * `conjecture_fails_O`: the same for every output ℓ with `HY.LogOK ℓ` (1 ≤ ℓ(o, e) ≤ max(o, e) for
