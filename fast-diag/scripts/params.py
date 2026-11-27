@@ -5,7 +5,8 @@ def log2fact(x):
     return math.lgamma(x + 1) / math.log(2)
 
 def params(c, L, lam=None):
-    n = 2.0 ** L
+    n_int = 1 << L
+    n = float(n_int)
     s = math.ceil(c * n) if lam is None else math.ceil(n * lam)
     sp = 3 * s
     H = n + sp
@@ -15,18 +16,18 @@ def params(c, L, lam=None):
     Rp = r * q
     D = 4 * sp + 2 * q * math.ceil(log2fact(r)) + r * math.ceil(log2fact(q))
     b = math.ceil(L)
-    t = math.ceil(n / b)
+    t = -(-n_int // b)
     m = math.ceil(2 * D / n)
     j = 2 * m
     kappa = math.ceil(math.log2(H + 1))
-    S = D + 4 * j * n + 5 * j * sp + 8 * Rp * (kappa + j) + j
+    S = D + 4 * j * n + 4 * j * sp + 8 * Rp * (kappa + j) + j
     deg = max(2 * r * (kappa + j) + math.ceil(log2fact(r)),
               2 * q * (kappa + j) + math.ceil(log2fact(q)))
     a = math.ceil(math.log2(m))
     exact = D + 2 * m * t * math.log2(m) - m * n
     return dict(n=n, s=s, D=D, m=m, t=t, S=S, deg=deg, a=a, b=b,
-                exact_ok=exact < 0, lean_ok=8 * t * a <= n and 2 * D <= m * n,
-                crude_ok=16 * a <= b and 16 * a <= n,
+                exact_ok=exact < 0, lean_ok=8 * t * a <= n_int and 2 * D <= m * n,
+                crude_ok=16 * a <= b and 16 * a <= n_int,
                 deg_ok=deg <= math.ceil(S ** 0.9))
 
 def first(c, key, lam=None, lo=8, hi=900):

@@ -54,7 +54,7 @@ Every headline theorem depends only on a subset of the standard axioms `propext`
 
 | Declaration | File | Content |
 |---|---|---|
-| `even_tuples_card_le`, `blockGood_card_le` | `Moment.lean` | Even-occurrence word count `≤ k^{2k} |α|^k` and block-even tuple bound. |
+| `even_tuples_card_le`, `blockGood_card_le` | `Moment.lean` | Even-occurrence word count `≤ k^{2k} · card(α)^k` and block-even tuple bound. |
 | `corr_self`, `corr_pow_expand`, `potential_ge_count`, `potential_sum_le`, `exists_hard_of_potential` | `Moment.lean` | Correlation expansion and moment-potential lower/upper bounds. |
 | `sgn_blockXor`, `blockXor_sign_sum`, `sum_partial_table_prod_sgn`, `blockXor_partial_sign_sum`, `exists_hard_blockXor` | `Moment.lean` | Block-XOR sign-sum identities (empty and partial assignments) and hard-function existence. |
 | `blocks_le_of_ratio`, `potential_params_lt`, `exists_hard_blockXor_of_params`, `expected_potential_lt_of_params` | `Params.lean` | Integer parameter inequality giving `E_∅ Φ_m < 1`. |

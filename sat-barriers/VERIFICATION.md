@@ -64,7 +64,7 @@ Every headline theorem depends only on `propext`, `Classical.choice`, and `Quot.
 | `bw_limit`, `no_refutation`, `e1beta_limit` | `Derivation.lean` | Buss–Williams limit and weakened `β ≥ β*` slowdown envelopes. |
 | `no_refutation2` | `Derivation2.lean` | Two-flag slowdown envelope (`β₁ ≥ β*`, `β₂ ≥ β_non`). |
 | `no_refutation_rule2` | `Rule2.lean` | Two-step transitions (`Rule2Step`) do not pass `r7`. |
-| `no_refutation_loc`, `no_refutation_locB`, `beta_half_beats_r7` | `Localized.lean`, `LocalizedBeta.lean` | Localized `β`-envelope threshold `(1 − β)(c − 1)² ≤ cub c` and sharpness at `β = 1/2`. |
+| `no_refutation_loc`, `no_refutation_locB`, `beta_half_beats_r7` | `Localized.lean`, `LocalizedBeta.lean` | Localized `β`-envelope non-refutation bound `(1 − β)(c − 1)² ≤ cub c` and witness above `r7` at `β = 1/2`. |
 | `no_refutation_locT`, `no_refutation_locX`, `no_refutation_locU`, `no_refutation_locC` | `LocalizedTrace.lean`..`LocalizedCopy.lean` | Trace speedups, max-envelope, unconditional exponent-0 removal, and free-kernel trace steps. |
 | `locs_embed`, `no_locs_refutation`, `lv_locs_refutes` | `LocsEmbed.lean` | Sound embedding of concrete array-exponent semantics into `LStepX c 1`. |
 | `PR.proto_path`, `PR.no_refutation_proto`, `PR.proto_witness` | `Protocol.lean` | Multi-round public-coin protocol steps expand into `Step` paths and stay capped at `r7`. |

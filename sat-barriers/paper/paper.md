@@ -12,7 +12,7 @@ Buss and Williams \[BW15\] proved that alternation-trading proofs for $`\mathsf{
 
 2.  **Rule 2, public-coin protocols, and derived-rule bootstrapping.** Adding two-step rules (`Rule2Step`), perfect-completeness public-coin multi-round protocol steps with $`\sum_i s_i\ge a-v`$ (`ProtoStep`), or the full inductive closure `Der` of arbitrarily nested derived rules at arbitrary scale leaves the barrier at $`r_7`$ (`no_refutation_rule2`, `no_refutation_proto`, `no_refutation_der`). Any derived single-block inclusion $`\mathsf{DTS}[n^a]\subseteq{}^0\exists^s\mathsf{DTS}[n^v]`$ satisfies $`a\le c\max(s,v)`$ and, for $`c\in[r_7,2)`$ with $`\beta=1`$, $`v\ge(c-1/(c-1))a`$ (strictly when $`a>0`$; `AU.derived_ns_lower`), and no $`\kappa<1`$ universal-input-only speedup is derivable (`BS.derived_kappa`, sharp at $`s_2>0`$ via `BS.derived_kappa_sharp`).
 
-3.  **Localized, trace, unconditional, and copy-free speedups.** For input-localized speedups and chunked slowdowns with a $`\beta`$-envelope, the exact barrier is given by $`(1-\beta)(c-1)^2\le c^3-c^2-2c+1`$ (`no_refutation_locB`), which beats $`r_7`$ at $`\beta=1/2`$ (`beta_half_beats_r7`) and stays at $`r_7`$ when $`\beta=1`$, even with trace speedups (`no_refutation_locT`), max-envelopes (`no_refutation_locX`), unconditional exponent-$`0`$ removal (`no_refutation_locU_r7`), free-kernel trace steps (`no_refutation_locC`), and concrete array-exponent semantics (`no_locs_refutation`).
+3.  **Localized, trace, unconditional, and copy-free speedups.** For input-localized speedups and chunked slowdowns with a $`\beta`$-envelope, a sufficient non-refutation condition is $`(1-\beta)(c-1)^2\le c^3-c^2-2c+1`$ (`no_refutation_locB`), which beats $`r_7`$ at $`\beta=1/2`$ (`beta_half_beats_r7`) and stays at $`r_7`$ when $`\beta=1`$, even with trace speedups (`no_refutation_locT`), max-envelopes (`no_refutation_locX`), unconditional exponent-$`0`$ removal (`no_refutation_locU_r7`), free-kernel trace steps (`no_refutation_locC`), and concrete array-exponent semantics (`no_locs_refutation`).
 
 4.  **Non-strict refutations.** Williams \[W13, Lemma 4.3\] also counts normal-form proofs ending at $`a'=a`$ (with at least one quantified intermediate line) as contradictions. We exclude non-strict refutations for `Step` at $`c\ge r_7`$, $`\beta\ge\beta^*`$ (`AU.no_refutation_nonstrict`) and for `LStepX` at $`\beta=1`$, $`c>r_7`$ (`AU.no_refutation_locX_nonstrict`).
 
@@ -46,7 +46,7 @@ A reduced line is `RLine` $`= \mathrm{List}\;\mathbb{R} \times \mathbb{R}`$, sto
 
 - `weak`: componentwise raising of superscripts and kernel.
 
-A strict normal-form refutation `RefutesWith` $`R\;n\;L`$ has $`n\ge1`$, $`L(0).1=L(n).1=[]`$, $`0\le L(0).2`$, $`L(n).2<L(0).2`$, and $`L(i).1\ne[]`$ for $`0<i<n`$.
+A strict normal-form refutation `RefutesWith` $`R\;n\;L`$ has $`n\ge1`$, $`L(0).1=L(n).1=[]`$, $`0\le L(0).2`$, $`L(n).2<L(0).2`$, $`R(L(i),L(i+1))`$ for all $`i<n`$, and $`L(i).1\ne[]`$ for $`0<i<n`$.
 
 Set $`\beta^*:=1/(r_7(r_7-1))\approx0.69202`$ and $`\beta_{\mathrm{non}}:=r_7(2-r_7)/(r_7-1)\approx0.44504`$.
 
@@ -62,7 +62,7 @@ Set $`\beta^*:=1/(r_7(r_7-1))\approx0.69202`$ and $`\beta_{\mathrm{non}}:=r_7(2-
 
 - `Rule2Step` $`c\;\beta`$ (`Rule2.lean`) adds two-step transitions $`L\to M\to L'`$ through a quantified line $`M`$ (covering Williams’s Speedup Rule 2).
 
-- `ProtoStep` $`c\;\beta`$ (`Protocol.lean`) adds multi-round protocol steps from $`(P\mathbin{++}[b],a)`$ to $`(P\mathbin{++}b::\mathrm{flat}(rs),v)`$ or $`(P\mathbin{++}\mathrm{flat}(rs),v)`$ for any nonempty list $`rs`$ of pairs $`(s_i,t_i)`$ with $`s_i,t_i\ge b`$ and $`\sum_i s_i\ge a-v`$.
+- `ProtoStep` $`c\;\beta`$ (`Protocol.lean`) adds multi-round protocol steps from $`(P\mathbin{++}[b],a)`$ to $`(P\mathbin{++}b::\mathrm{flat}(rs),v)`$ or $`(P\mathbin{++}\mathrm{flat}(rs),v)`$ with $`0\le b`$, $`0\le a`$, $`0\le v`$, and any nonempty list $`rs`$ of pairs $`(s_i,t_i)`$ with $`s_i,t_i\ge b`$ and $`\sum_i s_i\ge a-v`$.
 
 - `BS.Der` $`R`$ (`Bootstrap.lean`) is the inductive closure of $`R`$ under finite composition through quantified lines, modelling the reuse of derived inclusions as new rules at any nesting depth (and, by scale invariance `step_scale`, at any scale).
 

@@ -12,10 +12,18 @@ import sys, json
 from fractions import Fraction
 
 
+def require(cond, msg):
+    if not cond:
+        raise ValueError(msg)
+
+
 def check(path):
-    d = json.load(open(path))
+    with open(path, encoding="utf-8") as fh:
+        d = json.load(fh)
     K = int(d['k']); c = Fraction(d['c']); a0 = Fraction(d['a0'])
-    assert a0 >= 1
+    require(K >= 1, ('k must be >= 1', K))
+    require(c >= 0, ('c must be nonnegative', c))
+    require(a0 >= 1, ('a0 must be >= 1', a0))
     quants = []   # outermost first
     guess = []    # a_i
     sup = [Fraction(1)]  # b_1 .. b_{m+1}; sup[i] is the superscript in front of block i+1 (sup[m] = kernel input)
@@ -25,7 +33,7 @@ def check(path):
         m = len(quants)
         if kind == 'S':
             x = Fraction(val)
-            assert 0 <= x <= kern - 1, ('x out of range', t)
+            require(0 <= x <= kern - 1, ('x out of range', t))
             if m == 0:
                 quants = ['E', 'A']; guess = [x, Fraction(0)]
                 sup = [Fraction(1), max(x, Fraction(1)), Fraction(1)]
@@ -39,7 +47,7 @@ def check(path):
             kern = kern - x
         elif kind == 'P':
             j = int(val)
-            assert 1 <= j <= K and j <= m, ('bad pop', t)
+            require(1 <= j <= K and j <= m, ('bad pop', t))
             lo = m - j
             cand = [kern] + guess[lo:m] + sup[lo:m + 1]
             kern = c * max(cand)
@@ -47,14 +55,20 @@ def check(path):
         else:
             raise ValueError(kind)
         for i in range(len(quants) - 1):
-            assert quants[i] != quants[i + 1]
+            require(quants[i] != quants[i + 1], ('non-alternating quantifiers', t))
         if t < nops - 1:
-            assert len(quants) > 0, ('intermediate DTS line', t)
-    assert len(quants) == 0
+            require(len(quants) > 0, ('intermediate DTS line', t))
+    require(len(quants) == 0, 'final line must be quantifier-free')
     return K, c, a0, kern, nops + 1
 
 
 if __name__ == '__main__':
+    ok = True
     for p in sys.argv[1:]:
         K, c, a0, fin, lines = check(p)
-        print(p, 'k=%d c=%s lines=%d final/a0=%.6f' % (K, c, lines, fin / a0), 'VALID REFUTATION' if fin < a0 else 'NOT A REFUTATION')
+        valid = fin < a0
+        ok = ok and valid
+        print(p, 'k=%d c=%s lines=%d final/a0=%.6f' % (K, c, lines, fin / a0),
+              'VALID REFUTATION' if valid else 'NOT A REFUTATION')
+    if not ok:
+        sys.exit(1)

@@ -58,7 +58,7 @@ This work does *not* establish: (1) $`\mathsf{E}\not\subseteq\mathsf{SIZE}(cn)`
 
 ## 2. Contraction from (T4-A) and clean-up of (G)
 
-**Theorem 6** (Theorem N; conditional on (T4-A)). There are absolute constants $`C_N,S_0`$ and a deterministic algorithm that, given a bipartite network with $`S`$ edges, maximum degree $`\Delta\le S^{0.9}`$, integer entries in $`\{-1,0,1\}`$, and entry evaluation time $`\tau_0`$, outputs its contraction $`Z\in\mathbb{Z}`$ in at most $`2^{C_N S/\sqrt{\log S}}\cdot\mathrm{poly}(\tau_0,S)`$ operations for $`S\ge S_0`$.
+**Theorem 6** (Theorem N; conditional on (T4-A)). There are absolute constants $`C_N,S_0`$ and a deterministic algorithm that, given a bipartite network with $`S`$ edges, no isolated vertices, maximum degree $`\Delta\le S^{0.9}`$, integer entries in $`\{-1,0,1\}`$, and entry evaluation time $`\tau_0`$, outputs its contraction $`Z\in\mathbb{Z}`$ in at most $`2^{C_N S/\sqrt{\log S}}\cdot\mathrm{poly}(\tau_0,S)`$ operations for $`S\ge S_0`$.
 
 *Proof.* Choose the largest level $`\ell`$ of Anthropic’s Theorem A(a) with $`K_\ell\le S^{1/100}`$; since $`K_{\ell+1}\le K_\ell^{10}`$, we have $`K:=K_\ell\ge S^{1/1000}`$ for $`S\ge K_0^{1000}`$. Set $`g:=3K^8\le 3S^{0.08}`$. Greedily partition vertices into at most $`g`$ clusters, closing a cluster once its degree sum reaches $`2S/g`$; each cluster has degree sum at most $`2S/g+\Delta\le 3S/g=:P`$ since $`\Delta\le S^{0.9}\le S/g`$ for large $`S`$. Pad to $`g`$ clusters with settings $`S_a=\{0,1\}^{P_a}`$, weights $`W_a(z_a)=\prod_{v\in a}T_v(z_a|_{\delta(v)})\in\{-1,0,1\}`$ ($`B=1`$, $`\tau=|a|\tau_0+\mathrm{poly}(S)`$), and equality pair functions $`\Psi_{a,b}`$ factoring through $`c_{a,b}`$ cut bits (total $`U\le 2S`$). Applying Lemma 8(i) and Theorem A(b) with $`\lambda=L\le(2S+3S/K)/K^2+1`$ and $`B'\le 6S/K+1+9K^{16}`$ gives $`\log_2(\text{\#ops})\le g\log K+e_\ell(2S+3S/K+K^2)+C_0 K^2\log(K(L+B'))+6S/K+\log\tau+C_1\log(g(P+1))`$. Since $`e_\ell\le 0.85((3x_0+6)/\log K_\ell)^{1/2}=O(1/\sqrt{\log S})`$ and the remaining terms are $`O(S^{0.999})`$, the total is $`2^{C_N S/\sqrt{\log S}}\cdot\mathrm{poly}(\tau_0,S)`$. Integers have $`\mathrm{poly}(S)`$ bits, so multitape simulation adds polynomial overhead. ∎
 
@@ -100,11 +100,11 @@ Setting $`b:=\lceil\log n\rceil`$, $`t:=\lceil n/b\rceil`$, $`m:=\lceil 2D/n\rce
 
 | $`c`$ | $`D/(cn\log n)`$ | $`m/(c\log n)`$ | $`S/(c^2 n\log n)`$ | Exact $`\Phi<1`$ | Lean $`8ta\le n`$ | Closed $`16a\le b`$ |
 |---:|---:|---:|---:|---:|---:|---:|
-| $`1`$ | $`18.12`$ | $`36.25`$ | $`8452.6`$ | $`\log n\ge 43`$ | $`\log n\ge 96`$ | $`\log n\ge 208`$ |
-| $`3.5`$ | $`15.01`$ | $`30.02`$ | $`5731.3`$ | $`\log n\ge 50`$ | $`\log n\ge 112`$ | $`\log n\ge 240`$ |
-| $`4`$ | $`14.86`$ | $`29.72`$ | $`5611.2`$ | $`\log n\ge 51`$ | $`\log n\ge 112`$ | $`\log n\ge 240`$ |
-| $`16`$ | $`14.14`$ | $`28.28`$ | $`5024.8`$ | $`\log n\ge 60`$ | $`\log n\ge 128`$ | $`\log n\ge 272`$ |
-| $`64`$ | $`14.06`$ | $`28.11`$ | $`4917.9`$ | $`\log n\ge 68`$ | $`\log n\ge 152`$ | $`\log n\ge 320`$ |
+| $`1`$ | $`18.12`$ | $`36.25`$ | $`8235.1`$ | $`\log n\ge 43`$ | $`\log n\ge 97`$ | $`\log n\ge 208`$ |
+| $`3.5`$ | $`15.01`$ | $`30.02`$ | $`5551.2`$ | $`\log n\ge 50`$ | $`\log n\ge 113`$ | $`\log n\ge 240`$ |
+| $`4`$ | $`14.86`$ | $`29.72`$ | $`5432.9`$ | $`\log n\ge 51`$ | $`\log n\ge 113`$ | $`\log n\ge 240`$ |
+| $`16`$ | $`14.14`$ | $`28.28`$ | $`4855.2`$ | $`\log n\ge 60`$ | $`\log n\ge 128`$ | $`\log n\ge 272`$ |
+| $`64`$ | $`14.06`$ | $`28.11`$ | $`4749.2`$ | $`\log n\ge 68`$ | $`\log n\ge 153`$ | $`\log n\ge 320`$ |
 
 *Table 2: Exact parameter ratios at $`\log n=200`$ and first $`\log n`$ meeting each condition (`scripts/params.py`).*
 
@@ -130,7 +130,7 @@ To compute $`Z_P`$ as a single bipartite tensor contraction, set $`\kappa:=\lcei
 
 - (V6) block vertices $`\ell`$ carrying $`G_\ell^P`$.
 
-Each variable vertex carries $`\mathrm{EQ}_u`$ (with unary all-ones tensor $`(1,1)`$ on each 1-reader description bit). Every edge joins a variable vertex to a constraint vertex, so the graph is bipartite. For invalid $`d`$, some gate index test fails (since $`\bot=H`$ fails every test); for valid $`d`$, acyclicity forces a unique trace $`y`$ with $`y_{k,s'}=C_d(x_k)`$, so the contraction equals $`Z_P`$.
+Each variable vertex carries $`\mathrm{EQ}_u`$ (with unary all-ones tensor $`(1,1)`$ on each 1-reader description bit). Every edge joins a variable vertex to a constraint vertex, and every variable and constraint vertex has degree at least $`1`$, so the graph is bipartite with no isolated vertices. For invalid $`d`$, some gate index test fails (since $`\bot=H`$ fails every test); for valid $`d`$, acyclicity forces a unique trace $`y`$ with $`y_{k,s'}=C_d(x_k)`$, so the contraction equals $`Z_P`$.
 
 For $`\log n\ge L_0(c)`$, the edge count is $`S=D+4jn+4js'+j+8R'(\kappa+j)\le 2\cdot10^4 c^2 n\log n`$, every crossbar has degree $`\le 1100 c^{1.5}\sqrt{n}\log n\le n^{0.9}\le S^{0.9}`$, entries lie in $`\{-1,0,1\}`$ and are computable in $`\mathrm{poly}(n)`$ time. Applying (T4) modulo $`2^{P_0}`$ with $`P_0=D+jn+2\le S`$ (or Theorem 6 directly over $`\mathbb{Z}`$) evaluates each $`Z_P`$ in $`2^{K_1 c^2 n\sqrt{\log n}}`$ time. Summing over $`\le 2nt`$ steps proves Theorem 1; replacing $`c`$ by $`\lambda(n)\le(\log n)^{\kappa_0}`$ proves Theorem 2.
 

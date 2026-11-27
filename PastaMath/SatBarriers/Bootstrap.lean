@@ -6,13 +6,17 @@ The calculus used to derive inclusions, then fed back as rules.
 
 * `Der R`: rules defined inductively as finite compositions of `R`-steps through quantified
   lines, with any nesting (`der_der`). Refutations in `Der (Step c β)` expand to `Step`
-  refutations, so `no_refutation_der` covers every bootstrapped proof of finite length.
+  refutations, so `no_refutation_der` covers every bootstrapped proof of finite length
+  (for `r7 ≤ c` and `1 / (r7 * (r7 - 1)) ≤ β`).
 * `step_scale`, `der_scale`: the reduced system is invariant under scaling all exponents,
   so a derived rule may be used at every scale.
-* `zero_segment`: a segment whose top superscript starts and ends at 0 never lowers the kernel.
-* `derived_kappa`: for c ≥ r, a derivation of 0 E^{s₁} A^{s₂} DTS(v) from DTS(a) with s₂ ≤ 0
-  (the universal block passes only the input) has s₁ + v ≥ a: no derived κ < 1 speedup.
-* `derived_ns`: for c ≥ r, a derivation of 0 E^{s} DTS(v) from DTS(a) has a ≤ c·max(s, v).
+* `zero_segment`: at `c = r7` with `1 / (r7 * (r7 - 1)) ≤ β ≤ 1`, a segment of depth `≥ k + 1`
+  whose top superscript starts and ends at `0` never lowers the kernel.
+* `derived_kappa`: for `r7 ≤ c` and `1 / (r7 * (r7 - 1)) ≤ β`, a derivation of
+  0 E^{s₁} A^{s₂} DTS(v) from DTS(a) with `s₂ ≤ 0` (the universal block passes only the input)
+  has `a ≤ s₁ + v`: no derived κ < 1 speedup.
+* `derived_ns`: for `r7 ≤ c` and `1 / (r7 * (r7 - 1)) ≤ β ≤ 1`, a derivation of
+  0 E^{s} DTS(v) from DTS(a) has `a ≤ c·max(s, v)`.
 -/
 
 namespace PastaMath.SatBarriers

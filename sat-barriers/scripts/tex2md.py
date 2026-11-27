@@ -246,8 +246,11 @@ def convert(tex):
 def main():
     if len(sys.argv) != 3:
         sys.exit(__doc__)
-    tex = open(sys.argv[1], encoding="utf-8").read()
-    open(sys.argv[2], "w", encoding="utf-8").write(convert(tex))
+    with open(sys.argv[1], encoding="utf-8") as fh:
+        tex = fh.read()
+    md = convert(tex)
+    with open(sys.argv[2], "w", encoding="utf-8") as fh:
+        fh.write(md)
 
 
 if __name__ == "__main__":

@@ -108,7 +108,7 @@ This work does \emph{not} establish: (1)~$\E\not\subseteq\SIZE(cn)$ (which would
 \section{Contraction from (T4-A) and clean-up of (G)}\label{sec:ext-setup}
 
 \begin{theorem}[Theorem~N; conditional on (T4-A)]\label{thm:N}
-There are absolute constants $C_N,S_0$ and a deterministic algorithm that, given a bipartite network with $S$ edges, maximum degree $\Delta\le S^{0.9}$, integer entries in $\{-1,0,1\}$, and entry evaluation time $\tau_0$, outputs its contraction $Z\in\mathbb{Z}$ in at most $2^{C_N S/\sqrt{\log S}}\cdot\mathrm{poly}(\tau_0,S)$ operations for $S\ge S_0$.
+There are absolute constants $C_N,S_0$ and a deterministic algorithm that, given a bipartite network with $S$ edges, no isolated vertices, maximum degree $\Delta\le S^{0.9}$, integer entries in $\{-1,0,1\}$, and entry evaluation time $\tau_0$, outputs its contraction $Z\in\mathbb{Z}$ in at most $2^{C_N S/\sqrt{\log S}}\cdot\mathrm{poly}(\tau_0,S)$ operations for $S\ge S_0$.
 \end{theorem}
 
 \begin{proof}
@@ -174,11 +174,11 @@ Setting $b:=\lceil\log n\rceil$, $t:=\lceil n/b\rceil$, $m:=\lceil 2D/n\rceil$, 
 \toprule
 $c$ & $D/(cn\log n)$ & $m/(c\log n)$ & $S/(c^2 n\log n)$ & Exact $\Phi<1$ & Lean $8ta\le n$ & Closed $16a\le b$ \\
 \midrule
-$1$ & $18.12$ & $36.25$ & $8452.6$ & $\log n\ge 43$ & $\log n\ge 96$ & $\log n\ge 208$ \\
-$3.5$ & $15.01$ & $30.02$ & $5731.3$ & $\log n\ge 50$ & $\log n\ge 112$ & $\log n\ge 240$ \\
-$4$ & $14.86$ & $29.72$ & $5611.2$ & $\log n\ge 51$ & $\log n\ge 112$ & $\log n\ge 240$ \\
-$16$ & $14.14$ & $28.28$ & $5024.8$ & $\log n\ge 60$ & $\log n\ge 128$ & $\log n\ge 272$ \\
-$64$ & $14.06$ & $28.11$ & $4917.9$ & $\log n\ge 68$ & $\log n\ge 152$ & $\log n\ge 320$ \\
+$1$ & $18.12$ & $36.25$ & $8235.1$ & $\log n\ge 43$ & $\log n\ge 97$ & $\log n\ge 208$ \\
+$3.5$ & $15.01$ & $30.02$ & $5551.2$ & $\log n\ge 50$ & $\log n\ge 113$ & $\log n\ge 240$ \\
+$4$ & $14.86$ & $29.72$ & $5432.9$ & $\log n\ge 51$ & $\log n\ge 113$ & $\log n\ge 240$ \\
+$16$ & $14.14$ & $28.28$ & $4855.2$ & $\log n\ge 60$ & $\log n\ge 128$ & $\log n\ge 272$ \\
+$64$ & $14.06$ & $28.11$ & $4749.2$ & $\log n\ge 68$ & $\log n\ge 153$ & $\log n\ge 320$ \\
 \bottomrule
 \end{tabular}
 \caption{Exact parameter ratios at $\log n=200$ and first $\log n$ meeting each condition (\lean{scripts/params.py}).}\label{tab:params}
@@ -201,7 +201,7 @@ To compute $Z_P$ as a single bipartite tensor contraction, set $\kappa:=\lceil\l
 \item (V5) one output vertex carrying $\operatorname{sgn}(\bigoplus_k y_{k,s'})$;
 \item (V6) block vertices $\ell$ carrying $G_\ell^P$.
 \end{itemize}
-Each variable vertex carries $\mathrm{EQ}_u$ (with unary all-ones tensor $(1,1)$ on each 1-reader description bit). Every edge joins a variable vertex to a constraint vertex, so the graph is bipartite. For invalid $d$, some gate index test fails (since $\bot=H$ fails every test); for valid $d$, acyclicity forces a unique trace $y$ with $y_{k,s'}=C_d(x_k)$, so the contraction equals $Z_P$.
+Each variable vertex carries $\mathrm{EQ}_u$ (with unary all-ones tensor $(1,1)$ on each 1-reader description bit). Every edge joins a variable vertex to a constraint vertex, and every variable and constraint vertex has degree at least~$1$, so the graph is bipartite with no isolated vertices. For invalid $d$, some gate index test fails (since $\bot=H$ fails every test); for valid $d$, acyclicity forces a unique trace $y$ with $y_{k,s'}=C_d(x_k)$, so the contraction equals $Z_P$.
 
 For $\log n\ge L_0(c)$, the edge count is $S=D+4jn+4js'+j+8R'(\kappa+j)\le 2\cdot10^4 c^2 n\log n$, every crossbar has degree $\le 1100 c^{1.5}\sqrt{n}\log n\le n^{0.9}\le S^{0.9}$, entries lie in $\{-1,0,1\}$ and are computable in $\mathrm{poly}(n)$ time. Applying (T4) modulo $2^{P_0}$ with $P_0=D+jn+2\le S$ (or Theorem~\ref{thm:N} directly over $\mathbb{Z}$) evaluates each $Z_P$ in $2^{K_1 c^2 n\sqrt{\log n}}$ time. Summing over $\le 2nt$ steps proves Theorem~\ref{thm:A}; replacing $c$ by $\lambda(n)\le(\log n)^{\kappa_0}$ proves Theorem~\ref{thm:Alambda}.
 

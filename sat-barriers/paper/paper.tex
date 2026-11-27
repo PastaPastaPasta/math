@@ -34,7 +34,7 @@ Buss and Williams \cite{BW15} proved that alternation-trading proofs for $\SAT\n
 \begin{enumerate}
 \item \textbf{Weakened slowdown envelopes and two-flag slowdowns.} Slowdowns need only satisfy $e\ge c\max(b,a)$ and $e\ge B+\beta(c-1)\max(b,a)$ for any $\beta\ge\beta^*:=1/(r_7(r_7-1))\approx0.6920$ (\lean{no\_refutation}, \lean{e1beta\_limit}), and even weaker $\beta_2\ge\beta_{\mathrm{non}}:=r_7(2-r_7)/(r_7-1)\approx0.4450$ on consecutive slowdowns (\lean{no\_refutation2}).
 \item \textbf{Rule~2, public-coin protocols, and derived-rule bootstrapping.} Adding two-step rules (\lean{Rule2Step}), perfect-completeness public-coin multi-round protocol steps with $\sum_i s_i\ge a-v$ (\lean{ProtoStep}), or the full inductive closure \lean{Der} of arbitrarily nested derived rules at arbitrary scale leaves the barrier at $r_7$ (\lean{no\_refutation\_rule2}, \lean{no\_refutation\_proto}, \lean{no\_refutation\_der}). Any derived single-block inclusion $\DTS[n^a]\subseteq{}^0\exists^s\DTS[n^v]$ satisfies $a\le c\max(s,v)$ and, for $c\in[r_7,2)$ with $\beta=1$, $v\ge(c-1/(c-1))a$ (strictly when $a>0$; \lean{AU.derived\_ns\_lower}), and no $\kappa<1$ universal-input-only speedup is derivable (\lean{BS.derived\_kappa}, sharp at $s_2>0$ via \lean{BS.derived\_kappa\_sharp}).
-\item \textbf{Localized, trace, unconditional, and copy-free speedups.} For input-localized speedups and chunked slowdowns with a $\beta$-envelope, the exact barrier is given by $(1-\beta)(c-1)^2\le c^3-c^2-2c+1$ (\lean{no\_refutation\_locB}), which beats $r_7$ at $\beta=1/2$ (\lean{beta\_half\_beats\_r7}) and stays at $r_7$ when $\beta=1$, even with trace speedups (\lean{no\_refutation\_locT}), max-envelopes (\lean{no\_refutation\_locX}), unconditional exponent-$0$ removal (\lean{no\_refutation\_locU\_r7}), free-kernel trace steps (\lean{no\_refutation\_locC}), and concrete array-exponent semantics (\lean{no\_locs\_refutation}).
+\item \textbf{Localized, trace, unconditional, and copy-free speedups.} For input-localized speedups and chunked slowdowns with a $\beta$-envelope, a sufficient non-refutation condition is $(1-\beta)(c-1)^2\le c^3-c^2-2c+1$ (\lean{no\_refutation\_locB}), which beats $r_7$ at $\beta=1/2$ (\lean{beta\_half\_beats\_r7}) and stays at $r_7$ when $\beta=1$, even with trace speedups (\lean{no\_refutation\_locT}), max-envelopes (\lean{no\_refutation\_locX}), unconditional exponent-$0$ removal (\lean{no\_refutation\_locU\_r7}), free-kernel trace steps (\lean{no\_refutation\_locC}), and concrete array-exponent semantics (\lean{no\_locs\_refutation}).
 \item \textbf{Non-strict refutations.} Williams \cite[Lemma~4.3]{W13} also counts normal-form proofs ending at $a'=a$ (with at least one quantified intermediate line) as contradictions. We exclude non-strict refutations for \lean{Step} at $c\ge r_7$, $\beta\ge\beta^*$ (\lean{AU.no\_refutation\_nonstrict}) and for \lean{LStepX} at $\beta=1$, $c>r_7$ (\lean{AU.no\_refutation\_locX\_nonstrict}).
 \end{enumerate}
 
@@ -67,7 +67,7 @@ Fix $c,\beta\in\mathbb{R}$. \lean{Step} $c\;\beta$ allows:
 \item \lean{slow}: $(\mathrm{bs}\mathbin{++}[b],a)\to(\mathrm{bs},e)$ whenever $c\max(b,a)\le e$ and $\operatorname{top}(\mathrm{bs})+\beta(c-1)\max(b,a)\le e$;
 \item \lean{weak}: componentwise raising of superscripts and kernel.
 \end{itemize}
-A strict normal-form refutation \lean{RefutesWith} $R\;n\;L$ has $n\ge1$, $L(0).1=L(n).1=[]$, $0\le L(0).2$, $L(n).2<L(0).2$, and $L(i).1\ne[]$ for $0<i<n$.
+A strict normal-form refutation \lean{RefutesWith} $R\;n\;L$ has $n\ge1$, $L(0).1=L(n).1=[]$, $0\le L(0).2$, $L(n).2<L(0).2$, $R(L(i),L(i+1))$ for all $i<n$, and $L(i).1\ne[]$ for $0<i<n$.
 \end{definition}
 
 Set $\beta^*:=1/(r_7(r_7-1))\approx0.69202$ and $\beta_{\mathrm{non}}:=r_7(2-r_7)/(r_7-1)\approx0.44504$.
@@ -85,7 +85,7 @@ Let $c\ge r_7$.
 \begin{definition}[Extended single-stack rules]\label{def:ext}
 \begin{itemize}
 \item \lean{Rule2Step} $c\;\beta$ (\lean{Rule2.lean}) adds two-step transitions $L\to M\to L'$ through a quantified line $M$ (covering Williams's Speedup Rule~2).
-\item \lean{ProtoStep} $c\;\beta$ (\lean{Protocol.lean}) adds multi-round protocol steps from $(P\mathbin{++}[b],a)$ to $(P\mathbin{++}b::\mathrm{flat}(rs),v)$ or $(P\mathbin{++}\mathrm{flat}(rs),v)$ for any nonempty list $rs$ of pairs $(s_i,t_i)$ with $s_i,t_i\ge b$ and $\sum_i s_i\ge a-v$.
+\item \lean{ProtoStep} $c\;\beta$ (\lean{Protocol.lean}) adds multi-round protocol steps from $(P\mathbin{++}[b],a)$ to $(P\mathbin{++}b::\mathrm{flat}(rs),v)$ or $(P\mathbin{++}\mathrm{flat}(rs),v)$ with $0\le b$, $0\le a$, $0\le v$, and any nonempty list $rs$ of pairs $(s_i,t_i)$ with $s_i,t_i\ge b$ and $\sum_i s_i\ge a-v$.
 \item \lean{BS.Der} $R$ (\lean{Bootstrap.lean}) is the inductive closure of $R$ under finite composition through quantified lines, modelling the reuse of derived inclusions as new rules at any nesting depth (and, by scale invariance \lean{step\_scale}, at any scale).
 \end{itemize}
 \end{definition}

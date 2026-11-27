@@ -5,7 +5,7 @@ import PastaMath.QbfThreshold.Threshold
 A ℚ transcription of W13's literal QBF_k rules (Def. 4.1 with the §5
 slowdown removing up to K blocks): input superscript 1, guess exponents tracked, x ≤ a − 1, and a
 normal-form checker (`checkL`) for `decide +kernel`.  `checkL_sound` maps a checked literal proof to a
-`QStep` path, so the certificates are refutations in the calculus of `SibQbf.lean`.
+`QStep` path, so the certificates are refutations in the calculus of `PastaMath/QbfThreshold/Calculus.lean`.
 -/
 
 noncomputable section
@@ -51,7 +51,7 @@ def runL (c : ℚ) (K : ℕ) : LStack × ℚ → List Op → Option (LStack × �
       | none => none
 
 def checkL (c : ℚ) (K : ℕ) (a0 : ℚ) (ops : List Op) : Bool :=
-  decide (1 ≤ a0) &&
+  decide (1 < c) && decide (1 ≤ a0) &&
     match runL c K ([], a0) ops with
     | some (st, a') => decide (st = []) && decide (a' < a0)
     | none => false
@@ -148,7 +148,7 @@ theorem checkL_sound {c : ℚ} (hc : 0 ≤ c) {K : ℕ} {a0 : ℚ} {ops : List O
     ∃ a' : ℝ, a' < (a0 : ℝ) ∧ (0 : ℝ) ≤ a0 ∧
       Relation.ReflTransGen (QStep (c : ℝ) K) ([], (a0 : ℝ)) ([], a') := by
   simp only [checkL, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨ha0, hr⟩ := h
+  obtain ⟨⟨_, ha0⟩, hr⟩ := h
   cases hrun : runL c K ([], a0) ops with
   | none => rw [hrun] at hr; simp at hr
   | some L' =>
