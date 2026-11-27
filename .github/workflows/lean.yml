@@ -16,12 +16,34 @@ jobs:
           use-mathlib-cache: true
       - name: Check axioms of headline theorems
         run: |
-          for f in PastaMath/TautThreshold/Axioms.lean PastaMath/MWThreshold/Axioms.lean PastaMath/OneTapeThreshold/Axioms.lean; do
+          for f in \
+            PastaMath/TautThreshold/Axioms.lean \
+            PastaMath/MWThreshold/Axioms.lean \
+            PastaMath/OneTapeThreshold/Axioms.lean \
+            PastaMath/QbfThreshold/Axioms.lean \
+            PastaMath/SatBarriers/Axioms.lean \
+            PastaMath/FastDiag/Axioms.lean; do
             lake env lean "$f" > axioms.out
             cat axioms.out
             n="$(grep -c '^#print axioms' "$f")"
-            test "$(grep -c 'depends on axioms: \[propext, Classical.choice, Quot.sound\]' axioms.out)" -eq "$n"
-            test "$(grep -c 'depends on axioms' axioms.out)" -eq "$n"
+            python3 -c '
+          import re, sys
+          allowed = {"propext", "Classical.choice", "Quot.sound"}
+          lines = [l.strip() for l in open("axioms.out") if l.strip()]
+          expected = int(sys.argv[1])
+          if len(lines) != expected:
+              sys.exit(f"expected {expected} axiom lines, got {len(lines)}")
+          for l in lines:
+              if l.endswith("does not depend on any axioms"):
+                  continue
+              m = re.search(r"depends on axioms: \[(.*)\]$", l)
+              if not m:
+                  sys.exit(f"unexpected line: {l}")
+              axs = {a.strip() for a in m.group(1).split(",") if a.strip()}
+              bad = axs - allowed
+              if bad:
+                  sys.exit(f"disallowed axioms {bad} in: {l}")
+          ' "$n"
           done
       - name: Check for forbidden constructs
         run: |
