@@ -13,7 +13,7 @@ import PastaMath.TwoCutSoS.Dictionary
 # Characteristic-free exact lower and upper bounds for the crossing two-cut rank
 
 Proves over **every** field `K` (including characteristic `2`):
-* `twoCut_ge_max`: `TC_K(r, s) ≥ max r s`.
+* `twoCut_ge_max`: `TC_K(r, s) ≥ max r s` for all `0 < r` and `0 < s`.
 * `twoCut_swap`: `TC_K(r, s) = TC_K(s, r)`.
 * `twoCut_gt_max_of_ge_three`: `TC_K(r, s) ≥ max r s + 1` whenever `r ≥ 3` and `s ≥ 3`,
   over every field (including characteristic 2).
@@ -237,7 +237,7 @@ private theorem twoCut_eq_max_forces_two_even {r s : ℕ} (hr : 2 ≤ r) (hrs : 
   let Ublk : Fin r → Matrix (Fin s) (Fin a) K := fun i => Matrix.of fun β t => U (i, β) t
   let Vblk : Fin r → Matrix (Fin s) (Fin a) K := fun i => Matrix.of fun β t => V (i, β) t
   -- For any `x, φ : Fin r → K` with `dotProduct x φ = 1`, the contracted slice
-  -- `P(x, φ) + Q(x, φ)ᵀ = 1` has `rank P ≤ a`, `rank Q ≤ b`, `a + b ≤ s`,
+  -- `P(x, φ) + Q(x, φ) = 1` has `rank P ≤ a`, `rank Q ≤ b`, `a + b ≤ s`,
   -- so `P` is idempotent of rank `a`, which forces `V_φᵀ * U_x = 1`.
   have hslice_orth : ∀ (x φ : Fin r → K), dotProduct x φ = 1 →
       (∑ k : Fin r, φ k • Vblk k)ᵀ * (∑ i : Fin r, x i • Ublk i) = 1 := by

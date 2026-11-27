@@ -94,8 +94,9 @@ theorem rzM1_hasPTRank_one : HasPTRank (rzM1 (K := K)) 1 :=
 /-- `Q_{M₁} = x₀² y₀ y₁` is not the square of a single bilinear form over any field of `char ≠ 2`. -/
 theorem rzM1_not_sos_one (h2 : (2 : K) ≠ 0) : ¬ HasSoSFormula (rzM1 (K := K)) 1 := by
   rintro ⟨L, hL⟩
-  have h00 := congrFun (congrFun hL (0, 0)) (0, 0)
-  have h01 := congrFun (congrFun hL (0, 0)) (0, 1)
+  have hL' := sym4_eq_of_sameBiquad hL
+  have h00 := congrFun (congrFun hL' (0, 0)) (0, 0)
+  have h01 := congrFun (congrFun hL' (0, 0)) (0, 1)
   simp [sym4, rzM1, elemM, Matrix.mul_apply] at h00 h01
   have h4 : (4 : K) ≠ 0 := by
     have : (4 : K) = 2 * 2 := by norm_num
@@ -254,7 +255,7 @@ theorem rzM2_not_sos_three (h2 : (2 : K) ≠ 0) : ¬ HasSoSFormula (rzM2 (K := K
       2 * (dotProduct (col (a, b)) (col (c, d)) + dotProduct (col (a, d)) (col (c, b))) =
         sym4 (rzM2 (K := K)) (a, b) (c, d) := by
     intro a c b d
-    have h := congrFun (congrFun hL (a, b)) (c, d)
+    have h := congrFun (congrFun (sym4_eq_of_sameBiquad hL) (a, b)) (c, d)
     unfold sym4 at h ⊢
     simp only [Matrix.add_apply, Matrix.transpose_apply, ptr_apply, hdot_sym] at h ⊢
     rw [dotProduct_comm (col (c, d)) (col (a, b)),
@@ -374,8 +375,8 @@ theorem rz_prop316_right_counterexample :
     HasSoSFormula (rzM3 (K := K)) 0 ∧ ¬ HasPTRank (rzM3 (K := K)) 0 := by
   constructor
   · refine ⟨0, ?_⟩
-    unfold SameBiquad sym4 rzM3 elemM
-    ext ⟨a, b⟩ ⟨c, d⟩
+    intro a c b d
+    unfold biquadCoeff rzM3 elemM
     fin_cases a <;> fin_cases b <;> fin_cases c <;> fin_cases d <;> simp
   · rintro ⟨k, B, hk0, _, hsum⟩
     have hk : k = 0 := Nat.eq_zero_of_le_zero hk0

@@ -16,8 +16,10 @@ Proves over arbitrary fields `K` (characteristic ≠ 2 for the Clifford construc
   yields an exact two-cut decomposition of cost `≤ (k + 1) * (a + b)` (`TC ≤ (k + 1) bTC_k`).
 * `tc45_twoCut`, `tc46_twoCut`, `tc88_twoCut`: exact ±1 integer schemes giving
   `TC_K(4, 5) ≤ 8`, `TC_K(4, 6) ≤ 8`, and `TC_K(8, 8) ≤ 16` over every field `K`.
-* `border44_identity_field`: exact ±1 pole-order-2 border decomposition `bTC_K(4, 4) ≤ 6`
-  (ranks `3 + 3`) over every field `K`, checked by `decide`.
+* `border44_identity_field`, `border44_rank_le`, `border44_laurent_identity`: explicit ±1 width-3
+  polynomial families `b44A_eval ε, b44B_eval ε` of rank `≤ 3` each satisfying
+  `b44A_eval ε + (b44B_eval ε)^Γ = ε^2 • I_16 + ε^3 • R_1 + ε^4 • R_2` over every field `K`
+  (`bTC_{K,2}(4, 4) ≤ 6`).
 -/
 
 namespace PastaMath.TwoCutSoS
@@ -306,33 +308,136 @@ def b44B2v1 : Fin 4 × Fin 4 → ℤ := fun p => if p = (0, 2) then 1 else if p 
 def b44B2u2 : Fin 4 × Fin 4 → ℤ := fun p => if p = (2, 0) then 1 else 0
 def b44B2v2 : Fin 4 × Fin 4 → ℤ := fun _ => 0
 
-/-- Coefficient of `ε^(m - 2)` on the A side of the `4 × 4` border decomposition. -/
+/-- Indexed factor vectors `u_{j, d}, v_{j, d}` (`j, d : Fin 3`) for the A-side width-3
+polynomial family `P(ε) = ∑_{j < 3} (∑_{d < 3} ε^d u_{j,d}) (∑_{d < 3} ε^d v_{j,d})ᵀ`. -/
+def b44Au (j d : Fin 3) : Fin 4 × Fin 4 → ℤ :=
+  match j, d with
+  | 0, 0 => b44A0u0 | 0, 1 => b44A0u1 | 0, 2 => b44A0u2
+  | 1, 0 => b44A1u0 | 1, 1 => b44A1u1 | 1, 2 => b44A1u2
+  | 2, 0 => b44A2u0 | 2, 1 => b44A2u1 | 2, 2 => b44A2u2
+
+def b44Av (j d : Fin 3) : Fin 4 × Fin 4 → ℤ :=
+  match j, d with
+  | 0, 0 => b44A0v0 | 0, 1 => b44A0v1 | 0, 2 => b44A0v2
+  | 1, 0 => b44A1v0 | 1, 1 => b44A1v1 | 1, 2 => b44A1v2
+  | 2, 0 => b44A2v0 | 2, 1 => b44A2v1 | 2, 2 => b44A2v2
+
+/-- Indexed factor vectors `p_{j, d}, q_{j, d}` (`j, d : Fin 3`) for the B-side width-3
+polynomial family `Q(ε) = ∑_{j < 3} (∑_{d < 3} ε^d p_{j,d}) (∑_{d < 3} ε^d q_{j,d})ᵀ`. -/
+def b44Bu (j d : Fin 3) : Fin 4 × Fin 4 → ℤ :=
+  match j, d with
+  | 0, 0 => b44B0u0 | 0, 1 => b44B0u1 | 0, 2 => b44B0u2
+  | 1, 0 => b44B1u0 | 1, 1 => b44B1u1 | 1, 2 => b44B1u2
+  | 2, 0 => b44B2u0 | 2, 1 => b44B2u1 | 2, 2 => b44B2u2
+
+def b44Bv (j d : Fin 3) : Fin 4 × Fin 4 → ℤ :=
+  match j, d with
+  | 0, 0 => b44B0v0 | 0, 1 => b44B0v1 | 0, 2 => b44B0v2
+  | 1, 0 => b44B1v0 | 1, 1 => b44B1v1 | 1, 2 => b44B1v2
+  | 2, 0 => b44B2v0 | 2, 1 => b44B2v1 | 2, 2 => b44B2v2
+
+/-- Exact coefficient of `ε^m` in the A-side width-3 polynomial matrix `b44A_eval ε`
+(corresponding to Laurent order `ε^(m - 2)` after dividing by `ε^2`). -/
 def b44CA (m : ℕ) : Matrix (Fin 4 × Fin 4) (Fin 4 × Fin 4) ℤ :=
   match m with
   | 0 => vmvZ b44A0u0 b44A0v0 + vmvZ b44A1u0 b44A1v0 + vmvZ b44A2u0 b44A2v0
   | 1 => vmvZ b44A0u0 b44A0v1 + vmvZ b44A0u1 b44A0v0 + vmvZ b44A1u0 b44A1v1 + vmvZ b44A1u1 b44A1v0 +
          vmvZ b44A2u0 b44A2v1 + vmvZ b44A2u1 b44A2v0
-  | _ => vmvZ b44A0u0 b44A0v2 + vmvZ b44A0u1 b44A0v1 + vmvZ b44A0u2 b44A0v0 +
+  | 2 => vmvZ b44A0u0 b44A0v2 + vmvZ b44A0u1 b44A0v1 + vmvZ b44A0u2 b44A0v0 +
          vmvZ b44A1u0 b44A1v2 + vmvZ b44A1u1 b44A1v1 + vmvZ b44A1u2 b44A1v0 +
          vmvZ b44A2u0 b44A2v2 + vmvZ b44A2u1 b44A2v1 + vmvZ b44A2u2 b44A2v0
+  | 3 => vmvZ b44A0u1 b44A0v2 + vmvZ b44A0u2 b44A0v1 + vmvZ b44A1u1 b44A1v2 + vmvZ b44A1u2 b44A1v1 +
+         vmvZ b44A2u1 b44A2v2 + vmvZ b44A2u2 b44A2v1
+  | 4 => vmvZ b44A0u2 b44A0v2 + vmvZ b44A1u2 b44A1v2 + vmvZ b44A2u2 b44A2v2
+  | _ => 0
 
-/-- Coefficient of `ε^(m - 2)` on the B side of the `4 × 4` border decomposition. -/
+/-- Exact coefficient of `ε^m` in the B-side width-3 polynomial matrix `b44B_eval ε`
+(corresponding to Laurent order `ε^(m - 2)` after dividing by `ε^2`). -/
 def b44CB (m : ℕ) : Matrix (Fin 4 × Fin 4) (Fin 4 × Fin 4) ℤ :=
   match m with
   | 0 => vmvZ b44B0u0 b44B0v0 + vmvZ b44B1u0 b44B1v0 + vmvZ b44B2u0 b44B2v0
   | 1 => vmvZ b44B0u0 b44B0v1 + vmvZ b44B0u1 b44B0v0 + vmvZ b44B1u0 b44B1v1 + vmvZ b44B1u1 b44B1v0 +
          vmvZ b44B2u0 b44B2v1 + vmvZ b44B2u1 b44B2v0
-  | _ => vmvZ b44B0u0 b44B0v2 + vmvZ b44B0u1 b44B0v1 + vmvZ b44B0u2 b44B0v0 +
+  | 2 => vmvZ b44B0u0 b44B0v2 + vmvZ b44B0u1 b44B0v1 + vmvZ b44B0u2 b44B0v0 +
          vmvZ b44B1u0 b44B1v2 + vmvZ b44B1u1 b44B1v1 + vmvZ b44B1u2 b44B1v0 +
          vmvZ b44B2u0 b44B2v2 + vmvZ b44B2u1 b44B2v1 + vmvZ b44B2u2 b44B2v0
+  | 3 => vmvZ b44B0u1 b44B0v2 + vmvZ b44B0u2 b44B0v1 + vmvZ b44B1u1 b44B1v2 + vmvZ b44B1u2 b44B1v1 +
+         vmvZ b44B2u1 b44B2v2 + vmvZ b44B2u2 b44B2v1
+  | 4 => vmvZ b44B0u2 b44B0v2 + vmvZ b44B1u2 b44B1v2 + vmvZ b44B2u2 b44B2v2
+  | _ => 0
+
+/-- A-side width-3 polynomial matrix evaluated at `ε : K`:
+`P(ε) = ∑_{j < 3} (∑_{d < 3} ε^d u_{j,d}) (∑_{d < 3} ε^d v_{j,d})ᵀ`. -/
+def b44A_eval (K : Type*) [Field K] (ε : K) : Matrix (Fin 4 × Fin 4) (Fin 4 × Fin 4) K :=
+  ∑ j : Fin 3, Matrix.vecMulVec
+    (fun p => ∑ d : Fin 3, ε ^ d.1 * (b44Au j d p : K))
+    (fun q => ∑ d : Fin 3, ε ^ d.1 * (b44Av j d q : K))
+
+/-- B-side width-3 polynomial matrix evaluated at `ε : K`:
+`Q(ε) = ∑_{j < 3} (∑_{d < 3} ε^d p_{j,d}) (∑_{d < 3} ε^d q_{j,d})ᵀ`. -/
+def b44B_eval (K : Type*) [Field K] (ε : K) : Matrix (Fin 4 × Fin 4) (Fin 4 × Fin 4) K :=
+  ∑ j : Fin 3, Matrix.vecMulVec
+    (fun p => ∑ d : Fin 3, ε ^ d.1 * (b44Bu j d p : K))
+    (fun q => ∑ d : Fin 3, ε ^ d.1 * (b44Bv j d q : K))
+
+private lemma vecMulVec_rank_le_one {r s : ℕ} {K : Type*} [Field K]
+    (u v : Fin r × Fin s → K) : (Matrix.vecMulVec u v).rank ≤ 1 := by
+  have hfac : Matrix.vecMulVec u v =
+      (Matrix.of fun p (_ : Fin 1) => u p) * (Matrix.of fun (_ : Fin 1) q => v q) := by
+    ext p q; simp [Matrix.vecMulVec_apply, Matrix.mul_apply]
+  rw [hfac]
+  calc _ ≤ (Matrix.of fun p (_ : Fin 1) => u p).rank := Matrix.rank_mul_le_left _ _
+    _ ≤ Fintype.card (Fin 1) := Matrix.rank_le_card_width _
+    _ = 1 := Fintype.card_fin 1
+
+/-- Both `b44A_eval ε` and `b44B_eval ε` have rank at most `3` at every `ε` over every field `K`. -/
+theorem border44_rank_le (K : Type*) [Field K] (ε : K) :
+    (b44A_eval K ε).rank ≤ 3 ∧ (b44B_eval K ε).rank ≤ 3 := by
+  constructor
+  · unfold b44A_eval
+    rw [Fin.sum_univ_three]
+    exact rank_add_le_of (rank_add_le_of (vecMulVec_rank_le_one _ _) (vecMulVec_rank_le_one _ _))
+      (vecMulVec_rank_le_one _ _)
+  · unfold b44B_eval
+    rw [Fin.sum_univ_three]
+    exact rank_add_le_of (rank_add_le_of (vecMulVec_rank_le_one _ _) (vecMulVec_rank_le_one _ _))
+      (vecMulVec_rank_le_one _ _)
+
+private lemma b44A_eval_expand (K : Type*) [Field K] (ε : K) :
+    b44A_eval K ε =
+      (b44CA 0).map (Int.cast : ℤ → K) +
+      ε • (b44CA 1).map (Int.cast : ℤ → K) +
+      ε ^ 2 • (b44CA 2).map (Int.cast : ℤ → K) +
+      ε ^ 3 • (b44CA 3).map (Int.cast : ℤ → K) +
+      ε ^ 4 • (b44CA 4).map (Int.cast : ℤ → K) := by
+  ext p q
+  simp only [b44A_eval, b44CA, b44Au, b44Av, vmvZ, Fin.sum_univ_three, Fin.isValue,
+    Fin.val_zero, Fin.val_one, Fin.val_two,
+    Matrix.sum_apply, Matrix.add_apply, Matrix.smul_apply, Matrix.map_apply,
+    Matrix.vecMulVec_apply, Matrix.of_apply, smul_eq_mul, Int.cast_add, Int.cast_mul]
+  ring
+
+private lemma b44B_eval_expand (K : Type*) [Field K] (ε : K) :
+    b44B_eval K ε =
+      (b44CB 0).map (Int.cast : ℤ → K) +
+      ε • (b44CB 1).map (Int.cast : ℤ → K) +
+      ε ^ 2 • (b44CB 2).map (Int.cast : ℤ → K) +
+      ε ^ 3 • (b44CB 3).map (Int.cast : ℤ → K) +
+      ε ^ 4 • (b44CB 4).map (Int.cast : ℤ → K) := by
+  ext p q
+  simp only [b44B_eval, b44CB, b44Bu, b44Bv, vmvZ, Fin.sum_univ_three, Fin.isValue,
+    Fin.val_zero, Fin.val_one, Fin.val_two,
+    Matrix.sum_apply, Matrix.add_apply, Matrix.smul_apply, Matrix.map_apply,
+    Matrix.vecMulVec_apply, Matrix.of_apply, smul_eq_mul, Int.cast_add, Int.cast_mul]
+  ring
 
 private theorem border44_order_m2 : ∀ p q : Fin 4 × Fin 4, (b44CA 0 + ptrZ (b44CB 0)) p q = 0 := by decide
 private theorem border44_order_m1 : ∀ p q : Fin 4 × Fin 4, (b44CA 1 + ptrZ (b44CB 1)) p q = 0 := by decide
 private theorem border44_order_0 : ∀ p q : Fin 4 × Fin 4,
     (b44CA 2 + ptrZ (b44CB 2)) p q = if p = q then 1 else 0 := by decide
 
-/-- Pole-order-2 border decomposition `bTC_K(4, 4) ≤ 6` (ranks `3 + 3`) over every field `K`:
-the `ε⁻²` and `ε⁻¹` coefficients of `P(ε) + Q(ε)^Γ` vanish, and the `ε⁰` coefficient is `1`. -/
+/-- Coefficient identities for the pole-order-2 border decomposition `bTC_K(4, 4) ≤ 6`:
+the `ε⁰` and `ε¹` coefficients of `b44A_eval ε + (b44B_eval ε)^Γ` vanish, and the `ε²` coefficient is `1`. -/
 theorem border44_identity_field (K : Type*) [Field K] :
     (b44CA 0).map (Int.cast : ℤ → K) + ptr ((b44CB 0).map (Int.cast : ℤ → K)) = 0 ∧
     (b44CA 1).map (Int.cast : ℤ → K) + ptr ((b44CB 1).map (Int.cast : ℤ → K)) = 0 ∧
@@ -348,6 +453,32 @@ theorem border44_identity_field (K : Type*) [Field K] :
   · rw [show (b44CA 2 p q + ptrZ (b44CB 2) p q) = (b44CA 2 + ptrZ (b44CB 2)) p q from rfl,
       border44_order_0 p q]
     split_ifs <;> simp
+
+/-- Full pole-order-2 border two-cut identity over every field `K` (including `K(t)`):
+for every `ε : K`, `b44A_eval K ε + (b44B_eval K ε)^Γ = ε^2 • I_16 + ε^3 • R_1 + ε^4 • R_2`,
+where `rank (b44A_eval K ε) ≤ 3` and `rank (b44B_eval K ε) ≤ 3` by `border44_rank_le`. -/
+theorem border44_laurent_identity (K : Type*) [Field K] (ε : K) :
+    b44A_eval K ε + ptr (b44B_eval K ε) =
+      ε ^ 2 • (1 : Matrix (Fin 4 × Fin 4) (Fin 4 × Fin 4) K) +
+      ε ^ 3 • ((b44CA 3).map (Int.cast : ℤ → K) + ptr ((b44CB 3).map (Int.cast : ℤ → K))) +
+      ε ^ 4 • ((b44CA 4).map (Int.cast : ℤ → K) + ptr ((b44CB 4).map (Int.cast : ℤ → K))) := by
+  rcases border44_identity_field K with ⟨h0, h1, h2⟩
+  rw [b44A_eval_expand, b44B_eval_expand]
+  simp only [ptr_add, ptr_smul]
+  have hgroup :
+      ((b44CA 0).map (Int.cast : ℤ → K) + ε • (b44CA 1).map (Int.cast : ℤ → K) +
+        ε ^ 2 • (b44CA 2).map (Int.cast : ℤ → K) + ε ^ 3 • (b44CA 3).map (Int.cast : ℤ → K) +
+        ε ^ 4 • (b44CA 4).map (Int.cast : ℤ → K)) +
+      (ptr ((b44CB 0).map (Int.cast : ℤ → K)) + ε • ptr ((b44CB 1).map (Int.cast : ℤ → K)) +
+        ε ^ 2 • ptr ((b44CB 2).map (Int.cast : ℤ → K)) + ε ^ 3 • ptr ((b44CB 3).map (Int.cast : ℤ → K)) +
+        ε ^ 4 • ptr ((b44CB 4).map (Int.cast : ℤ → K))) =
+      ((b44CA 0).map (Int.cast : ℤ → K) + ptr ((b44CB 0).map (Int.cast : ℤ → K))) +
+      ε • ((b44CA 1).map (Int.cast : ℤ → K) + ptr ((b44CB 1).map (Int.cast : ℤ → K))) +
+      ε ^ 2 • ((b44CA 2).map (Int.cast : ℤ → K) + ptr ((b44CB 2).map (Int.cast : ℤ → K))) +
+      ε ^ 3 • ((b44CA 3).map (Int.cast : ℤ → K) + ptr ((b44CB 3).map (Int.cast : ℤ → K))) +
+      ε ^ 4 • ((b44CA 4).map (Int.cast : ℤ → K) + ptr ((b44CB 4).map (Int.cast : ℤ → K))) := by
+    simp only [smul_add]; abel
+  rw [hgroup, h0, h1, h2, smul_zero, add_zero, zero_add]
 
 end IntegerSchemes
 

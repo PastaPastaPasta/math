@@ -261,18 +261,106 @@ lemma qf_sym4 (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K)
   rw [qf_add, qf_add, qf_add, qf_transpose, qf_transpose, qf_ptr]
   ring
 
-/-- Formal biquadratic polynomial equality `Q_M = Q_N`: the four-fold symmetrisations agree. -/
+/-- Exact formal biquadratic coefficient of the monomial `x_a x_c y_b y_d` in `Q_M`:
+the sum of the distinct matrix entries contributing to that monomial (`1`, `2`, or `4` terms).
+Valid in every characteristic, including characteristic `2`. -/
+def biquadCoeff (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K)
+    (a c : Fin r) (b d : Fin s) : K :=
+  if a = c then
+    if b = d then M (a, b) (a, b)
+    else M (a, b) (a, d) + M (a, d) (a, b)
+  else
+    if b = d then M (a, b) (c, b) + M (c, b) (a, b)
+    else M (a, b) (c, d) + M (c, b) (a, d) + M (a, d) (c, b) + M (c, d) (a, b)
+
+lemma biquadCoeff_add (M N : Matrix (Fin r × Fin s) (Fin r × Fin s) K)
+    (a c : Fin r) (b d : Fin s) :
+    biquadCoeff (M + N) a c b d = biquadCoeff M a c b d + biquadCoeff N a c b d := by
+  unfold biquadCoeff
+  split_ifs <;> simp only [Matrix.add_apply] <;> ring
+
+lemma biquadCoeff_ptr (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K)
+    (a c : Fin r) (b d : Fin s) :
+    biquadCoeff (ptr M) a c b d = biquadCoeff M a c b d := by
+  unfold biquadCoeff
+  split_ifs <;> simp only [ptr_apply] <;> ring
+
+lemma biquadCoeff_transpose (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K)
+    (a c : Fin r) (b d : Fin s) :
+    biquadCoeff Mᵀ a c b d = biquadCoeff M a c b d := by
+  unfold biquadCoeff
+  split_ifs <;> simp only [Matrix.transpose_apply] <;> ring
+
+/-- Formal biquadratic polynomial equality `Q_M = Q_N`: every monomial `x_a x_c y_b y_d`
+has the same coefficient in `Q_M` and `Q_N` (valid in every characteristic, including char `2`). -/
 def SameBiquad (M N : Matrix (Fin r × Fin s) (Fin r × Fin s) K) : Prop :=
-  sym4 M = sym4 N
+  ∀ a c b d, biquadCoeff M a c b d = biquadCoeff N a c b d
 
 lemma SameBiquad.refl (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K) :
-    SameBiquad M M := rfl
+    SameBiquad M M := fun _ _ _ _ => rfl
 
 lemma SameBiquad.symm {M N : Matrix (Fin r × Fin s) (Fin r × Fin s) K}
-    (h : SameBiquad M N) : SameBiquad N M := Eq.symm h
+    (h : SameBiquad M N) : SameBiquad N M := fun a c b d => (h a c b d).symm
 
 lemma SameBiquad.trans {L M N : Matrix (Fin r × Fin s) (Fin r × Fin s) K}
-    (h1 : SameBiquad L M) (h2 : SameBiquad M N) : SameBiquad L N := Eq.trans h1 h2
+    (h1 : SameBiquad L M) (h2 : SameBiquad M N) : SameBiquad L N :=
+  fun a c b d => (h1 a c b d).trans (h2 a c b d)
+
+/-- Formal biquadratic equality always implies equality of the four-fold symmetrisations `sym4`. -/
+lemma sym4_eq_of_sameBiquad {M N : Matrix (Fin r × Fin s) (Fin r × Fin s) K}
+    (h : SameBiquad M N) : sym4 M = sym4 N := by
+  ext ⟨a, b⟩ ⟨c, d⟩
+  have hab := h a c b d
+  unfold biquadCoeff at hab
+  unfold sym4
+  simp only [Matrix.add_apply, Matrix.transpose_apply, ptr_apply]
+  by_cases hac : a = c
+  · subst hac
+    by_cases hbd : b = d
+    · subst hbd
+      simp only [if_true] at hab
+      linear_combination 4 * hab
+    · simp only [if_true, hbd, if_false] at hab
+      linear_combination 2 * hab
+  · by_cases hbd : b = d
+    · subst hbd
+      simp only [hac, if_false, if_true] at hab
+      linear_combination 2 * hab
+    · simp only [hac, hbd, if_false] at hab
+      linear_combination hab
+
+/-- Over any field of characteristic ≠ 2, formal biquadratic equality coincides with
+equality of the four-fold symmetrisations `sym4 M = sym4 N`. -/
+theorem sameBiquad_iff_sym4 (h2 : (2 : K) ≠ 0)
+    (M N : Matrix (Fin r × Fin s) (Fin r × Fin s) K) :
+    SameBiquad M N ↔ sym4 M = sym4 N := by
+  constructor
+  · exact sym4_eq_of_sameBiquad
+  · intro h a c b d
+    have h4 : (4 : K) ≠ 0 := by
+      have : (4 : K) = 2 * 2 := by norm_num
+      rw [this]; exact mul_ne_zero h2 h2
+    have hent := congrFun (congrFun h (a, b)) (c, d)
+    unfold sym4 at hent
+    simp only [Matrix.add_apply, Matrix.transpose_apply, ptr_apply] at hent
+    unfold biquadCoeff
+    by_cases hac : a = c
+    · subst hac
+      by_cases hbd : b = d
+      · subst hbd
+        simp only [if_true]
+        apply mul_left_cancel₀ h4
+        linear_combination hent
+      · simp only [if_true, hbd, if_false]
+        apply mul_left_cancel₀ h2
+        linear_combination hent
+    · by_cases hbd : b = d
+      · subst hbd
+        simp only [hac, if_false, if_true]
+        apply mul_left_cancel₀ h2
+        linear_combination hent
+      · simp only [hac, hbd, if_false]
+        linear_combination hent
 
 /-- Indicator vector on `Fin n`. -/
 private def ind {n : ℕ} (i : Fin n) : Fin n → K := fun j => if j = i then 1 else 0
@@ -437,53 +525,170 @@ private lemma qf_add_ind_both (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K)
   simp only [Matrix.add_apply, Matrix.transpose_apply, ptr_apply]
   ring
 
-/-- Over any field of characteristic ≠ 2, formal biquadratic equivalence (`sym4 M = sym4 N`)
-coincides with pointwise equality of `qf M` and `qf N`. -/
-theorem sameBiquad_iff_qf (h2 : (2 : K) ≠ 0)
+private lemma sum_pair_split {n : ℕ} (f : Fin n → Fin n → K) :
+    ∑ i : Fin n, ∑ j : Fin n, f i j =
+      (∑ i : Fin n, f i i) +
+      ∑ i : Fin n, ∑ j ∈ Finset.univ.filter (fun j : Fin n => i < j), (f i j + f j i) := by
+  have h1 : ∀ i : Fin n, ∑ j : Fin n, f i j =
+      f i i + (∑ j ∈ Finset.univ.filter (fun j : Fin n => i < j), f i j) +
+      (∑ j ∈ Finset.univ.filter (fun j : Fin n => j < i), f i j) := by
+    intro i
+    have hdisj1 : Disjoint (Finset.univ.filter (fun j : Fin n => i < j))
+        (Finset.univ.filter (fun j : Fin n => j < i)) := by
+      rw [Finset.disjoint_filter]; intro j _ hlt hgt; exact lt_asymm hlt hgt
+    have hdisj2 : Disjoint ({i} : Finset (Fin n))
+        (Finset.univ.filter (fun j : Fin n => i < j) ∪
+         Finset.univ.filter (fun j : Fin n => j < i)) := by
+      simp only [Finset.disjoint_singleton_left, Finset.mem_union, Finset.mem_filter,
+        Finset.mem_univ, true_and, lt_self_iff_false, or_self, not_false_eq_true]
+    have hunion : ({i} : Finset (Fin n)) ∪
+        (Finset.univ.filter (fun j : Fin n => i < j) ∪
+         Finset.univ.filter (fun j : Fin n => j < i)) = Finset.univ := by
+      ext j
+      simp only [Finset.mem_union, Finset.mem_singleton, Finset.mem_filter, Finset.mem_univ,
+        true_and, iff_true]
+      rcases lt_trichotomy i j with hlt | heq | hgt
+      · exact Or.inr (Or.inl hlt)
+      · exact Or.inl heq.symm
+      · exact Or.inr (Or.inr hgt)
+    calc ∑ j : Fin n, f i j
+        = ∑ j ∈ ({i} ∪ (Finset.univ.filter (fun j : Fin n => i < j) ∪
+            Finset.univ.filter (fun j : Fin n => j < i))), f i j := by rw [hunion]
+      _ = f i i + ((∑ j ∈ Finset.univ.filter (fun j : Fin n => i < j), f i j) +
+            (∑ j ∈ Finset.univ.filter (fun j : Fin n => j < i), f i j)) := by
+          rw [Finset.sum_union hdisj2, Finset.sum_singleton, Finset.sum_union hdisj1]
+      _ = _ := by ring
+  simp_rw [h1, Finset.sum_add_distrib]
+  have hswap : ∑ i : Fin n, ∑ j ∈ Finset.univ.filter (fun j : Fin n => j < i), f i j =
+      ∑ i : Fin n, ∑ j ∈ Finset.univ.filter (fun j : Fin n => i < j), f j i := by
+    simp_rw [Finset.sum_filter]
+    rw [Finset.sum_comm]
+  rw [hswap]
+  have hcomb : (∑ i : Fin n, ∑ j ∈ Finset.univ.filter (fun j : Fin n => i < j), f i j) +
+      (∑ i : Fin n, ∑ j ∈ Finset.univ.filter (fun j : Fin n => i < j), f j i) =
+      ∑ i : Fin n, ∑ j ∈ Finset.univ.filter (fun j : Fin n => i < j), (f i j + f j i) := by
+    rw [← Finset.sum_add_distrib]
+    refine Finset.sum_congr rfl fun i _ => (Finset.sum_add_distrib).symm
+  rw [add_assoc, hcomb]
+
+private lemma qf_eq_sum_biquadCoeff (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K)
+    (x : Fin r → K) (y : Fin s → K) :
+    qf M x y =
+      ((∑ a : Fin r, ∑ b : Fin s, biquadCoeff M a a b b * (x a * x a * (y b * y b))) +
+       (∑ a : Fin r, ∑ b : Fin s, ∑ d ∈ Finset.univ.filter (fun d : Fin s => b < d),
+         biquadCoeff M a a b d * (x a * x a * (y b * y d)))) +
+      ((∑ a : Fin r, ∑ c ∈ Finset.univ.filter (fun c : Fin r => a < c), ∑ b : Fin s,
+         biquadCoeff M a c b b * (x a * x c * (y b * y b))) +
+       (∑ a : Fin r, ∑ c ∈ Finset.univ.filter (fun c : Fin r => a < c),
+         ∑ b : Fin s, ∑ d ∈ Finset.univ.filter (fun d : Fin s => b < d),
+         biquadCoeff M a c b d * (x a * x c * (y b * y d)))) := by
+  have hreord : qf M x y = ∑ a : Fin r, ∑ c : Fin r, ∑ b : Fin s, ∑ d : Fin s,
+      M (a, b) (c, d) * (x a * x c * (y b * y d)) := by
+    unfold qf
+    rw [Fintype.sum_prod_type]
+    refine Finset.sum_congr rfl fun a _ => ?_
+    simp_rw [Fintype.sum_prod_type]
+    rw [Finset.sum_comm]
+    refine Finset.sum_congr rfl fun c _ => Finset.sum_congr rfl fun b _ =>
+      Finset.sum_congr rfl fun d _ => by ring
+  rw [hreord, sum_pair_split (fun a c => ∑ b : Fin s, ∑ d : Fin s,
+      M (a, b) (c, d) * (x a * x c * (y b * y d)))]
+  congr 1
+  · have hdiag : ∀ a : Fin r,
+        (∑ b : Fin s, ∑ d : Fin s, M (a, b) (a, d) * (x a * x a * (y b * y d))) =
+        (∑ b : Fin s, biquadCoeff M a a b b * (x a * x a * (y b * y b))) +
+        (∑ b : Fin s, ∑ d ∈ Finset.univ.filter (fun d : Fin s => b < d),
+          biquadCoeff M a a b d * (x a * x a * (y b * y d))) := by
+      intro a
+      rw [sum_pair_split (fun b d => M (a, b) (a, d) * (x a * x a * (y b * y d)))]
+      congr 1
+      · refine Finset.sum_congr rfl fun b _ => ?_
+        simp [biquadCoeff]
+      · refine Finset.sum_congr rfl fun b _ => Finset.sum_congr rfl fun d hd => ?_
+        have hbd : b ≠ d := ne_of_lt (Finset.mem_filter.1 hd).2
+        simp only [biquadCoeff, if_true, hbd, if_false]; ring
+    simp_rw [hdiag, Finset.sum_add_distrib]
+  · have hoff : ∀ a : Fin r, ∀ c ∈ Finset.univ.filter (fun c : Fin r => a < c),
+        ((∑ b : Fin s, ∑ d : Fin s, M (a, b) (c, d) * (x a * x c * (y b * y d))) +
+         (∑ b : Fin s, ∑ d : Fin s, M (c, b) (a, d) * (x c * x a * (y b * y d)))) =
+        (∑ b : Fin s, biquadCoeff M a c b b * (x a * x c * (y b * y b))) +
+        (∑ b : Fin s, ∑ d ∈ Finset.univ.filter (fun d : Fin s => b < d),
+          biquadCoeff M a c b d * (x a * x c * (y b * y d))) := by
+      intro a c hc
+      have hac : a ≠ c := ne_of_lt (Finset.mem_filter.1 hc).2
+      rw [← Finset.sum_add_distrib]
+      have hmerge : ∀ b : Fin s,
+          (∑ d : Fin s, M (a, b) (c, d) * (x a * x c * (y b * y d))) +
+          (∑ d : Fin s, M (c, b) (a, d) * (x c * x a * (y b * y d))) =
+          ∑ d : Fin s, (M (a, b) (c, d) + M (c, b) (a, d)) * (x a * x c * (y b * y d)) := by
+        intro b
+        rw [← Finset.sum_add_distrib]
+        refine Finset.sum_congr rfl fun d _ => by ring
+      simp_rw [hmerge]
+      rw [sum_pair_split (fun b d => (M (a, b) (c, d) + M (c, b) (a, d)) * (x a * x c * (y b * y d)))]
+      congr 1
+      · refine Finset.sum_congr rfl fun b _ => ?_
+        simp only [biquadCoeff, hac, if_false, if_true]
+      · refine Finset.sum_congr rfl fun b _ => Finset.sum_congr rfl fun d hd => ?_
+        have hbd : b ≠ d := ne_of_lt (Finset.mem_filter.1 hd).2
+        simp only [biquadCoeff, hac, hbd, if_false]; ring
+    have houter : ∀ a : Fin r,
+        (∑ c ∈ Finset.univ.filter (fun c : Fin r => a < c),
+          ((∑ b : Fin s, ∑ d : Fin s, M (a, b) (c, d) * (x a * x c * (y b * y d))) +
+           (∑ b : Fin s, ∑ d : Fin s, M (c, b) (a, d) * (x c * x a * (y b * y d))))) =
+        (∑ c ∈ Finset.univ.filter (fun c : Fin r => a < c),
+          ∑ b : Fin s, biquadCoeff M a c b b * (x a * x c * (y b * y b))) +
+        (∑ c ∈ Finset.univ.filter (fun c : Fin r => a < c),
+          ∑ b : Fin s, ∑ d ∈ Finset.univ.filter (fun d : Fin s => b < d),
+          biquadCoeff M a c b d * (x a * x c * (y b * y d))) := by
+      intro a
+      rw [← Finset.sum_add_distrib]
+      exact Finset.sum_congr rfl fun c hc => hoff a c hc
+    simp_rw [houter, Finset.sum_add_distrib]
+
+/-- Over every field `K` (including characteristic `2`), formal biquadratic equivalence
+(`SameBiquad M N`) coincides with pointwise equality of `qf M` and `qf N`. -/
+theorem sameBiquad_iff_qf
     (M N : Matrix (Fin r × Fin s) (Fin r × Fin s) K) :
     SameBiquad M N ↔ ∀ x y, qf M x y = qf N x y := by
   constructor
   · intro h x y
-    have h4 : (4 : K) ≠ 0 := by
-      have : (4 : K) = 2 * 2 := by norm_num
-      rw [this]; exact mul_ne_zero h2 h2
-    have := congrArg (fun A => qf A x y) h
-    rw [qf_sym4, qf_sym4] at this
-    exact mul_left_cancel₀ h4 this
-  · intro h
-    ext ⟨a, b⟩ ⟨c, d⟩
+    rw [qf_eq_sum_biquadCoeff M, qf_eq_sum_biquadCoeff N]
+    dsimp only [SameBiquad] at h
+    simp_rw [h]
+  · intro h a c b d
+    unfold biquadCoeff
     by_cases hac : a = c
     · subst hac
       by_cases hbd : b = d
       · subst hbd
+        simp only [if_true]
         have hab := h (ind a) (ind b)
-        rw [qf_ind_ind, qf_ind_ind] at hab
-        unfold sym4
-        simp only [Matrix.add_apply, Matrix.transpose_apply, ptr_apply, hab]
-      · have h1 := h (ind a) (ind b + ind d)
+        rwa [qf_ind_ind, qf_ind_ind] at hab
+      · simp only [if_true, hbd, if_false]
+        have h1 := h (ind a) (ind b + ind d)
         have h2a := h (ind a) (ind b)
         have h2b := h (ind a) (ind d)
         rw [qf_add_ind_right M a b d hbd, qf_add_ind_right N a b d hbd] at h1
         rw [qf_ind_ind, qf_ind_ind] at h2a h2b
-        have hsum : M (a, b) (a, d) + M (a, d) (a, b) = N (a, b) (a, d) + N (a, d) (a, b) := by
-          linear_combination h1 - h2a - h2b
-        unfold sym4
-        simp only [Matrix.add_apply, Matrix.transpose_apply, ptr_apply]
-        linear_combination 2 * hsum
+        linear_combination h1 - h2a - h2b
     · by_cases hbd : b = d
       · subst hbd
+        simp only [hac, if_false, if_true]
         have h1 := h (ind a + ind c) (ind b)
         have h2a := h (ind a) (ind b)
         have h2b := h (ind c) (ind b)
         rw [qf_add_ind_left M a c hac b, qf_add_ind_left N a c hac b] at h1
         rw [qf_ind_ind, qf_ind_ind] at h2a h2b
-        have hsum : M (a, b) (c, b) + M (c, b) (a, b) = N (a, b) (c, b) + N (c, b) (a, b) := by
-          linear_combination h1 - h2a - h2b
-        unfold sym4
-        simp only [Matrix.add_apply, Matrix.transpose_apply, ptr_apply]
-        linear_combination 2 * hsum
-      · rw [← qf_add_ind_both M a c hac b d hbd, ← qf_add_ind_both N a c hac b d hbd]
-        simp only [h]
+        linear_combination h1 - h2a - h2b
+      · simp only [hac, hbd, if_false]
+        have hboth := qf_add_ind_both M a c hac b d hbd
+        have hbothN := qf_add_ind_both N a c hac b d hbd
+        have heq : sym4 M (a, b) (c, d) = sym4 N (a, b) (c, d) := by
+          rw [← hboth, ← hbothN]; simp only [h]
+        unfold sym4 at heq
+        simp only [Matrix.add_apply, Matrix.transpose_apply, ptr_apply] at heq
+        linear_combination heq
 
 /-- `Q_M` admits a bilinear product formula of size `n`:
 `Q_M(x, y) = ∑_{l < n} f_l(x, y) g_l(x, y)` (formally, via `SameBiquad`). -/
@@ -496,8 +701,8 @@ def HasProdFormula (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K) (n : ℕ) : 
 def HasSoSFormula (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K) (n : ℕ) : Prop :=
   ∃ L : Matrix (Fin n) (Fin r × Fin s) K, SameBiquad (Lᵀ * L) M
 
-/-- Pointwise characterisation of `HasProdFormula` when `char K ≠ 2`. -/
-theorem hasProdFormula_iff_qf (h2 : (2 : K) ≠ 0)
+/-- Pointwise characterisation of `HasProdFormula` over every field `K`. -/
+theorem hasProdFormula_iff_qf
     (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K) (n : ℕ) :
     HasProdFormula M n ↔
       ∃ u v : Fin n → Fin r × Fin s → K,
@@ -506,16 +711,16 @@ theorem hasProdFormula_iff_qf (h2 : (2 : K) ≠ 0)
   constructor
   · rintro ⟨u, v, h⟩
     refine ⟨u, v, fun x y => ?_⟩
-    have hq := (sameBiquad_iff_qf h2 _ _).1 h x y
+    have hq := (sameBiquad_iff_qf _ _).1 h x y
     rw [qf_sum] at hq
     simpa [qf_vecMulVec] using hq
   · rintro ⟨u, v, h⟩
-    refine ⟨u, v, (sameBiquad_iff_qf h2 _ _).2 fun x y => ?_⟩
+    refine ⟨u, v, (sameBiquad_iff_qf _ _).2 fun x y => ?_⟩
     rw [qf_sum]
     simpa [qf_vecMulVec] using h x y
 
-/-- Pointwise characterisation of `HasSoSFormula` when `char K ≠ 2`. -/
-theorem hasSoSFormula_iff_qf (h2 : (2 : K) ≠ 0)
+/-- Pointwise characterisation of `HasSoSFormula` over every field `K`. -/
+theorem hasSoSFormula_iff_qf
     (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K) (n : ℕ) :
     HasSoSFormula M n ↔
       ∃ L : Matrix (Fin n) (Fin r × Fin s) K,
@@ -523,10 +728,10 @@ theorem hasSoSFormula_iff_qf (h2 : (2 : K) ≠ 0)
   constructor
   · rintro ⟨L, h⟩
     refine ⟨L, fun x y => ?_⟩
-    have hq := (sameBiquad_iff_qf h2 _ _).1 h x y
+    have hq := (sameBiquad_iff_qf _ _).1 h x y
     rwa [qf_gram] at hq
   · rintro ⟨L, h⟩
-    refine ⟨L, (sameBiquad_iff_qf h2 _ _).2 fun x y => ?_⟩
+    refine ⟨L, (sameBiquad_iff_qf _ _).2 fun x y => ?_⟩
     rw [qf_gram]
     exact h x y
 

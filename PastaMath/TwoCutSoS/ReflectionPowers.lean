@@ -737,9 +737,10 @@ theorem valuation_theorem {K : ℕ} {a b : ℤ} {ℓ : ℕ}
   · rw [if_pos hB]
     split_ifs <;> linarith [min_le_right (muP p T) (muP p (fun i => !(T i)))]
 
-/-- **Layer grouping attainment (upper bound):**
+/-- **Layer grouping upper bound:**
 For any `p ∈ (0, 1/2]` and `λ = 1 / (2p)`, the 0/1 layer grouping `c_w = 1` iff `2 * |w| ≥ K`
-attains the Bayes error `∑_T min(μ_p(T), μ_{1-p}(T))` at every `K`. -/
+has cost at most the Bayes error `∑_T min(μ_p(T), μ_{1-p}(T))` at every `K`
+(attaining equality whenever the hypotheses of `valuation_theorem` hold). -/
 theorem layer_grouping_le {K : ℕ} {p lam : ℝ} (hp0 : 0 < p) (hp12 : p ≤ 1 / 2)
     (hpl : 2 * p * lam = 1) :
     let c : (Fin K → Bool) → ℝ := fun w =>

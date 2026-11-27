@@ -278,8 +278,8 @@ theorem prod_of_twoCut (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K) {c : ℕ
       ext p q; simp [u, v, h1, h2, Matrix.vecMulVec_apply]
     rw [hS1, hS2, hS3, add_zero]
   rw [hsplit]
-  unfold SameBiquad
-  rw [← hAW, sym4_add, sym4_add, sym4_ptr]
+  intro a c b d
+  rw [← hAW, biquadCoeff_add, biquadCoeff_add, biquadCoeff_ptr]
 
 /-- `TC_K(M) ≤ 2 σ_K(M)` for fully symmetric `M` when `char K ≠ 2` (Rossman–Zhu Lemma 3.15, `d = 2`). -/
 theorem twoCut_of_sos (h2 : (2 : K) ≠ 0) (M : Matrix (Fin r × Fin s) (Fin r × Fin s) K)
@@ -289,7 +289,7 @@ theorem twoCut_of_sos (h2 : (2 : K) ≠ 0) (M : Matrix (Fin r × Fin s) (Fin r �
     rw [Matrix.transpose_mul, Matrix.transpose_transpose]
   have hsum : (Lᵀ * L) + ptr (Lᵀ * L) = (2 : K) • M := by
     have h4 : sym4 (Lᵀ * L) = (4 : K) • M := by
-      rw [hL, sym4_of_isFullySym hM]
+      rw [sym4_eq_of_sameBiquad hL, sym4_of_isFullySym hM]
     have hL4 : sym4 (Lᵀ * L) = (2 : K) • ((Lᵀ * L) + ptr (Lᵀ * L)) := by
       unfold sym4
       rw [hsymL, ← ptr_transpose, hsymL]
@@ -324,7 +324,7 @@ theorem twoCut_of_prod (h2 : (2 : K) ≠ 0) (M : Matrix (Fin r × Fin s) (Fin r 
   let S := (4⁻¹ : K) • (G + Gᵀ)
   refine ⟨S, S, ?_, ?_⟩
   · have hsum : (G + Gᵀ) + ptr (G + Gᵀ) = (4 : K) • M := by
-      have hsym4 : sym4 G = (4 : K) • M := by rw [hG, sym4_of_isFullySym hM]
+      have hsym4 : sym4 G = (4 : K) • M := by rw [sym4_eq_of_sameBiquad hG, sym4_of_isFullySym hM]
       unfold sym4 at hsym4
       rw [ptr_add, ptr_transpose, ← hsym4]
       abel
@@ -360,7 +360,7 @@ theorem sos_of_prod (h2 : (2 : K) ≠ 0) {I : K} (hI : I ^ 2 = -1)
     | Sum.inl l => (2⁻¹ : K) * (u l p + v l p)
     | Sum.inr l => (2⁻¹ : K) * I * (u l p - v l p)
   refine ⟨L, ?_⟩
-  rw [sameBiquad_iff_qf h2]
+  rw [sameBiquad_iff_qf]
   intro x y
   rw [qf_gram, ← Equiv.sum_comp e, Fintype.sum_sum_type]
   have h1 : ∀ l : Fin n,
@@ -391,7 +391,7 @@ theorem sos_of_prod (h2 : (2 : K) ≠ 0) {I : K} (hI : I ^ 2 = -1)
       _ = U * V := by rw [h4inv, one_mul]
   rw [← Finset.sum_add_distrib]
   simp_rw [h1]
-  have hq := (sameBiquad_iff_qf h2 _ _).1 huv x y
+  have hq := (sameBiquad_iff_qf _ _).1 huv x y
   rw [qf_sum] at hq
   simpa [qf_vecMulVec] using hq
 

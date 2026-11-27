@@ -6,6 +6,8 @@ import PastaMath.TwoCutSoS
 open PastaMath.TwoCutSoS
 
 -- Exact dictionary (Defs, Dictionary)
+#print axioms sameBiquad_iff_qf
+#print axioms sameBiquad_iff_sym4
 #print axioms hasPTRank_iff_hasTwoCut
 #print axioms prod_of_twoCut
 #print axioms twoCut_of_sos
@@ -39,6 +41,8 @@ open PastaMath.TwoCutSoS
 #print axioms tc46_twoCut
 #print axioms tc88_twoCut
 #print axioms border44_identity_field
+#print axioms border44_rank_le
+#print axioms border44_laurent_identity
 
 -- Reflection-type word-span tensor powers (ReflectionPowers)
 #print axioms reflOp_involutive
