@@ -22,7 +22,8 @@ jobs:
             PastaMath/OneTapeThreshold/Axioms.lean \
             PastaMath/QbfThreshold/Axioms.lean \
             PastaMath/SatBarriers/Axioms.lean \
-            PastaMath/FastDiag/Axioms.lean; do
+            PastaMath/FastDiag/Axioms.lean \
+            PastaMath/TwoCutSoS/Axioms.lean; do
             lake env lean "$f" > axioms.out
             cat axioms.out
             n="$(grep -c '^#print axioms' "$f")"
