@@ -1,0 +1,148 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{array,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\DTS}{\mathsf{DTS}}
+\newcommand{\SAT}{\mathsf{SAT}}
+\newcommand{\leanus}{\textunderscore\allowbreak}
+\newcommand{\lean}[1]{\ifmmode\text{\ttfamily #1}\else{\ttfamily\let\_\leanus #1}\fi}
+
+\title{Extensions of the Buss--Williams $2\cos(\pi/7)$ barrier\\ for SAT time--space alternation trading}
+\author{PastaPastaPasta}
+\date{November 2026}
+
+\emergencystretch=2em
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Buss and Williams \cite{BW15} proved that alternation-trading proofs for $\SAT\notin\DTS[n^c]$ using standard speedup and slowdown rules cannot surpass $r_7=2\cos(\pi/7)\approx1.801938$, the root of $c^3-c^2-2c+1=0$ in $(1,2)$. We formalise in Lean~4 a family of extensions of this barrier covering stronger rule sets and proof notions:
+\begin{enumerate}
+\item \textbf{Weakened slowdown envelopes and two-flag slowdowns.} Slowdowns need only satisfy $e\ge c\max(b,a)$ and $e\ge B+\beta(c-1)\max(b,a)$ for any $\beta\ge\beta^*:=1/(r_7(r_7-1))\approx0.6920$ (\lean{no\_refutation}, \lean{e1beta\_limit}), and even weaker $\beta_2\ge\beta_{\mathrm{non}}:=r_7(2-r_7)/(r_7-1)\approx0.4450$ on consecutive slowdowns (\lean{no\_refutation2}).
+\item \textbf{Rule~2, public-coin protocols, and derived-rule bootstrapping.} Adding two-step rules (\lean{Rule2Step}), perfect-completeness public-coin multi-round protocol steps with $\sum_i s_i\ge a-v$ (\lean{ProtoStep}), or the full inductive closure \lean{Der} of arbitrarily nested derived rules at arbitrary scale leaves the barrier at $r_7$ (\lean{no\_refutation\_rule2}, \lean{no\_refutation\_proto}, \lean{no\_refutation\_der}). Any derived single-block inclusion $\DTS[n^a]\subseteq{}^0\exists^s\DTS[n^v]$ satisfies $a\le c\max(s,v)$ and, for $c\in[r_7,2)$ with $\beta=1$, $v\ge(c-1/(c-1))a$ (strictly when $a>0$; \lean{AU.derived\_ns\_lower}), and no $\kappa<1$ universal-input-only speedup is derivable (\lean{BS.derived\_kappa}, sharp at $s_2>0$ via \lean{BS.derived\_kappa\_sharp}).
+\item \textbf{Localized, trace, unconditional, and copy-free speedups.} For input-localized speedups and chunked slowdowns with a $\beta$-envelope, the exact barrier is given by $(1-\beta)(c-1)^2\le c^3-c^2-2c+1$ (\lean{no\_refutation\_locB}), which beats $r_7$ at $\beta=1/2$ (\lean{beta\_half\_beats\_r7}) and stays at $r_7$ when $\beta=1$, even with trace speedups (\lean{no\_refutation\_locT}), max-envelopes (\lean{no\_refutation\_locX}), unconditional exponent-$0$ removal (\lean{no\_refutation\_locU\_r7}), free-kernel trace steps (\lean{no\_refutation\_locC}), and concrete array-exponent semantics (\lean{no\_locs\_refutation}).
+\item \textbf{Non-strict refutations.} Williams \cite[Lemma~4.3]{W13} also counts normal-form proofs ending at $a'=a$ (with at least one quantified intermediate line) as contradictions. We exclude non-strict refutations for \lean{Step} at $c\ge r_7$, $\beta\ge\beta^*$ (\lean{AU.no\_refutation\_nonstrict}) and for \lean{LStepX} at $\beta=1$, $c>r_7$ (\lean{AU.no\_refutation\_locX\_nonstrict}).
+\end{enumerate}
+
+\emph{What is kernel-checked:} every limit theorem, embedding, sharpness witness, and non-vacuity witness listed above in Lean~4 (\lean{PastaMath/SatBarriers/}).
+\emph{What is not machine-checked:} the complexity-theoretic soundness of concrete speedup/slowdown rules and the informal claim that specific complexity techniques (such as PCPs or particular interactive proofs) fall inside the formal rule families.
+\end{abstract}
+
+\section{Introduction}
+
+Alternation-trading proofs \cite{W13} refute the hypothesis $H_c:\SAT\in\DTS[n^c]$ by deriving a normal-form chain of inclusions starting and ending at quantifier-free deterministic time--space classes, $\DTS[n^{a_0}]\subseteq\cdots\subseteq\DTS[n^{a'}]$ with $a'<a_0$ (or $a'\le a_0$ with at least one quantified line, \cite[Lemma~4.3]{W13}). Buss and Williams \cite{BW15} proved that standard speedup and slowdown rules cannot reach $c\ge r_7=2\cos(\pi/7)$, the unique root of
+\[
+\operatorname{cub}(c):=c^3-c^2-2c+1=0
+\]
+in $(1,2)$ (\lean{cub\_r7}, \lean{cub\_eq\_zero\_iff}).
+
+To understand what genuinely new rule would be required to surpass $r_7$, one needs to know which natural enrichments of the calculus---weaker slowdown envelopes, localized or trace-based speedups, public-coin interactive protocols, non-strict contradictions, and bootstrapping by reusing derived inclusions as new rules---still fail to break $r_7$. We formalise all of these barrier extensions in Lean~4 under \lean{PastaMath.SatBarriers}, with standard axioms only.
+
+\paragraph{AI assistance.}
+The proofs and Lean formalisation were produced with AI assistance under the author's direction. The kernel-checked Lean proofs in \lean{PastaMath/SatBarriers/} are the primary evidence for all formal claims.
+
+\section{The base calculus and weakened envelopes}\label{sec:base}
+
+A reduced line is \lean{RLine} $= \mathrm{List}\;\mathbb{R} \times \mathbb{R}$, storing the list of block superscripts outermost first together with the kernel time exponent $a$; write $\operatorname{top}(l)$ for the last element of $l$ (or $0$ if empty).
+
+\begin{definition}[Base calculus \lean{Step} $c\;\beta$]\label{def:step}
+Fix $c,\beta\in\mathbb{R}$. \lean{Step} $c\;\beta$ allows:
+\begin{itemize}
+\item \lean{init}: $([],a)\to([0],a)$;
+\item \lean{speed}: $(\mathrm{bs}\mathbin{++}[b],a)\to(\mathrm{bs}\mathbin{++}[b_1,b_2],a_2)$ for $0\le x\le a$, $\max(x,b)\le b_1$, $b\le b_2$, $a-x\le a_2$;
+\item \lean{slow}: $(\mathrm{bs}\mathbin{++}[b],a)\to(\mathrm{bs},e)$ whenever $c\max(b,a)\le e$ and $\operatorname{top}(\mathrm{bs})+\beta(c-1)\max(b,a)\le e$;
+\item \lean{weak}: componentwise raising of superscripts and kernel.
+\end{itemize}
+A strict normal-form refutation \lean{RefutesWith} $R\;n\;L$ has $n\ge1$, $L(0).1=L(n).1=[]$, $0\le L(0).2$, $L(n).2<L(0).2$, and $L(i).1\ne[]$ for $0<i<n$.
+\end{definition}
+
+Set $\beta^*:=1/(r_7(r_7-1))\approx0.69202$ and $\beta_{\mathrm{non}}:=r_7(2-r_7)/(r_7-1)\approx0.44504$.
+
+\begin{theorem}[Buss--Williams limit and envelope relaxations]\label{thm:base}
+Let $c\ge r_7$.
+\begin{enumerate}
+\item For every $\beta\ge\beta^*$, there is no strict refutation in \lean{Step} $c\;\beta$ (\lean{no\_refutation}). The same holds for any slowdown function $S(B,M)$ satisfying $S(B,M)\ge cM$ and $S(B,M)\ge B+\beta(c-1)M$ (\lean{e1beta\_limit}), and in particular for $S(B,M)=c\max(B,M)$ (\lean{bw\_limit}).
+\item In the two-flag calculus \lean{Step2} $c\;\beta_1\;\beta_2$ (\lean{Derivation2.lean}), which tracks whether the preceding step was a speedup and permits a smaller additive factor $\beta_2$ on consecutive slowdowns, no strict refutation exists whenever $\beta_1\ge\beta^*$ and $\beta_2\ge\beta_{\mathrm{non}}$ (\lean{no\_refutation2}).
+\end{enumerate}
+\end{theorem}
+
+\section{Rule~2, protocols, and derived-rule bootstrapping}\label{sec:proto}
+
+\begin{definition}[Extended single-stack rules]\label{def:ext}
+\begin{itemize}
+\item \lean{Rule2Step} $c\;\beta$ (\lean{Rule2.lean}) adds two-step transitions $L\to M\to L'$ through a quantified line $M$ (covering Williams's Speedup Rule~2).
+\item \lean{ProtoStep} $c\;\beta$ (\lean{Protocol.lean}) adds multi-round protocol steps from $(P\mathbin{++}[b],a)$ to $(P\mathbin{++}b::\mathrm{flat}(rs),v)$ or $(P\mathbin{++}\mathrm{flat}(rs),v)$ for any nonempty list $rs$ of pairs $(s_i,t_i)$ with $s_i,t_i\ge b$ and $\sum_i s_i\ge a-v$.
+\item \lean{BS.Der} $R$ (\lean{Bootstrap.lean}) is the inductive closure of $R$ under finite composition through quantified lines, modelling the reuse of derived inclusions as new rules at any nesting depth (and, by scale invariance \lean{step\_scale}, at any scale).
+\end{itemize}
+\end{definition}
+
+Every \lean{ProtoStep} expands into a finite path of \lean{Step} moves (\lean{PR.proto\_path}), and \lean{Der (Der R)} collapses to \lean{Der R} (\lean{BS.der\_der}).
+
+\begin{theorem}[Protocol and bootstrapping limits]\label{thm:proto}
+For $c\ge r_7$ and $\beta\ge\beta^*$, there is no strict refutation in \lean{Rule2Step} $c\;\beta$ (\lean{no\_refutation\_rule2}), in \lean{ProtoStep} $c\;\beta$ (\lean{PR.no\_refutation\_proto}), or in \lean{BS.Der} (\lean{Step} $c\;\beta$) (\lean{BS.no\_refutation\_der}).
+\end{theorem}
+
+\begin{theorem}[Limits on derived inclusions]\label{thm:derived}
+Let $c\ge r_7$ and $\beta\ge\beta^*$. Suppose a \lean{Step} $c\;\beta$ derivation starts at $([],a)$ with $a\ge0$ and stays quantified on steps $1,\dots,n$.
+\begin{enumerate}
+\item If $L(n)=([s_1,s_2],v)$ with $s_2\le0$ (a universal block passing only the input), then $a\le s_1+v$ (\lean{BS.derived\_kappa}). This is sharp in $s_2$: at $c=181/100>r_7$, \lean{BS.derived\_kappa\_sharp} derives $([0,1/2],181/200)$ from $([],1)$ with $0+181/200<1$.
+\item If $L(n)=([s],v)$ and $\beta\le1$, then $a\le c\max(s,v)$ (\lean{BS.derived\_ns}).
+\item When $\beta=1$ and $c\in[r_7,2)$, any derivation ending at $([s],v)$ satisfies $v\ge\tau_0(c)\,a$ where $\tau_0(c):=c-1/(c-1)$, and strictly $v>\tau_0(c)\,a$ whenever $a>0$ (\lean{AU.derived\_ns\_lower}).
+\end{enumerate}
+\end{theorem}
+
+\section{Localized, trace, unconditional, and concrete array calculi}\label{sec:loc}
+
+In \lean{Localized.lean}--\lean{LocalizedCopy.lean}, a line \lean{LLine} $= \mathrm{List}\;\lean{LBlock} \times \mathbb{R} \times \mathbb{R}$ records each block's superscript $b$, creation split $x_c$, and creation locality $l_c$, plus the current kernel exponent $a$ and locality exponent $l$. Localized speedups set the new block's superscript from $l$ rather than from $b$; trace speedups (\lean{LStepT}) allow setting $b_2$ from $a-x$; max-envelopes (\lean{LStepX}) weaken the slowdown constraint to take the maximum of either envelope; unconditional removal (\lean{LStepU}) allows dropping a block with $b\le0$ and $a\le0$ without paying a factor $c$; and \lean{LStepC} allows free kernel time on trace steps.
+
+The potential function (\lean{LocalizedBeta.lean})
+\[
+\Psi_\beta(c,b,d,l) := \min\!\left(\max(b,d),\;\max\!\left(b+\beta(c-1)l,\; cl,\; \frac{d+l}{c}\right)\right)
+\]
+governs all five localized systems simultaneously.
+
+\begin{theorem}[Localized $\beta$-envelope threshold]\label{thm:loc}
+Let $0\le\beta\le1$ and $c\ge1$ satisfy $(1-\beta)(c-1)^2\le c^3-c^2-2c+1$. Then no strict refutation exists in \lean{LStepB} $c\;\beta$ (\lean{no\_refutation\_locB}), \lean{LStepT} $c\;\beta$ (\lean{no\_refutation\_locT}), \lean{LStepX} $c\;\beta$ (\lean{no\_refutation\_locX}), \lean{LStepU} $c\;\beta$ (\lean{no\_refutation\_locU}), or \lean{LStepC} $c\;\beta$ (\lean{no\_refutation\_locC}). In particular, at $\beta=1$ none of these systems has a strict refutation for $c\ge r_7$ (\lean{no\_refutation\_loc}, \lean{no\_refutation\_locU\_r7}). Conversely, at $\beta=1/2$ there exist $c>r_7$ with an \lean{LStepB} $c\;(1/2)$ refutation (\lean{beta\_half\_beats\_r7}).
+\end{theorem}
+
+In \lean{LocsEmbed.lean}, we define the concrete array-exponent calculus \lean{LocsStep} $c$ with invariant \lean{CInv} tracking creation-time parent bounds, prove that every concrete step abstracts to \lean{LStepX} $c\;1$ (\lean{locs\_embed}), and conclude that no concrete refutation exists for $c\ge r_7$ (\lean{no\_locs\_refutation}), while Lipton--Viglas gives a 4-step refutation at $c=7/5$ (\lean{lv\_locs\_refutes}).
+
+\section{Non-strict refutations}\label{sec:nonstrict}
+
+Williams \cite[Lemma~4.3]{W13} also treats a normal-form proof $\DTS[n^{a_0}]\subseteq\cdots\subseteq\DTS[n^{a'}]$ with $a'\le a_0$ (and $n\ge2$, so at least one quantified intermediate line) as a contradiction. In \lean{Audit.lean}, \lean{RefutesNS} and \lean{LRefutesXNS} formalise this non-strict predicate for $a_0>0$.
+
+\begin{theorem}[Exclusion of non-strict refutations]\label{thm:nonstrict}
+\begin{enumerate}
+\item For $c\ge r_7$ and $\beta\ge\beta^*$, there is no non-strict refutation in \lean{Step} $c\;\beta$ (\lean{AU.no\_refutation\_nonstrict}).
+\item For $c>r_7$, there is no non-strict refutation in \lean{LStepX} $c\;1$ (\lean{AU.no\_refutation\_locX\_nonstrict}).
+\end{enumerate}
+Non-vacuity is witnessed by \lean{AU.lv\_refutesNS} at $c=7/5$.
+\end{theorem}
+
+\section{Scope and limitations}\label{sec:scope}
+
+All theorems above are unconditional statements about the formalised rule systems. They do not rule out new complexity-theoretic rules that violate the formal inequalities (for example, fast-forwarding small-space segments below the derived $\tau_0(c)$ floor, or slowdown envelopes with $\beta<1$ in the localized setting, which Theorem~\ref{thm:loc} shows can surpass $r_7$).
+
+\begin{thebibliography}{9}
+\bibitem[BW15]{BW15}
+S.~Buss and R.~Williams, \emph{Limits on alternation-trading proofs for time-space lower bounds}, Computational Complexity \textbf{24} (2015), 533--600.
+
+\bibitem[W13]{W13}
+R.~Williams, \emph{Alternation-trading proofs, linear programming, and lower bounds}, ACM Transactions on Computation Theory \textbf{5} (2013), no.~2, Article~6.
+\end{thebibliography}
+
+\end{document}
