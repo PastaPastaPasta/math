@@ -11,3 +11,5 @@ import PastaMath.SatBarriers
 import PastaMath.SatBarriers.Axioms
 import PastaMath.FastDiag
 import PastaMath.FastDiag.Axioms
+import PastaMath.TwoCutSoS
+import PastaMath.TwoCutSoS.Axioms
